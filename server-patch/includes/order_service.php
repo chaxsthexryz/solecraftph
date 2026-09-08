@@ -60,12 +60,20 @@ function order_create(array $customer, array $cartItems): int
          * products in different sequences cannot deadlock against each other.
          */
         $needed = [];
+        $neededBySize = [];
         foreach ($lines as $line) {
             $needed[$line['product_id']] = ($needed[$line['product_id']] ?? 0) + $line['qty'];
+            $sizeKey = $line['product_id'] . '|' . $line['size'];
+            $neededBySize[$sizeKey] = ($neededBySize[$sizeKey] ?? 0) + $line['qty'];
         }
         ksort($needed);
+        ksort($neededBySize);
 
         $lockStmt = $db->prepare('SELECT name, stock FROM products WHERE id = ? FOR UPDATE');
+        $sizedLock = $db->prepare(
+            'SELECT stock FROM product_sizes WHERE product_id = ? AND size = ? FOR UPDATE'
+        );
+
         foreach ($needed as $productId => $wanted) {
             $lockStmt->execute([$productId]);
             $row = $lockStmt->fetch();
@@ -80,6 +88,31 @@ function order_create(array $customer, array $cartItems): int
                     (int) $row['stock'],
                     $wanted
                 ));
+            }
+
+            // Products converted to per-size stock get the real check: having
+            // fifteen pairs in total is no use if none of them are a US 9. The
+            // product row above is still locked first, which keeps lock ordering
+            // consistent and stops the total drifting from the parts.
+            if (product_has_size_stock((int) $productId)) {
+                foreach ($neededBySize as $key => $qty) {
+                    [$pid, $size] = array_pad(explode('|', (string) $key, 2), 2, '');
+                    if ((int) $pid !== (int) $productId) {
+                        continue;
+                    }
+                    $sizedLock->execute([$productId, $size]);
+                    $have = $sizedLock->fetchColumn();
+
+                    if ($have === false || (int) $have < $qty) {
+                        throw new RuntimeException(sprintf(
+                            '%s in US %s: only %d left, and %d were requested. Please adjust your bag.',
+                            $row['name'],
+                            $size !== '' ? $size : '—',
+                            (int) ($have === false ? 0 : $have),
+                            $qty
+                        ));
+                    }
+                }
             }
         }
 
@@ -111,6 +144,11 @@ function order_create(array $customer, array $cartItems): int
             $subtotal = $line['price'] * $line['qty'];
             $itemStmt->execute([$orderId, $line['product_id'], $line['name'], $line['size'], $line['price'], $line['qty'], $subtotal]);
             product_decrement_stock($line['product_id'], $line['qty']);
+            // Both sides move together, inside the same transaction, so the
+            // total and the per-size rows cannot disagree.
+            if ($line['size'] !== '' && product_has_size_stock($line['product_id'])) {
+                product_decrement_size_stock($line['product_id'], $line['size'], $line['qty']);
+            }
         }
 
         $db->commit();
