@@ -75,6 +75,16 @@ function order_create(array $customer, array $cartItems): int
 
         $db->commit();
 
+        // Confirmation email. After the commit and wrapped in its own try, so a
+        // mail failure can never roll back or fail an order that is already paid
+        // for — the customer's money matters more than their receipt.
+        try {
+            order_send_confirmation_email($orderId, $customer, $lines, $total);
+        } catch (Throwable $mailError) {
+            require_once __DIR__ . '/mail_service.php';
+            mail_log('ORDER   confirmation failed for #' . $orderId . ': ' . $mailError->getMessage());
+        }
+
         // Inventory Management: low-stock alerts, fired after the transaction commits.
         require_once __DIR__ . '/notification_service.php';
         foreach (array_unique(array_column($lines, 'product_id')) as $productId) {
@@ -255,4 +265,66 @@ function order_top_customers(int $limit = 10): array
     $stmt->bindValue(1, $limit, PDO::PARAM_INT);
     $stmt->execute();
     return $stmt->fetchAll();
+}
+
+/**
+ * The "we've got your order" email. Called once, straight after order_create()
+ * commits — see the note there about why failures are swallowed.
+ *
+ * Deliberately does not claim payment has been received: a GCash or Card order
+ * is still unpaid at this point and only PayMongo's webhook can say otherwise.
+ */
+function order_send_confirmation_email(
+    int $orderId,
+    array $customer,
+    array $lines,
+    float $total
+): void {
+    require_once __DIR__ . '/mail_service.php';
+    require_once __DIR__ . '/settings_service.php';
+
+    $email = trim((string) ($customer['email'] ?? ''));
+    if ($email === '') {
+        return;
+    }
+
+    $reference = '#' . str_pad((string) $orderId, 6, '0', STR_PAD_LEFT);
+    $payment   = strtoupper((string) ($customer['payment_method'] ?? 'COD'));
+    $shipping  = settings_shipping_for($total);
+
+    $rows = '';
+    foreach ($lines as $line) {
+        $label = htmlspecialchars($line['name'])
+            . ($line['size'] !== '' ? ' <span style="color:#8A8578;">(US ' . htmlspecialchars($line['size']) . ')</span>' : '')
+            . ' &times; ' . (int) $line['qty'];
+        $rows .= '<tr>'
+            . '<td style="padding:6px 0;border-bottom:1px solid #EDEAE3;">' . $label . '</td>'
+            . '<td style="padding:6px 0;border-bottom:1px solid #EDEAE3;text-align:right;white-space:nowrap;">₱'
+            . number_format($line['price'] * $line['qty'], 2) . '</td>'
+            . '</tr>';
+    }
+
+    $note = ($payment === 'COD')
+        ? 'Pay in cash when your order arrives.'
+        : 'We are confirming your ' . ($payment === 'GCASH' ? 'GCash' : 'card')
+          . ' payment with PayMongo. Your order updates automatically once it clears.';
+
+    mail_send(
+        $email,
+        'Your SoleCraftPH order ' . $reference,
+        '<h1 style="font-size:22px;margin:0 0 12px;">Thanks, we have your order</h1>'
+        . '<p style="margin:0 0 4px;">Order <strong>' . $reference . '</strong></p>'
+        . '<p style="margin:0 0 20px;color:#8A8578;">' . htmlspecialchars($note) . '</p>'
+        . '<table style="width:100%;border-collapse:collapse;font-size:14px;">' . $rows
+        . '<tr><td style="padding:6px 0;">Shipping</td>'
+        . '<td style="padding:6px 0;text-align:right;">'
+        . ($shipping == 0 ? 'Free' : '₱' . number_format($shipping, 2)) . '</td></tr>'
+        . '<tr><td style="padding:10px 0 0;font-weight:600;">Total</td>'
+        . '<td style="padding:10px 0 0;text-align:right;font-weight:600;">₱'
+        . number_format($total + $shipping, 2) . '</td></tr>'
+        . '</table>'
+        . '<p style="margin:20px 0 0;">Delivering to<br><span style="color:#8A8578;">'
+        . nl2br(htmlspecialchars((string) ($customer['address'] ?? ''))) . '</span></p>'
+        . mail_button('View your order', mail_site_url() . '/order_detail.php?id=' . $orderId)
+    );
 }
