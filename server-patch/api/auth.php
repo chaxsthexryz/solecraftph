@@ -160,6 +160,15 @@ if ($action === 'login' && $method === 'POST') {
         auth_api_error('Username and password are required.', 422);
     }
 
+    // Checked before the password is looked at, so a throttled attempt cannot
+    // be used to probe whether an account exists. 429 is the honest status.
+    require_once __DIR__ . '/../includes/login_throttle.php';
+    $wait = login_throttle_delay($username);
+    if ($wait > 0) {
+        header('Retry-After: ' . $wait);
+        auth_api_error(login_throttle_message($wait), 429);
+    }
+
     $stmt = db()->prepare(
         'SELECT id, username, full_name, email, phone, address, password_hash, role, status
            FROM users WHERE username = ? OR email = ? LIMIT 1'
@@ -169,12 +178,15 @@ if ($action === 'login' && $method === 'POST') {
 
     // Same message for "no such user" and "wrong password" — don't leak which.
     if (!$user || !password_verify($password, $user['password_hash'])) {
+        login_attempt_record($username, false);
         auth_api_error('Invalid username or password.', 401);
     }
     if (($user['status'] ?? 'active') === 'suspended') {
+        login_attempt_record($username, false);
         auth_api_error('This account has been suspended.', 403);
     }
 
+    login_attempt_record($username, true);
     $token = auth_api_issue_token((int) $user['id']);
 
     echo json_encode([
