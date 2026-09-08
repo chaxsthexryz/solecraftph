@@ -1,0 +1,424 @@
+<title>SoleCraftPH Mobile Parity</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --ink:#111111;
+    --paper:#FAF9F6;
+    --stone:#EDEAE3;
+    --gray:#8A8578;
+    --blaze:#E2412A;
+
+    --ground:var(--paper);
+    --surface:#FFFFFF;
+    --raised:var(--stone);
+    --text:var(--ink);
+    --muted:var(--gray);
+    --rule:#DEDACF;
+    --rule-strong:#111111;
+    --accent:var(--blaze);
+    --accent-soft:rgba(226,65,42,.10);
+    --ok:#2F6B4F;
+    --ok-soft:rgba(47,107,79,.12);
+    --warn:#8A6A1F;
+    --warn-soft:rgba(138,106,31,.12);
+
+    --display:'Bebas Neue','Haettenschweiler','Arial Narrow',sans-serif;
+    --body:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --mono:'IBM Plex Mono','SFMono-Regular',Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#141310;
+      --surface:#1C1A16;
+      --raised:#26231E;
+      --text:#F2EFE8;
+      --muted:#9A9486;
+      --rule:#302C25;
+      --rule-strong:#F2EFE8;
+      --accent:#F0563C;
+      --accent-soft:rgba(240,86,60,.14);
+      --ok:#6FBF95;
+      --ok-soft:rgba(111,191,149,.14);
+      --warn:#D6AC55;
+      --warn-soft:rgba(214,172,85,.14);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#141310;
+    --surface:#1C1A16;
+    --raised:#26231E;
+    --text:#F2EFE8;
+    --muted:#9A9486;
+    --rule:#302C25;
+    --rule-strong:#F2EFE8;
+    --accent:#F0563C;
+    --accent-soft:rgba(240,86,60,.14);
+    --ok:#6FBF95;
+    --ok-soft:rgba(111,191,149,.14);
+    --warn:#D6AC55;
+    --warn-soft:rgba(214,172,85,.14);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    background:var(--ground);
+    color:var(--text);
+    font-family:var(--body);
+    font-size:15px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:0 24px 96px}
+
+  /* ---- masthead ---- */
+  .mast{border-bottom:2px solid var(--rule-strong);padding:40px 0 20px;margin-bottom:40px}
+  .eyebrow{
+    font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 14px;
+  }
+  h1{
+    font-family:var(--display);font-weight:400;
+    font-size:clamp(48px,9vw,86px);line-height:.92;letter-spacing:.01em;
+    margin:0 0 16px;text-wrap:balance;
+  }
+  .standfirst{font-size:17px;color:var(--muted);max-width:60ch;margin:0}
+  .mast-meta{
+    display:flex;flex-wrap:wrap;gap:8px 24px;margin-top:22px;
+    font-family:var(--mono);font-size:12px;color:var(--muted);
+  }
+  .mast-meta b{color:var(--text);font-weight:500}
+
+  /* ---- sections ---- */
+  section{margin-top:56px}
+  h2{
+    font-family:var(--display);font-weight:400;font-size:32px;line-height:1;
+    letter-spacing:.02em;margin:0 0 6px;
+  }
+  .sec-note{color:var(--muted);font-size:14px;margin:0 0 22px;max-width:62ch}
+  h3{
+    font-family:var(--body);font-size:15px;font-weight:600;
+    margin:28px 0 8px;
+  }
+  p{max-width:66ch}
+  a{color:var(--accent)}
+
+  /* ---- tables ---- */
+  .scroll{overflow-x:auto;border:1px solid var(--rule);background:var(--surface)}
+  table{border-collapse:collapse;width:100%;min-width:560px;font-size:14px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--rule);vertical-align:top}
+  th{
+    font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);background:var(--raised);
+    border-bottom:1px solid var(--rule);white-space:nowrap;
+  }
+  tbody tr:last-child td{border-bottom:none}
+  td.num{font-variant-numeric:tabular-nums;font-family:var(--mono);white-space:nowrap}
+
+  /* ---- status chips ---- */
+  .chip{
+    display:inline-block;font-family:var(--mono);font-size:10.5px;font-weight:500;
+    letter-spacing:.08em;text-transform:uppercase;padding:3px 7px;white-space:nowrap;
+  }
+  .chip--gap{background:var(--accent-soft);color:var(--accent)}
+  .chip--part{background:var(--warn-soft);color:var(--warn)}
+  .chip--ok{background:var(--ok-soft);color:var(--ok)}
+
+  .size{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.06em}
+
+  /* ---- needs list ---- */
+  .needs{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:0}
+  .need{
+    border-bottom:1px solid var(--rule);padding:20px 0;
+    display:grid;grid-template-columns:minmax(0,1fr);gap:6px;
+  }
+  .need:first-child{border-top:1px solid var(--rule)}
+  .need-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px}
+  .need-name{font-weight:600;font-size:16px}
+  .need-why{color:var(--muted);font-size:14px;margin:0}
+  .need dl{
+    margin:8px 0 0;display:grid;grid-template-columns:auto minmax(0,1fr);
+    gap:4px 14px;font-size:13.5px;
+  }
+  .need dt{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--muted);padding-top:3px;
+  }
+  .need dd{margin:0}
+  code{
+    font-family:var(--mono);font-size:12.5px;
+    background:var(--raised);padding:1px 5px;
+  }
+
+  /* ---- callout ---- */
+  .callout{
+    border-left:3px solid var(--accent);background:var(--surface);
+    padding:16px 18px;margin:22px 0;
+  }
+  .callout p{margin:0}
+  .callout p + p{margin-top:10px}
+  .callout-title{
+    font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 6px;
+  }
+
+  /* ---- build order ---- */
+  ol.build{list-style:none;counter-reset:step;padding:0;margin:0}
+  ol.build li{
+    counter-increment:step;border-bottom:1px solid var(--rule);
+    padding:16px 0 16px 52px;position:relative;
+  }
+  ol.build li:first-child{border-top:1px solid var(--rule)}
+  ol.build li::before{
+    content:counter(step,decimal-leading-zero);
+    position:absolute;left:0;top:16px;
+    font-family:var(--mono);font-size:12px;color:var(--accent);letter-spacing:.06em;
+  }
+  ol.build b{font-weight:600}
+  ol.build span{display:block;color:var(--muted);font-size:14px;margin-top:2px}
+
+  footer{
+    margin-top:64px;padding-top:20px;border-top:1px solid var(--rule);
+    font-family:var(--mono);font-size:12px;color:var(--muted);
+  }
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  @media (max-width:600px){
+    .wrap{padding:0 18px 64px}
+    .need dl{grid-template-columns:minmax(0,1fr);gap:2px}
+    .need dt{padding-top:8px}
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="mast">
+    <p class="eyebrow">SoleCraftPH · requirements, not yet built</p>
+    <h1>Mobile Parity</h1>
+    <p class="standfirst">What the Android app still needs to match the customer side of the website — and what has to exist on the server before each piece can be built.</p>
+    <div class="mast-meta">
+      <span>Drawn up <b>8 Sep 2026</b></span>
+      <span>App <b>10 screens</b></span>
+      <span>Web customer pages <b>15</b></span>
+      <span>Mobile API endpoints <b>5 of 13</b></span>
+    </div>
+  </header>
+
+  <section>
+    <h2>Where parity stands</h2>
+    <p class="sec-note">Every row checked against the deployed site and the FlutterFlow project, not from memory.</p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Customer capability</th><th>Website</th><th>App</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Browse catalogue</td><td>index.php</td><td>Shop</td><td><span class="chip chip--part">Partial</span></td></tr>
+          <tr><td>Product detail</td><td>product.php</td><td>ShoeDetails</td><td><span class="chip chip--part">Partial</span></td></tr>
+          <tr><td>Cart</td><td>cart.php</td><td>Bag</td><td><span class="chip chip--part">Partial</span></td></tr>
+          <tr><td>Checkout &amp; payment</td><td>checkout.php</td><td>Checkout → Payment</td><td><span class="chip chip--ok">Done</span></td></tr>
+          <tr><td>Sign in / register</td><td>login.php, register.php</td><td>SignIn, Register</td><td><span class="chip chip--ok">Done</span></td></tr>
+          <tr><td>Order history</td><td>orders.php</td><td>MyOrders</td><td><span class="chip chip--part">Partial</span></td></tr>
+          <tr><td>Order detail &amp; tracking</td><td>order_detail.php</td><td>—</td><td><span class="chip chip--gap">Missing</span></td></tr>
+          <tr><td>Request a return</td><td>order_detail.php</td><td>—</td><td><span class="chip chip--gap">Missing</span></td></tr>
+          <tr><td>Wishlist</td><td>wishlist.php</td><td>—</td><td><span class="chip chip--gap">Missing</span></td></tr>
+          <tr><td>Reviews &amp; ratings</td><td>product.php</td><td>—</td><td><span class="chip chip--gap">Missing</span></td></tr>
+          <tr><td>Notifications</td><td>notifications.php</td><td>—</td><td><span class="chip chip--gap">Missing</span></td></tr>
+          <tr><td>Edit profile / password</td><td>profile.php</td><td>—</td><td><span class="chip chip--gap">Missing</span></td></tr>
+          <tr><td>Contact support</td><td>contact.php</td><td>—</td><td><span class="chip chip--gap">Missing</span></td></tr>
+          <tr><td>About / FAQ / Privacy</td><td>page.php</td><td>—</td><td><span class="chip chip--gap">Missing</span></td></tr>
+          <tr><td>Payment finished screen</td><td>order_success.php</td><td>lands on the website</td><td><span class="chip chip--gap">Missing</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>New screens</h2>
+    <p class="sec-note">Seven screens, ordered by how much they hurt to be without. Each names the server work it depends on.</p>
+
+    <ul class="needs">
+
+      <li class="need">
+        <div class="need-head"><span class="need-name">Payment Result</span><span class="size">S · no new API</span></div>
+        <p class="need-why">Finishing a GCash payment currently drops the customer onto the website's <code>order_success.php</code> inside the WebView. It works, but it reads like the app handed them off to a browser.</p>
+        <dl>
+          <dt>Needs</dt><dd>A screen the WebView lands on that says the payment went through and returns to Confirmed. Three ways to get there: point <code>success_url</code> at a slim mobile-styled <code>payment_return.php</code>; or have Confirmed re-poll <code>GetOrder</code> until <code>payment_status</code> flips; or a deep link back into the app.</dd>
+          <dt>Note</dt><dd>Purely presentational — the webhook already settles the order correctly on its own.</dd>
+        </dl>
+      </li>
+
+      <li class="need">
+        <div class="need-head"><span class="need-name">Order Detail</span><span class="size">M · needs API work</span></div>
+        <p class="need-why">MyOrders lists orders but nothing opens. Tapping an order is the single most obvious missing interaction in the app.</p>
+        <dl>
+          <dt>Shows</dt><dd>Items with size, quantity and unit price; status timeline from <code>order_status_log</code>; tracking number; payment method and paid/unpaid; delivery address.</dd>
+          <dt>Server</dt><dd><code>GET /api/orders.php?id=</code> already returns items and now requires a token. The status timeline is not exposed yet — <code>order_status_history()</code> exists in <code>order_service.php</code> but nothing returns it over the API.</dd>
+        </dl>
+      </li>
+
+      <li class="need">
+        <div class="need-head"><span class="need-name">Notifications</span><span class="size">M · needs new API</span></div>
+        <p class="need-why">Order-status messages are already written to the <code>notifications</code> table every time an order changes state — including from the app. Customers just can't read them on a phone.</p>
+        <dl>
+          <dt>Shows</dt><dd>List with unread state, mark-all-read, unread badge on the Account tab.</dd>
+          <dt>Server</dt><dd>New <code>api/notifications.php</code> — list, unread count, mark read. The service layer (<code>notification_service.php</code>) is done; only the endpoint is missing.</dd>
+          <dt>Later</dt><dd>Real push (banner when the app is closed) is a separate job: Firebase, a <code>device_tokens</code> table, and a send on status change. This screen is worth having first and works without it.</dd>
+        </dl>
+      </li>
+
+      <li class="need">
+        <div class="need-head"><span class="need-name">Wishlist</span><span class="size">M · needs new API</span></div>
+        <p class="need-why">The website has a wishlist in the main nav and a heart on every product. The app has neither, so a customer's saved items vanish when they pick up their phone.</p>
+        <dl>
+          <dt>Shows</dt><dd>Saved products grid, remove, add-to-bag from the list, plus a heart toggle on ShoeDetails.</dd>
+          <dt>Server</dt><dd>New <code>api/wishlist.php</code> — list and toggle, bearer-authed. Table and service layer already exist.</dd>
+        </dl>
+      </li>
+
+      <li class="need">
+        <div class="need-head"><span class="need-name">Profile</span><span class="size">M · needs new API</span></div>
+        <p class="need-why">Account shows a name and a sign-out button. Nothing can be edited, so a customer who moves house has to open the website.</p>
+        <dl>
+          <dt>Shows</dt><dd>Edit full name, phone, delivery address. Change password with current-password confirmation.</dd>
+          <dt>Server</dt><dd>New <code>api/profile.php</code>. <code>auth_update_profile()</code>, <code>auth_change_password()</code> and <code>auth_verify_password()</code> all exist already.</dd>
+          <dt>Bonus</dt><dd>A saved address makes Checkout prefill properly, which is the slowest part of ordering on a phone.</dd>
+        </dl>
+      </li>
+
+      <li class="need">
+        <div class="need-head"><span class="need-name">Reviews</span><span class="size">L · needs new API</span></div>
+        <p class="need-why">The website shows a star average, a review count and the full list on every product, and lets buyers write one. This is the biggest single content gap between the two.</p>
+        <dl>
+          <dt>Shows</dt><dd>Rating summary and review list on ShoeDetails; a write-review form for customers who bought the item.</dd>
+          <dt>Server</dt><dd>New <code>api/reviews.php</code> — list by product, submit. <code>review_service.php</code> exists.</dd>
+        </dl>
+      </li>
+
+      <li class="need">
+        <div class="need-head"><span class="need-name">Help &amp; Info</span><span class="size">S · needs new API</span></div>
+        <p class="need-why">Contact support and the About / FAQ / Privacy pages. Low glamour, but an app store listing generally expects a privacy policy reachable in-app.</p>
+        <dl>
+          <dt>Shows</dt><dd>Contact form (name, email, subject, message) and CMS pages by slug.</dd>
+          <dt>Server</dt><dd>New <code>api/contact.php</code> and <code>api/pages.php</code>. Both services exist; <code>cms_pages</code> already holds about, faq and privacy.</dd>
+        </dl>
+      </li>
+
+    </ul>
+  </section>
+
+  <section>
+    <h2>Gaps on screens that already exist</h2>
+    <p class="sec-note">Smaller than a new screen, and several are things a customer would call bugs.</p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Screen</th><th>What's missing</th><th>Size</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Bag</td>
+            <td><b>No quantity controls.</b> You can remove a line but not change it from 2 to 1 — the website can. Wants <code>+</code>/<code>−</code> wired to <code>?action=update</code>.</td>
+            <td class="num">S</td>
+          </tr>
+          <tr>
+            <td>Shop</td>
+            <td>Category chips are three hardcoded values; the website reads categories from the database. No promotional banners, no sort, no empty-result state for a search that finds nothing.</td>
+            <td class="num">M</td>
+          </tr>
+          <tr>
+            <td>ShoeDetails</td>
+            <td>No related products, no wishlist heart, no rating summary. Stock is shown but never blocks adding more than exist.</td>
+            <td class="num">M</td>
+          </tr>
+          <tr>
+            <td>MyOrders</td>
+            <td>No tap-through to an order. No filter by status.</td>
+            <td class="num">S</td>
+          </tr>
+          <tr>
+            <td>Account</td>
+            <td>No entries for Wishlist, Notifications or Profile — the website's account sub-nav has all four.</td>
+            <td class="num">S</td>
+          </tr>
+          <tr>
+            <td>Checkout</td>
+            <td>Payment methods are three hardcoded buttons. The website reads which are enabled from <code>settings</code>, so switching GCash off in admin would not switch it off in the app.</td>
+            <td class="num">S</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>The button problem</h2>
+    <p class="sec-note">You noticed this and it is real. Measured across the generated code:</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Property</th><th>Distinct values in use</th></tr></thead>
+        <tbody>
+          <tr><td>Button height</td><td class="num">48 · 50 · 52 · 56 · 64</td></tr>
+          <tr><td>Corner radius</td><td class="num">6 · 8 · 10 · 12</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Five heights and four radii, chosen ad hoc per screen. Nothing is broken, but taps land on targets of different sizes and corners don't rhyme, which is exactly the "not consistent" feeling.</p>
+
+    <div class="callout">
+      <p class="callout-title">What to settle on</p>
+      <p>One primary height (<b>52</b>), one secondary (<b>44</b>), one radius (<b>12</b>), one icon-button size (<b>40</b>). Then a shared Button component with a variant parameter, so a future change is one edit rather than thirteen.</p>
+      <p>Alongside it: consistent loading, empty and error states. Several screens have none — a failed request currently shows a blank list rather than saying anything went wrong.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Server work behind all of this</h2>
+    <p class="sec-note">Five of thirteen mobile endpoints exist. Eight are new, and they are the gate on most of the screens above.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Endpoint</th><th>Serves</th><th>State</th></tr></thead>
+        <tbody>
+          <tr><td><code>api/auth.php</code></td><td>Sign in, register, me, logout</td><td><span class="chip chip--ok">Live</span></td></tr>
+          <tr><td><code>api/products.php</code></td><td>Catalogue, product detail</td><td><span class="chip chip--ok">Live</span></td></tr>
+          <tr><td><code>api/cart.php</code></td><td>Shared cart</td><td><span class="chip chip--ok">Live</span></td></tr>
+          <tr><td><code>api/orders.php</code></td><td>Create order, read order</td><td><span class="chip chip--ok">Live</span></td></tr>
+          <tr><td><code>api/my_orders.php</code></td><td>Order history</td><td><span class="chip chip--ok">Live</span></td></tr>
+          <tr><td><code>api/notifications.php</code></td><td>Notifications screen</td><td><span class="chip chip--gap">New</span></td></tr>
+          <tr><td><code>api/wishlist.php</code></td><td>Wishlist screen, product heart</td><td><span class="chip chip--gap">New</span></td></tr>
+          <tr><td><code>api/reviews.php</code></td><td>Reviews on ShoeDetails</td><td><span class="chip chip--gap">New</span></td></tr>
+          <tr><td><code>api/profile.php</code></td><td>Profile screen</td><td><span class="chip chip--gap">New</span></td></tr>
+          <tr><td><code>api/contact.php</code></td><td>Contact form</td><td><span class="chip chip--gap">New</span></td></tr>
+          <tr><td><code>api/pages.php</code></td><td>About / FAQ / Privacy</td><td><span class="chip chip--gap">New</span></td></tr>
+          <tr><td><code>api/banners.php</code></td><td>Shop banners</td><td><span class="chip chip--gap">New</span></td></tr>
+          <tr><td><code>api/returns.php</code></td><td>Return request</td><td><span class="chip chip--gap">New</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <p class="callout-title">Half of this is already written</p>
+      <p>The <code>api/</code> folder in your flutter workspace holds unreleased drafts of <code>wishlist.php</code>, <code>contact.php</code>, <code>pages.php</code>, <code>banners.php</code>, <code>profile/update.php</code>, <code>products/reviews.php</code> and <code>products/review.php</code>. None was ever deployed.</p>
+      <p>They can't be uploaded as-is: they wrap responses in a <code>{success, data, message}</code> envelope, while the live API returns flat JSON and the app's structs are bound to the flat shape. Reworking them is still far less work than writing from scratch — the queries and validation are done.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Suggested order</h2>
+    <p class="sec-note">Sequenced so each step ships something usable, cheapest and most visible first.</p>
+    <ol class="build">
+      <li><b>Design system pass</b><span>One button spec, one radius, shared component, loading and empty states. Touches every screen, so doing it first stops the new screens from adding to the inconsistency.</span></li>
+      <li><b>Payment Result + Bag quantity</b><span>Two small fixes closing the two roughest edges in a flow customers already use.</span></li>
+      <li><b>Order Detail</b><span>The clearest missing interaction. Needs the status timeline exposed over the API.</span></li>
+      <li><b>Profile + Account entries</b><span>Unblocks address editing, which makes checkout faster.</span></li>
+      <li><b>Notifications</b><span>The data is already being written on every order change; only the endpoint and screen are missing.</span></li>
+      <li><b>Wishlist</b><span>Cross-device saving, same shape as the cart sync already built.</span></li>
+      <li><b>Reviews</b><span>Largest content gap and the largest job — worth doing once everything around it is stable.</span></li>
+      <li><b>Help &amp; Info</b><span>Contact and CMS pages. Small, and a privacy policy is usually expected for a store listing.</span></li>
+    </ol>
+  </section>
+
+  <footer>
+    Compiled from the deployed site at snow-jellyfish-553645.hostingersite.com and FlutterFlow project solecraftfinal-egt61q · nothing here is built yet
+  </footer>
+
+</div>

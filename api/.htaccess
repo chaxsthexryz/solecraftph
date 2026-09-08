@@ -1,0 +1,13 @@
+# Ensure the Authorization header reaches PHP on Hostinger/Apache (CGI/FastCGI
+# often strips it). Both directives are harmless if already handled upstream.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTP:Authorization} ^(.+)$
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%1]
+</IfModule>
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+
+# Never serve the bootstrap or config directly as a "page".
+<Files "bootstrap.php">
+    Require all denied
+</Files>
