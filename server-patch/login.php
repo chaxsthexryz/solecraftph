@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/config/app.php';
 require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/login_throttle.php';
 
 if (auth_is_logged_in()) {
     header('Location: ' . BASE_PATH . '/index.php');
@@ -12,12 +13,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
 
-    if (auth_attempt_login($username, $password)) {
-        $redirect = $_POST['redirect'] ?? (BASE_PATH . '/index.php');
-        header('Location: ' . $redirect);
-        exit;
+    // Refused before the password is even looked at, so a throttled attempt
+    // cannot be used to probe whether an account exists.
+    $wait = login_throttle_delay($username);
+    if ($wait > 0) {
+        $error = login_throttle_message($wait);
+    } else {
+        $ok = auth_attempt_login($username, $password);
+        login_attempt_record($username, $ok);
+        if ($ok) {
+            $redirect = $_POST['redirect'] ?? (BASE_PATH . '/index.php');
+            header('Location: ' . $redirect);
+            exit;
+        }
+        $error = 'Invalid username or password.';
     }
-    $error = 'Invalid username or password.';
 }
 
 $redirectTo = $_GET['redirect'] ?? (BASE_PATH . '/index.php');

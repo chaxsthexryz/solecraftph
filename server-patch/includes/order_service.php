@@ -43,6 +43,46 @@ function order_create(array $customer, array $cartItems): int
     $db = db();
     $db->beginTransaction();
     try {
+        /*
+         * Lock the product rows and check stock BEFORE writing anything.
+         *
+         * Without this, two people buying the last pair at the same moment both
+         * succeed: each reads stock=1, each decrements, and GREATEST(...,0)
+         * quietly floors the result at zero so nothing ever looks wrong. One of
+         * them gets a confirmation for a shoe that does not exist.
+         *
+         * SELECT ... FOR UPDATE makes the second transaction wait until the
+         * first commits, so it sees stock=0 and is refused.
+         *
+         * Quantities are summed per product first — the same shoe in two sizes
+         * is two lines but one pool of stock — and the rows are locked in
+         * ascending id order so two concurrent orders containing the same
+         * products in different sequences cannot deadlock against each other.
+         */
+        $needed = [];
+        foreach ($lines as $line) {
+            $needed[$line['product_id']] = ($needed[$line['product_id']] ?? 0) + $line['qty'];
+        }
+        ksort($needed);
+
+        $lockStmt = $db->prepare('SELECT name, stock FROM products WHERE id = ? FOR UPDATE');
+        foreach ($needed as $productId => $wanted) {
+            $lockStmt->execute([$productId]);
+            $row = $lockStmt->fetch();
+
+            if (!$row) {
+                throw new InvalidArgumentException('Product #' . $productId . ' is no longer available.');
+            }
+            if ((int) $row['stock'] < $wanted) {
+                throw new RuntimeException(sprintf(
+                    '%s: only %d left, and %d were requested. Please adjust your bag.',
+                    $row['name'],
+                    (int) $row['stock'],
+                    $wanted
+                ));
+            }
+        }
+
         $total = 0.0;
         foreach ($lines as $line) {
             $total += $line['price'] * $line['qty'];
