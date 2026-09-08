@@ -5,6 +5,7 @@
 **/config/paymongo_keys.php
 **/config/db.php
 **/config/jwt.php
+**/config/mail.php
 .env
 *.env
 
