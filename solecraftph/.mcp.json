@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "flutterflow_ai": {
+      "type": "stdio",
+      "command": "C:\\Users\\jbbal\\flutter\\bin\\cache\\dart-sdk\\bin\\dart.exe",
+      "args": [
+        "C:\\Users\\jbbal\\OneDrive\\Desktop\\flutter workspace\\solecraftph\\.flutterflow/sdk/flutterflow_ai\\mcp\\server.dill",
+        "--dir",
+        "C:\\Users\\jbbal\\OneDrive\\Desktop\\flutter workspace\\solecraftph"
+      ],
+      "env": {}
+    }
+  }
+}

@@ -1,0 +1,767 @@
+<title>SoleCraftPH Mobile Build Plan</title>
+<style>
+  :root {
+    --paper: #F7F5F0;
+    --surface: #FFFFFF;
+    --surface-2: #F1EEE7;
+    --ink: #20201C;
+    --ink-soft: #55524A;
+    --muted: #86827A;
+    --line: #E2DED4;
+    --line-strong: #D2CDBF;
+    --accent: #E1541B;
+    --accent-soft: #FBE7DC;
+    --get: #1F8A54;
+    --get-bg: #E4F3EA;
+    --post: #2563C9;
+    --post-bg: #E4EDFB;
+    --auth: #B9791A;
+    --auth-bg: #F8EED6;
+    --code-bg: #201F1B;
+    --code-ink: #EDE9DF;
+    --code-line: #35332B;
+    --radius: 10px;
+    --maxw: 1180px;
+    --read: 74ch;
+    --font-display: "Archivo", system-ui, sans-serif;
+    --font-body: "IBM Plex Sans", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #17171A;
+      --surface: #1F1F23;
+      --surface-2: #26262B;
+      --ink: #ECE9E2;
+      --ink-soft: #B8B4AB;
+      --muted: #8C887F;
+      --line: #313136;
+      --line-strong: #3E3E44;
+      --accent: #FF6A38;
+      --accent-soft: #3A241A;
+      --get: #4FBE85;
+      --get-bg: #163324;
+      --post: #6BA0F5;
+      --post-bg: #17273f;
+      --auth: #E0A94A;
+      --auth-bg: #362a13;
+      --code-bg: #101014;
+      --code-ink: #E4E1D8;
+      --code-line: #2A2A30;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #17171A;
+    --surface: #1F1F23;
+    --surface-2: #26262B;
+    --ink: #ECE9E2;
+    --ink-soft: #B8B4AB;
+    --muted: #8C887F;
+    --line: #313136;
+    --line-strong: #3E3E44;
+    --accent: #FF6A38;
+    --accent-soft: #3A241A;
+    --get: #4FBE85;
+    --get-bg: #163324;
+    --post: #6BA0F5;
+    --post-bg: #17273f;
+    --auth: #E0A94A;
+    --auth-bg: #362a13;
+    --code-bg: #101014;
+    --code-ink: #E4E1D8;
+    --code-line: #2A2A30;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { transition: none !important; }
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ---- Top bar ---- */
+  header.topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: color-mix(in srgb, var(--paper) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .topbar-inner {
+    max-width: var(--maxw); margin: 0 auto;
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 24px;
+  }
+  .logo {
+    font-family: var(--font-display); font-weight: 800;
+    font-size: 18px; letter-spacing: -.02em;
+    display: flex; align-items: center; gap: 9px;
+  }
+  .logo .mark {
+    width: 26px; height: 26px; border-radius: 7px;
+    background: var(--accent); color: #fff;
+    display: grid; place-items: center; font-size: 15px;
+  }
+  .logo small {
+    font-family: var(--font-mono); font-weight: 500;
+    font-size: 11px; color: var(--muted); letter-spacing: 0;
+  }
+  .topbar .spacer { flex: 1; }
+  .pill-link {
+    font-family: var(--font-mono); font-size: 12px;
+    color: var(--ink-soft); padding: 5px 11px;
+    border: 1px solid var(--line-strong); border-radius: 999px;
+  }
+  .pill-link:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+
+  /* ---- Shell ---- */
+  .shell {
+    max-width: var(--maxw); margin: 0 auto;
+    display: grid; grid-template-columns: 244px 1fr; gap: 40px;
+    padding: 40px 24px 100px;
+  }
+  nav.toc {
+    position: sticky; top: 78px; align-self: start;
+    max-height: calc(100vh - 100px); overflow-y: auto;
+    font-size: 13.5px;
+  }
+  nav.toc .toc-group { margin-bottom: 20px; }
+  nav.toc .toc-label {
+    font-family: var(--font-mono); text-transform: uppercase;
+    font-size: 10.5px; letter-spacing: .13em; color: var(--muted);
+    margin: 0 0 8px;
+  }
+  nav.toc a {
+    display: block; color: var(--ink-soft);
+    padding: 3px 0 3px 12px; border-left: 2px solid var(--line);
+    line-height: 1.35;
+  }
+  nav.toc a:hover { color: var(--accent); border-left-color: var(--accent); text-decoration: none; }
+
+  main { min-width: 0; }
+
+  /* ---- Hero ---- */
+  .hero { margin-bottom: 8px; }
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 12px;
+    text-transform: uppercase; letter-spacing: .16em;
+    color: var(--accent); margin: 0 0 14px;
+  }
+  h1 {
+    font-family: var(--font-display); font-weight: 800;
+    font-size: clamp(30px, 4.6vw, 46px); line-height: 1.04;
+    letter-spacing: -.025em; margin: 0 0 16px; text-wrap: balance;
+  }
+  .lede { font-size: 18px; color: var(--ink-soft); max-width: var(--read); margin: 0; }
+  .stat-row {
+    display: flex; flex-wrap: wrap; gap: 10px; margin: 26px 0 8px;
+  }
+  .stat {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 12px 16px; min-width: 118px;
+  }
+  .stat .n { font-family: var(--font-display); font-weight: 700; font-size: 22px; }
+  .stat .l { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+
+  /* ---- Sections ---- */
+  section { margin-top: 54px; scroll-margin-top: 84px; }
+  section > h2 {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: 26px; letter-spacing: -.02em; margin: 0 0 6px;
+    display: flex; align-items: baseline; gap: 12px;
+  }
+  section > h2 .idx {
+    font-family: var(--font-mono); font-size: 13px; font-weight: 500;
+    color: var(--accent); border: 1px solid var(--accent);
+    border-radius: 6px; padding: 1px 7px; flex: none;
+  }
+  section > .sub { color: var(--ink-soft); margin: 0 0 22px; max-width: var(--read); }
+  h3 {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: 18px; letter-spacing: -.01em; margin: 30px 0 10px;
+  }
+  p { max-width: var(--read); }
+  ul, ol { max-width: var(--read); padding-left: 20px; }
+  li { margin: 4px 0; }
+  li::marker { color: var(--muted); }
+
+  /* ---- Chips ---- */
+  .chip {
+    display: inline-block; font-family: var(--font-mono);
+    font-size: 11px; font-weight: 600; letter-spacing: .04em;
+    padding: 2px 7px; border-radius: 5px; vertical-align: middle;
+  }
+  .chip.get { color: var(--get); background: var(--get-bg); }
+  .chip.post { color: var(--post); background: var(--post-bg); }
+  .chip.auth { color: var(--auth); background: var(--auth-bg); }
+  .chip.state { color: var(--accent); background: var(--accent-soft); }
+
+  /* ---- Tables ---- */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); margin: 18px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { text-align: left; padding: 9px 13px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th {
+    background: var(--surface-2); font-family: var(--font-mono);
+    font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--ink-soft); font-weight: 600; white-space: nowrap;
+  }
+  tr:last-child td { border-bottom: none; }
+  td code, td .path { font-family: var(--font-mono); font-size: 12.5px; }
+  .path { color: var(--ink); }
+  td .muted { color: var(--muted); }
+  tbody tr:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+  .nowrap { white-space: nowrap; }
+
+  /* ---- Code ---- */
+  pre {
+    background: var(--code-bg); color: var(--code-ink);
+    border: 1px solid var(--code-line); border-radius: var(--radius);
+    padding: 16px 18px; overflow-x: auto; font-family: var(--font-mono);
+    font-size: 13px; line-height: 1.55; margin: 16px 0;
+  }
+  pre .k { color: #E0A94A; }
+  pre .s { color: #7FC89A; }
+  pre .c { color: #7C7A70; }
+  code.inline {
+    font-family: var(--font-mono); font-size: .88em;
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: 5px; padding: 1px 5px;
+  }
+
+  /* ---- Cards ---- */
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 22px 24px; margin: 16px 0;
+  }
+  .screen {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); margin: 18px 0; overflow: hidden;
+  }
+  .screen-head {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 22px; border-bottom: 1px solid var(--line);
+    background: var(--surface-2);
+  }
+  .screen-head .num {
+    font-family: var(--font-display); font-weight: 800; font-size: 15px;
+    width: 30px; height: 30px; border-radius: 8px; flex: none;
+    background: var(--ink); color: var(--paper);
+    display: grid; place-items: center;
+  }
+  .screen-head h3 { margin: 0; font-size: 17px; }
+  .screen-head .apis { margin-left: auto; display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
+  .screen-body { padding: 18px 22px 22px; }
+  .screen-body h4 {
+    font-family: var(--font-mono); font-size: 11px; text-transform: uppercase;
+    letter-spacing: .1em; color: var(--muted); margin: 16px 0 7px;
+  }
+  .screen-body h4:first-child { margin-top: 0; }
+  .screen-body ul { margin: 0; }
+
+  .callout {
+    border-left: 3px solid var(--accent); background: var(--accent-soft);
+    padding: 13px 18px; border-radius: 0 var(--radius) var(--radius) 0;
+    margin: 18px 0; font-size: 14.5px; color: var(--ink);
+  }
+  .callout strong { color: var(--accent); }
+
+  .checklist { list-style: none; padding-left: 0; }
+  .checklist li { padding-left: 30px; position: relative; margin: 8px 0; }
+  .checklist li::before {
+    content: ""; position: absolute; left: 0; top: 4px;
+    width: 17px; height: 17px; border: 2px solid var(--line-strong);
+    border-radius: 5px;
+  }
+  .checklist li::marker { content: none; }
+  .step-n { font-family: var(--font-mono); color: var(--accent); font-weight: 600; }
+
+  footer.foot {
+    max-width: var(--maxw); margin: 0 auto; padding: 30px 24px 60px;
+    border-top: 1px solid var(--line); color: var(--muted);
+    font-size: 13px; font-family: var(--font-mono);
+  }
+
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; gap: 0; }
+    nav.toc { display: none; }
+  }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="logo">
+      <span class="mark">👟</span>
+      <span>SoleCraftPH <small>/ mobile build plan</small></span>
+    </div>
+    <span class="spacer"></span>
+    <a class="pill-link" href="#api-reference">API reference</a>
+    <a class="pill-link" href="#screens">Screens</a>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="toc">
+    <div class="toc-group">
+      <p class="toc-label">Backend</p>
+      <a href="#deploy">1 · Deploy the API</a>
+      <a href="#smoke">2 · Smoke-test</a>
+    </div>
+    <div class="toc-group">
+      <p class="toc-label">FlutterFlow setup</p>
+      <a href="#base">3 · API base + auth header</a>
+      <a href="#appstate">4 · App State &amp; data types</a>
+      <a href="#api-reference">5 · API Call reference</a>
+      <a href="#json">6 · JSON paths &amp; images</a>
+    </div>
+    <div class="toc-group">
+      <p class="toc-label">Screens</p>
+      <a href="#screens">7 · The nine screens</a>
+    </div>
+    <div class="toc-group">
+      <p class="toc-label">Wrap-up</p>
+      <a href="#order">8 · Recommended build order</a>
+    </div>
+  </nav>
+
+  <main>
+    <div class="hero">
+      <p class="eyebrow">PHP REST API · FlutterFlow client</p>
+      <h1>SoleCraftPH Mobile — API &amp; App Build Plan</h1>
+      <p class="lede">Everything to ship the mobile app: 18 PHP endpoints wired to your existing MySQL,
+        then a screen-by-screen FlutterFlow plan — API Calls, App State, and widget bindings — matched to the
+        live store's minimal look, three categories, and New / Sale / Best Seller badges.</p>
+      <div class="stat-row">
+        <div class="stat"><div class="n">18</div><div class="l">endpoints</div></div>
+        <div class="stat"><div class="n">9</div><div class="l">screens</div></div>
+        <div class="stat"><div class="n">Bearer</div><div class="l">30-day token</div></div>
+        <div class="stat"><div class="n">0</div><div class="l">schema changes*</div></div>
+      </div>
+      <p style="font-size:13px;color:var(--muted);margin-top:10px;">*Only the additive <code class="inline">api_tokens</code> table is created; no existing table is touched.</p>
+    </div>
+
+    <!-- 1 DEPLOY -->
+    <section id="deploy">
+      <h2><span class="idx">01</span> Deploy the API</h2>
+      <p class="sub">Upload the <code class="inline">/api/</code> folder to your site root via Hostinger File Manager or FTP,
+        so it resolves at <code class="inline">https://snow-jellyfish-553645.hostingersite.com/api/</code>.</p>
+
+      <h3>Folder layout to upload</h3>
+      <pre><span class="c"># site root (public_html) — your existing files stay untouched</span>
+config/db.php            <span class="c">← already exists; the API reuses it</span>
+api/
+├─ .htaccess             <span class="c">passes the Authorization header through</span>
+├─ bootstrap.php         <span class="c">CORS · JSON envelope · PDO · auth (shared)</span>
+├─ index.php             <span class="c">GET — lists endpoints (deploy check)</span>
+├─ products.php
+├─ categories.php
+├─ banners.php
+├─ pages.php
+├─ checkout.php
+├─ orders.php
+├─ wishlist.php
+├─ profile.php
+├─ contact.php
+├─ auth/       → register.php · login.php · logout.php
+├─ products/   → detail.php · reviews.php · review.php
+├─ orders/     → detail.php
+├─ wishlist/   → toggle.php
+└─ profile/    → update.php</pre>
+
+      <div class="callout">
+        <strong>One-time SQL:</strong> run the additive <code class="inline">CREATE TABLE IF NOT EXISTS api_tokens</code>
+        statement (from the brief) once in phpMyAdmin. It creates the token store and touches nothing else.
+      </div>
+
+      <h3>The db.php contract</h3>
+      <p><code class="inline">bootstrap.php</code> does <code class="inline">require '../config/db.php'</code> and expects a
+        connected PDO handle. It auto-detects a variable named <code class="inline">$pdo</code>, <code class="inline">$conn</code>,
+        <code class="inline">$db</code>, or <code class="inline">$dbh</code> — so if your existing file already builds a PDO under
+        any of those names, there is nothing to change. Compare against <code class="inline">config.sample.php</code> if unsure
+        (that sample is a reference only — do not upload it).</p>
+    </section>
+
+    <!-- 2 SMOKE -->
+    <section id="smoke">
+      <h2><span class="idx">02</span> Smoke-test before touching FlutterFlow</h2>
+      <p class="sub">Confirm the deploy from a browser and terminal so app-side debugging never chases a server bug.</p>
+      <p>Open <a href="https://snow-jellyfish-553645.hostingersite.com/api/">/api/</a> — you should get the endpoint list
+        wrapped in the standard envelope. Then check a real query and a protected route:</p>
+      <pre><span class="c"># public — should return products</span>
+curl "https://snow-jellyfish-553645.hostingersite.com/api/products.php?per_page=3"
+
+<span class="c"># auth — register, capture the token</span>
+curl -X POST https://snow-jellyfish-553645.hostingersite.com/api/auth/login.php \
+  -H "Content-Type: application/json" \
+  -d '{"login":"you@example.com","password":"secret"}'
+
+<span class="c"># protected — pass the token back</span>
+curl https://snow-jellyfish-553645.hostingersite.com/api/profile.php \
+  -H "Authorization: Bearer &lt;token-from-login&gt;"</pre>
+      <p>Every response follows one shape — bind to it once and reuse everywhere:</p>
+      <pre>{
+  <span class="k">"success"</span>: <span class="k">true</span>,
+  <span class="k">"data"</span>: { <span class="c">/* payload, or null */</span> },
+  <span class="k">"message"</span>: <span class="s">"Login successful."</span>
+}</pre>
+    </section>
+
+    <!-- 3 BASE -->
+    <section id="base">
+      <h2><span class="idx">03</span> FlutterFlow: API base + the auth header</h2>
+      <p class="sub">In <strong>Integrations → API Calls</strong>, create one <em>API Group</em> so every call shares a base URL and the token header.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Setting</th><th>Value</th></tr></thead>
+        <tbody>
+          <tr><td>Group name</td><td><code>SoleCraftAPI</code></td></tr>
+          <tr><td>Base URL</td><td><span class="path">https://snow-jellyfish-553645.hostingersite.com/api</span></td></tr>
+          <tr><td>Group header 1</td><td><code>Content-Type: application/json</code></td></tr>
+          <tr><td>Group header 2 <span class="muted">(private / optional value)</span></td><td><code>Authorization: Bearer [authToken]</code></td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout">
+        Add <code class="inline">Authorization: Bearer [authToken]</code> as a <strong>Group-level header</strong> whose value
+        is the App State variable <code class="inline">authToken</code>. Every call in the group inherits it; public calls simply
+        send an empty bearer, which the API ignores. This is the single most important wiring step — get it right once and every
+        protected screen just works.
+      </div>
+    </section>
+
+    <!-- 4 APP STATE -->
+    <section id="appstate">
+      <h2><span class="idx">04</span> App State &amp; custom Data Types</h2>
+      <p class="sub">Auth token and cart live in App State. Mark the token <strong>Persisted</strong> so sessions survive an app restart.</p>
+
+      <h3>App State variables</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Name</th><th>Type</th><th>Persisted</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>authToken</code></td><td>String</td><td class="nowrap">✅ Yes</td><td>Bearer token; empty string = logged out.</td></tr>
+          <tr><td><code>isLoggedIn</code></td><td>Boolean</td><td class="nowrap">✅ Yes</td><td>Quick guard for conditional visibility / redirects.</td></tr>
+          <tr><td><code>userId</code></td><td>Integer</td><td class="nowrap">✅ Yes</td><td>From <code>data.user.id</code> at login.</td></tr>
+          <tr><td><code>userName</code></td><td>String</td><td class="nowrap">✅ Yes</td><td>Greeting + checkout prefill.</td></tr>
+          <tr><td><code>userEmail</code> / <code>userPhone</code> / <code>userAddress</code></td><td>String</td><td class="nowrap">✅ Yes</td><td>Checkout &amp; profile prefill.</td></tr>
+          <tr><td><code>cartItems</code></td><td>List&lt;<code>CartItem</code>&gt;</td><td class="nowrap">✅ Yes</td><td>Local cart; only sent to server at checkout.</td></tr>
+          <tr><td><code>wishlistIds</code></td><td>List&lt;Integer&gt;</td><td class="nowrap">➖ Optional</td><td>Cache of wishlisted product ids for instant heart-toggle.</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>Custom Data Type — <code>CartItem</code></h3>
+      <p>Create under <strong>Data Types</strong> (App State can't hold ad-hoc objects otherwise):</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Field</th><th>Type</th></tr></thead>
+        <tbody>
+          <tr><td><code>productId</code></td><td>Integer</td></tr>
+          <tr><td><code>name</code></td><td>String</td></tr>
+          <tr><td><code>price</code></td><td>Double <span class="muted">(the effective price — sale_price if on sale, else price)</span></td></tr>
+          <tr><td><code>image</code></td><td>String</td></tr>
+          <tr><td><code>quantity</code></td><td>Integer</td></tr>
+        </tbody>
+      </table></div>
+      <p><strong>Cart total</strong> and <strong>cart count</strong> don't need stored fields — compute them from
+        <code class="inline">cartItems</code> with a simple Custom Function (sum of <code class="inline">price × quantity</code>,
+        and list length) so they can never drift out of sync.</p>
+    </section>
+
+    <!-- 5 API REFERENCE -->
+    <section id="api-reference">
+      <h2><span class="idx">05</span> API Call reference</h2>
+      <p class="sub">Create one FlutterFlow API Call per row, inside the <code class="inline">SoleCraftAPI</code> group.
+        <span class="chip auth">AUTH</span> rows rely on the group's bearer header — no per-call header needed.</p>
+
+      <div class="table-wrap"><table>
+        <thead><tr><th>FF Call name</th><th>Method · Path</th><th>Params / body</th><th>Returns (<code>data.…</code>)</th></tr></thead>
+        <tbody>
+          <tr><td><code>registerUser</code></td><td><span class="chip post">POST</span> <span class="path">/auth/register.php</span></td><td>body: username, email, password, full_name, phone, address</td><td>user, token, expires_at</td></tr>
+          <tr><td><code>loginUser</code></td><td><span class="chip post">POST</span> <span class="path">/auth/login.php</span></td><td>body: login <span class="muted">(username or email)</span>, password</td><td>user, token, expires_at</td></tr>
+          <tr><td><code>logoutUser</code> <span class="chip auth">AUTH</span></td><td><span class="chip post">POST</span> <span class="path">/auth/logout.php</span></td><td>—</td><td>null</td></tr>
+          <tr><td><code>getProducts</code></td><td><span class="chip get">GET</span> <span class="path">/products.php</span></td><td>query: category, subcategory, search, sort, page, per_page</td><td>products[], pagination</td></tr>
+          <tr><td><code>getProductDetail</code></td><td><span class="chip get">GET</span> <span class="path">/products/detail.php</span></td><td>query: id</td><td>product + review_count, average_rating</td></tr>
+          <tr><td><code>getReviews</code></td><td><span class="chip get">GET</span> <span class="path">/products/reviews.php</span></td><td>query: product_id</td><td>reviews[], count</td></tr>
+          <tr><td><code>submitReview</code> <span class="chip auth">AUTH</span></td><td><span class="chip post">POST</span> <span class="path">/products/review.php</span></td><td>body: product_id, rating (1–5), comment</td><td>created review</td></tr>
+          <tr><td><code>getCategories</code></td><td><span class="chip get">GET</span> <span class="path">/categories.php</span></td><td>—</td><td>categories[] (with subcategories[])</td></tr>
+          <tr><td><code>getBanners</code></td><td><span class="chip get">GET</span> <span class="path">/banners.php</span></td><td>—</td><td>banners[]</td></tr>
+          <tr><td><code>getPage</code></td><td><span class="chip get">GET</span> <span class="path">/pages.php</span></td><td>query: slug <span class="muted">(about, faq, privacy…)</span></td><td>slug, title, content</td></tr>
+          <tr><td><code>checkout</code> <span class="chip auth">AUTH*</span></td><td><span class="chip post">POST</span> <span class="path">/checkout.php</span></td><td>body: customer_name/email/phone/address, payment_method, cart[]</td><td>order_id, total_amount, status, items</td></tr>
+          <tr><td><code>getOrders</code> <span class="chip auth">AUTH</span></td><td><span class="chip get">GET</span> <span class="path">/orders.php</span></td><td>—</td><td>orders[]</td></tr>
+          <tr><td><code>getOrderDetail</code> <span class="chip auth">AUTH</span></td><td><span class="chip get">GET</span> <span class="path">/orders/detail.php</span></td><td>query: id</td><td>order, items[], timeline[]</td></tr>
+          <tr><td><code>getWishlist</code> <span class="chip auth">AUTH</span></td><td><span class="chip get">GET</span> <span class="path">/wishlist.php</span></td><td>—</td><td>wishlist[], count</td></tr>
+          <tr><td><code>toggleWishlist</code> <span class="chip auth">AUTH</span></td><td><span class="chip post">POST</span> <span class="path">/wishlist/toggle.php</span></td><td>body: product_id</td><td>product_id, in_wishlist (bool)</td></tr>
+          <tr><td><code>getProfile</code> <span class="chip auth">AUTH</span></td><td><span class="chip get">GET</span> <span class="path">/profile.php</span></td><td>—</td><td>id, username, full_name, email, phone, address</td></tr>
+          <tr><td><code>updateProfile</code> <span class="chip auth">AUTH</span></td><td><span class="chip post">POST</span> <span class="path">/profile/update.php</span></td><td>body: any of full_name, phone, address, email, new_password</td><td>updated profile</td></tr>
+          <tr><td><code>sendContact</code></td><td><span class="chip post">POST</span> <span class="path">/contact.php</span></td><td>body: name, email, subject, message</td><td>id</td></tr>
+        </tbody>
+      </table></div>
+      <p style="font-size:13px;color:var(--muted);">*<code class="inline">checkout</code> works for guests too — if <code class="inline">authToken</code> is set the order is tied to the account, otherwise it's placed as a guest order.</p>
+    </section>
+
+    <!-- 6 JSON -->
+    <section id="json">
+      <h2><span class="idx">06</span> JSON paths, badges &amp; image URLs</h2>
+      <p class="sub">Three details save the most debugging time: where lists live, how to render badges, and how to build image URLs.</p>
+
+      <h3>Response paths for JSON bindings</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>You want…</th><th>JSON path</th></tr></thead>
+        <tbody>
+          <tr><td>Token after login/register</td><td><code>$.data.token</code></td></tr>
+          <tr><td>Logged-in user id / name</td><td><code>$.data.user.id</code> · <code>$.data.user.full_name</code></td></tr>
+          <tr><td>Product grid list</td><td><code>$.data.products</code></td></tr>
+          <tr><td>Total pages (infinite scroll)</td><td><code>$.data.pagination.total_pages</code></td></tr>
+          <tr><td>Banners carousel</td><td><code>$.data.banners</code></td></tr>
+          <tr><td>Categories + subcategories</td><td><code>$.data.categories</code> → item <code>.subcategories</code></td></tr>
+          <tr><td>Reviews list</td><td><code>$.data.reviews</code></td></tr>
+          <tr><td>Order list / detail</td><td><code>$.data.orders</code> · <code>$.data.order</code>, <code>$.data.items</code>, <code>$.data.timeline</code></td></tr>
+          <tr><td>New order id (confirmation)</td><td><code>$.data.order_id</code></td></tr>
+          <tr><td>Wishlist</td><td><code>$.data.wishlist</code></td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>Badges &amp; sale price</h3>
+      <p>Each product carries a <code class="inline">badge</code> string (<em>New</em> / <em>Sale</em> / <em>Best Seller</em>, or empty)
+        and a boolean <code class="inline">on_sale</code>. In the product card:</p>
+      <ul>
+        <li>Show a badge pill only when <code class="inline">badge</code> is not empty — colour by value (New = ink, Sale = accent/red, Best Seller = amber) to match the site.</li>
+        <li>When <code class="inline">on_sale</code> is true, show <code class="inline">sale_price</code> as the price and <code class="inline">price</code> with a strike-through beside it. Otherwise show <code class="inline">price</code> only.</li>
+        <li>Format money as <code class="inline">₱</code> + value — the store prices in Philippine peso.</li>
+      </ul>
+
+      <div class="callout">
+        <strong>Image URLs:</strong> the <code class="inline">image</code> field is a path stored by the site (e.g. <code class="inline">uploads/shoe.jpg</code>).
+        If it doesn't start with <code class="inline">http</code>, prefix it with <code class="inline">https://snow-jellyfish-553645.hostingersite.com/</code>
+        before binding it to an Image widget. A one-line Custom Function <code class="inline">fullImageUrl(path)</code> keeps this consistent across every screen.
+      </div>
+    </section>
+
+    <!-- 7 SCREENS -->
+    <section id="screens">
+      <h2><span class="idx">07</span> The nine screens</h2>
+      <p class="sub">Each screen below lists its widgets, the API Calls it fires, the bindings, and the actions.
+        Every API-backed screen uses the same pattern: a loading spinner while the call runs, the content on success,
+        and an error state (message from <code class="inline">$.message</code> + a Retry button) on failure.</p>
+
+      <div class="screen">
+        <div class="screen-head"><span class="num">1</span><h3>Splash / Onboarding</h3>
+          <span class="apis"><span class="chip state">appState</span></span></div>
+        <div class="screen-body">
+          <h4>Purpose</h4><ul><li>Brand moment; decide where the user lands.</li></ul>
+          <h4>On page load (actions)</h4>
+          <ul>
+            <li>Wait ~1.5s (or until fonts/App State ready).</li>
+            <li>If <code class="inline">isLoggedIn == true</code> → navigate to <strong>Home</strong>; else → <strong>Login</strong> (or an optional onboarding carousel first).</li>
+          </ul>
+          <h4>Widgets</h4><ul><li>Centered logo “SoleCraftPH”, tagline “Footwear, Done Right”, subtle progress indicator.</li></ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <div class="screen-head"><span class="num">2</span><h3>Login / Register</h3>
+          <span class="apis"><span class="chip post">loginUser</span><span class="chip post">registerUser</span></span></div>
+        <div class="screen-body">
+          <h4>Widgets</h4>
+          <ul>
+            <li>Tab or toggle: <em>Sign in</em> / <em>Create account</em>.</li>
+            <li>Sign in: login (username/email), password, “Sign in” button.</li>
+            <li>Register: username, full_name, email, phone, address, password, confirm password.</li>
+          </ul>
+          <h4>Actions — Sign in button</h4>
+          <ul>
+            <li>Validate fields (non-empty, email format, password ≥ 6).</li>
+            <li>Call <code class="inline">loginUser</code>. Show spinner; disable button.</li>
+            <li><strong>On success</strong> (<code class="inline">success == true</code>): set App State <code class="inline">authToken = $.data.token</code>,
+              <code class="inline">userId</code>, <code class="inline">userName</code>, <code class="inline">userEmail/Phone/Address</code>,
+              <code class="inline">isLoggedIn = true</code> → navigate to Home.</li>
+            <li><strong>On failure:</strong> snackbar with <code class="inline">$.message</code> (e.g. “Invalid credentials.”).</li>
+          </ul>
+          <h4>Actions — Create account</h4>
+          <ul><li>Same pattern with <code class="inline">registerUser</code>; it also returns a token, so log the user straight in on 201.</li></ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <div class="screen-head"><span class="num">3</span><h3>Home</h3>
+          <span class="apis"><span class="chip get">getBanners</span><span class="chip get">getCategories</span><span class="chip get">getProducts</span></span></div>
+        <div class="screen-body">
+          <h4>Widgets</h4>
+          <ul>
+            <li>Search bar (top) → navigates to a results view using <code class="inline">getProducts?search=</code>.</li>
+            <li>Banner <strong>Carousel</strong> bound to <code class="inline">getBanners</code> → <code class="inline">$.data.banners</code>; tap opens <code class="inline">link_url</code>.</li>
+            <li>Category tabs / chips: <em>Performance</em>, <em>Casual</em>, <em>Formal</em> (from <code class="inline">getCategories</code>, or hard-coded to the three).</li>
+            <li>Product <strong>GridView</strong> bound to <code class="inline">getProducts</code> → <code class="inline">$.data.products</code>, each cell a Product Card.</li>
+          </ul>
+          <h4>Product Card bindings</h4>
+          <ul>
+            <li>Image ← <code class="inline">fullImageUrl(item.image)</code>; Name ← <code class="inline">item.name</code>.</li>
+            <li>Price block ← sale logic from §6; badge pill visible when <code class="inline">item.badge</code> ≠ "".</li>
+            <li>Tap → navigate to Product Detail, passing <code class="inline">item.id</code> as a page parameter.</li>
+          </ul>
+          <h4>Behaviour</h4>
+          <ul>
+            <li>Selecting a category tab re-queries <code class="inline">getProducts?category=…</code> (pass the category name).</li>
+            <li>Optional infinite scroll: increment <code class="inline">page</code> until <code class="inline">pagination.total_pages</code>.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <div class="screen-head"><span class="num">4</span><h3>Product Detail</h3>
+          <span class="apis"><span class="chip get">getProductDetail</span><span class="chip get">getReviews</span><span class="chip post">toggleWishlist</span><span class="chip post">submitReview</span></span></div>
+        <div class="screen-body">
+          <h4>Page parameter</h4><ul><li><code class="inline">productId</code> (Integer) from the tapped card.</li></ul>
+          <h4>Widgets &amp; bindings</h4>
+          <ul>
+            <li>Header image ← <code class="inline">fullImageUrl(product.image)</code>.</li>
+            <li>Name, category/subcategory, description ← detail fields.</li>
+            <li>Price with strike-through original when <code class="inline">on_sale</code> (§6). Stock note from <code class="inline">in_stock</code>.</li>
+            <li>Rating summary ← <code class="inline">average_rating</code> + <code class="inline">review_count</code>.</li>
+            <li>Reviews ListView ← <code class="inline">getReviews</code> → <code class="inline">$.data.reviews</code> (reviewer, rating, comment, created_at).</li>
+          </ul>
+          <h4>Actions</h4>
+          <ul>
+            <li><strong>Add to cart:</strong> add/merge a <code class="inline">CartItem</code> into <code class="inline">cartItems</code>
+              (effective price into <code class="inline">price</code>); snackbar “Added to cart”.</li>
+            <li><strong>Wishlist heart</strong> (if <code class="inline">isLoggedIn</code>): call <code class="inline">toggleWishlist</code>;
+              flip icon from <code class="inline">$.data.in_wishlist</code>. If logged out → prompt to sign in.</li>
+            <li><strong>Review form</strong> (auth only): rating (1–5) + comment → <code class="inline">submitReview</code>; on success, refresh <code class="inline">getReviews</code>.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <div class="screen-head"><span class="num">5</span><h3>Cart</h3>
+          <span class="apis"><span class="chip state">appState only</span></span></div>
+        <div class="screen-body">
+          <h4>Widgets</h4>
+          <ul>
+            <li>ListView bound to App State <code class="inline">cartItems</code> — image, name, price, quantity stepper, remove (🗑).</li>
+            <li>Summary bar: item count + total (Custom Functions over <code class="inline">cartItems</code>).</li>
+            <li>“Proceed to checkout” button — disabled when cart is empty.</li>
+          </ul>
+          <h4>Actions</h4>
+          <ul>
+            <li>Stepper +/− updates that item's <code class="inline">quantity</code> in <code class="inline">cartItems</code>; removing at qty 0.</li>
+            <li>No API here — the cart is purely local until checkout.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <div class="screen-head"><span class="num">6</span><h3>Checkout</h3>
+          <span class="apis"><span class="chip post">checkout</span></span></div>
+        <div class="screen-body">
+          <h4>Widgets</h4>
+          <ul>
+            <li>Shipping form: customer_name, email, phone, address — <strong>prefilled</strong> from App State when logged in.</li>
+            <li>Payment method picker: <em>COD</em> / <em>GCASH</em> / <em>CARD</em> (maps to the enum).</li>
+            <li>Order summary: line items + total.</li>
+            <li>“Place order” button.</li>
+          </ul>
+          <h4>Build the cart payload</h4>
+          <p>The API only needs <code class="inline">product_id</code> + <code class="inline">quantity</code> (it re-prices server-side, so totals can't be tampered with). Map <code class="inline">cartItems</code> → a JSON list:</p>
+          <pre>{
+  <span class="k">"customer_name"</span>: <span class="s">"[name]"</span>, <span class="k">"customer_email"</span>: <span class="s">"[email]"</span>,
+  <span class="k">"customer_phone"</span>: <span class="s">"[phone]"</span>, <span class="k">"customer_address"</span>: <span class="s">"[address]"</span>,
+  <span class="k">"payment_method"</span>: <span class="s">"COD"</span>,
+  <span class="k">"cart"</span>: [ { <span class="k">"product_id"</span>: 12, <span class="k">"quantity"</span>: 2 } ]
+}</pre>
+          <h4>Actions — Place order</h4>
+          <ul>
+            <li>Call <code class="inline">checkout</code> (group bearer attaches automatically if logged in).</li>
+            <li><strong>On success (201):</strong> read <code class="inline">$.data.order_id</code>, clear <code class="inline">cartItems</code>, navigate to <strong>Order Confirmation</strong> showing the id + total.</li>
+            <li><strong>On 409</strong> (out of stock): show <code class="inline">$.message</code> and keep the cart so the user can adjust.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <div class="screen-head"><span class="num">7</span><h3>Order History → Detail</h3>
+          <span class="apis"><span class="chip get">getOrders</span><span class="chip get">getOrderDetail</span></span></div>
+        <div class="screen-body">
+          <h4>List screen</h4>
+          <ul>
+            <li>ListView ← <code class="inline">getOrders</code> → <code class="inline">$.data.orders</code>: order id, date, status pill, total, item_count.</li>
+            <li>Status pill colour by value (pending / processing / shipped / completed / cancelled).</li>
+            <li>Tap → Detail, passing <code class="inline">order.id</code>.</li>
+          </ul>
+          <h4>Detail screen</h4>
+          <ul>
+            <li><code class="inline">getOrderDetail?id=</code> → order header, <code class="inline">items[]</code> list, and a <strong>status timeline</strong> from <code class="inline">timeline[]</code> (status + note + created_at, oldest→newest).</li>
+            <li>Render the timeline as a vertical stepper so progress reads at a glance.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <div class="screen-head"><span class="num">8</span><h3>Wishlist</h3>
+          <span class="apis"><span class="chip get">getWishlist</span><span class="chip post">toggleWishlist</span></span></div>
+        <div class="screen-body">
+          <h4>Widgets</h4>
+          <ul>
+            <li>Grid/List ← <code class="inline">getWishlist</code> → <code class="inline">$.data.wishlist</code> (same card as Home).</li>
+            <li>Each card: tap → Product Detail; heart/remove → <code class="inline">toggleWishlist</code> then refresh the list.</li>
+            <li>Empty state when <code class="inline">count == 0</code>.</li>
+          </ul>
+          <h4>Note</h4><ul><li>Auth-only screen — guard the tab behind <code class="inline">isLoggedIn</code>.</li></ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <div class="screen-head"><span class="num">9</span><h3>Profile</h3>
+          <span class="apis"><span class="chip get">getProfile</span><span class="chip post">updateProfile</span><span class="chip post">logoutUser</span></span></div>
+        <div class="screen-body">
+          <h4>Widgets</h4>
+          <ul>
+            <li>Read view ← <code class="inline">getProfile</code> (or straight from App State): name, username, email, phone, address.</li>
+            <li>Edit form → <code class="inline">updateProfile</code> with only changed fields; optional password change (new_password + current_password).</li>
+            <li>Links to CMS pages (About / FAQ / Privacy via <code class="inline">getPage?slug=</code>) and Contact (<code class="inline">sendContact</code>).</li>
+            <li><strong>Logout</strong> button.</li>
+          </ul>
+          <h4>Actions — Logout</h4>
+          <ul>
+            <li>Call <code class="inline">logoutUser</code> (invalidates the token server-side).</li>
+            <li>Clear App State: <code class="inline">authToken = ""</code>, <code class="inline">isLoggedIn = false</code>, user fields, <code class="inline">cartItems</code> if desired → navigate to Login.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8 ORDER -->
+    <section id="order">
+      <h2><span class="idx">08</span> Recommended build order</h2>
+      <p class="sub">Front-load the plumbing so every later screen is just binding to a call that already works.</p>
+      <ul class="checklist">
+        <li><span class="step-n">01</span> &nbsp;Upload <code class="inline">/api/</code>, run the <code class="inline">api_tokens</code> SQL, smoke-test with curl (§1–2).</li>
+        <li><span class="step-n">02</span> &nbsp;Create the <code class="inline">SoleCraftAPI</code> group + <code class="inline">Authorization: Bearer [authToken]</code> header (§3).</li>
+        <li><span class="step-n">03</span> &nbsp;Define App State + the <code class="inline">CartItem</code> data type (§4).</li>
+        <li><span class="step-n">04</span> &nbsp;Add all 18 API Calls and test each in FlutterFlow's API test tab (§5).</li>
+        <li><span class="step-n">05</span> &nbsp;Build Login/Register — the token everything else depends on (screen 2).</li>
+        <li><span class="step-n">06</span> &nbsp;Build Home → Product Detail with the shared Product Card component (screens 3–4).</li>
+        <li><span class="step-n">07</span> &nbsp;Build Cart → Checkout → Order Confirmation (screens 5–6).</li>
+        <li><span class="step-n">08</span> &nbsp;Build Orders, Wishlist, Profile (screens 7–9).</li>
+        <li><span class="step-n">09</span> &nbsp;Add Splash routing last, once <code class="inline">isLoggedIn</code> behaves (screen 1).</li>
+        <li><span class="step-n">10</span> &nbsp;Pass over loading + error states on every API-backed screen.</li>
+      </ul>
+      <div class="callout">
+        <strong>Reuse one Product Card component</strong> across Home, search results, and Wishlist — build it once with the
+        badge + sale-price logic, and all three screens stay consistent with the live store for free.
+      </div>
+    </section>
+  </main>
+</div>
+
+<footer class="foot">
+  SoleCraftPH · PHP REST API + FlutterFlow client · base URL https://snow-jellyfish-553645.hostingersite.com/api/
+</footer>

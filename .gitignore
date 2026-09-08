@@ -1,0 +1,34 @@
+# ---------------------------------------------------------------------------
+# Secrets — never commit these. They are live credentials.
+# If you ever need to change one, edit the file on the server, not here.
+# ---------------------------------------------------------------------------
+**/config/paymongo_keys.php
+**/config/db.php
+**/config/jwt.php
+.env
+*.env
+
+# ---------------------------------------------------------------------------
+# Derived or regenerable — no value in versioning, huge churn.
+# ---------------------------------------------------------------------------
+**/.flutterflow/
+**/.dart_tool/
+**/build/
+**/node_modules/
+**/.ffai_staging/
+*.log
+
+# ---------------------------------------------------------------------------
+# Duplicates and archives. Git itself is the backup now.
+# ---------------------------------------------------------------------------
+backups/
+solecraftfinal - Copybackup/
+*.rar
+*.zip
+
+# ---------------------------------------------------------------------------
+# OS noise
+# ---------------------------------------------------------------------------
+Thumbs.db
+desktop.ini
+.DS_Store
