@@ -84,7 +84,7 @@ abstract final class PaymentWidgets {
                     type: "Button",
                     path: "Payment.body[0].children[1].children[0]",
                     name: "Button",
-                    text: "Done — view my order",
+                    text: "I have paid — check my order",
                     triggers: const <String>[
                       "ON_TAP",
                     ],

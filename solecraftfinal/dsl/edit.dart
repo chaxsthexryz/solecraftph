@@ -741,6 +741,14 @@ void buildStarterEditFlow(App app) {
     ),
   );
 
+  // Depended on explicitly rather than inherited from FlutterFlow's push
+  // system, which is switched off. That system sends through a Cloud Function
+  // and keys device tokens to a Firebase Auth user in Firestore — none of
+  // which this app has, and enabling it generated a serialization helper that
+  // imports cloud_firestore and so would not compile. The server sends
+  // straight to FCM instead; all the app needs is a token and the OS.
+  app.pubDependency('firebase_messaging', '15.2.7');
+
   // Asking for the token also asks for the notification permission, which is
   // the moment Android wants a reason on screen — so this runs from Shop,
   // after the store has drawn, rather than cold at launch.
@@ -2651,19 +2659,22 @@ return next;
               (res) => [
                 SetState(ff.Pages.checkout.state.placing, false),
                 UpdateAppState.set(ff.AppState.lastOrderId, res['id']),
-                ClearAppState(ff.AppState.bag),
-                // Both branches are terminal, and this is the last action, so
-                // neither ends up nested inside the other's success path.
+                // The bag used to be cleared here, before PayMongo had even
+                // opened. Abandon the payment and you had an unpaid order AND
+                // an empty bag, so retrying meant rebuilding the whole basket
+                // — which is most of why so many online orders died unpaid.
+                // COD is spent on placement; an online order is spent when the
+                // Payment screen confirms the money arrived.
                 If(
                   Equals(res['checkout_url'], ''),
-                  // COD — nothing to pay now.
                   then: [
+                    ClearAppState(ff.AppState.bag),
                     Navigate.to(
                       ff.Pages.confirmed,
+                      allowBack: false,
                       params: {'orderId': res['id']},
                     ),
                   ],
-                  // GCash / Card — pay inside the app, then land on Confirmed.
                   orElse: [
                     Navigate.to(
                       paymentPage,
@@ -3080,4 +3091,190 @@ return live.contains(value ?? '');
     packageName: 'ph.solecraft.app',
     displayName: 'SoleCraftPH',
   );
+
+  // ---------------------------------------------------------------------------
+  // 16. Telling a paid order from an unpaid one
+  // ---------------------------------------------------------------------------
+  // The Payment screen's button navigated to Confirmed and checked nothing, and
+  // Confirmed said "Thank you!" whatever had happened, because OrderRow had no
+  // payment_status field to read — api/orders.php has been sending one all
+  // along. 22 of the 26 online orders on the test account are unpaid, which is
+  // what a flow that cannot tell the difference produces.
+  app.raw((project) {
+    final existing = findDataStructField(
+      project,
+      structName: 'OrderRow',
+      fieldName: 'payment_status',
+    );
+    if (existing == null) {
+      addDataStructField(
+        project,
+        structName: 'OrderRow',
+        fieldName: 'payment_status',
+        type: FFDataTypeV2(scalarType: FFBaseDataType.String),
+        description:
+            'unpaid, paid or failed. Set by the PayMongo webhook, not the app.',
+      );
+    }
+  });
+
+  // What the confirmation screen says, which depends on both how they paid and
+  // whether the money actually arrived. COD is placed-and-done; an online order
+  // is only finished once the webhook has been.
+  final orderHeadline = app.customFunction(
+    'orderHeadline',
+    args: {'method': string, 'paymentStatus': string},
+    returns: string,
+    code: r'''
+final m = (method ?? '').toUpperCase();
+final p = (paymentStatus ?? '').toLowerCase();
+if (m == 'COD') return 'Order placed';
+if (p == 'paid') return 'Payment received';
+if (p == 'failed') return 'Payment failed';
+return 'Waiting for your payment';
+''',
+    description: 'Headline for the confirmation screen.',
+  );
+
+  final orderSubline = app.customFunction(
+    'orderSubline',
+    args: {'method': string, 'paymentStatus': string},
+    returns: string,
+    code: r'''
+final m = (method ?? '').toUpperCase();
+final p = (paymentStatus ?? '').toLowerCase();
+if (m == 'COD') {
+  return 'Pay the rider when your shoes arrive. We will message you when the order ships.';
+}
+if (p == 'paid') {
+  return 'Thank you! Your payment went through and your order is being prepared.';
+}
+if (p == 'failed') {
+  return 'The payment did not go through, so this order is on hold. Your bag is still here — try again from My Orders.';
+}
+return 'We have not seen your payment yet. If you have just paid it can take a minute; pull down to refresh. Your bag is still here if you want to try again.';
+''',
+    description: 'Explanation under the confirmation headline.',
+  );
+
+  // Was 'Done — view my order', which navigated and verified nothing: tapping
+  // it without paying produced a thank-you screen. It now asks the server.
+  app.editPage(ff.Pages.payment, (page) {
+    page.update(ff.Pages.payment.widgets.byKey('Button_fm0z5l15').single, (patch) {
+      patch.text('I have paid — check my order');
+    });
+    page.ensureActions(
+      ff.Pages.payment.widgets.byKey('Button_fm0z5l15').single,
+      triggerType: FFActionTriggerType.ON_TAP,
+      actions: [
+        ApiCall(
+          getOrder,
+          outputAs: 'payCheck',
+          params: {
+            'id': PageParam('orderId'),
+            'token': AppState(ff.AppState.authToken),
+          },
+          onSuccess:
+              (res) => [
+                If(
+                  Equals(res['payment_status'], 'paid'),
+                  then: [
+                    // Only now is the bag genuinely spent.
+                    ClearAppState(ff.AppState.bag),
+                    Navigate.to(
+                      ff.Pages.confirmed,
+                      allowBack: false,
+                      params: {'orderId': PageParam('orderId')},
+                    ),
+                  ],
+                  orElse: [
+                    Snackbar(
+                      'We have not seen your payment yet. Finish paying above, '
+                      'then tap this again.',
+                    ),
+                  ],
+                ),
+              ],
+          onFailure: [
+            Snackbar('Could not check your payment. Check your connection.'),
+          ],
+        ),
+      ],
+    );
+  });
+
+  // The confirmation screen, told what actually happened.
+  app.editPage(ff.Pages.confirmed, (page) {
+    page.bindText(
+      ff.Pages.confirmed.widgets.byKey('Text_vl6tty48').single,
+      CustomFunction(
+        orderHeadline,
+        args: {
+          'method': State(ff.Pages.confirmed.state.order)['payment_method'],
+          'paymentStatus':
+              State(ff.Pages.confirmed.state.order)['payment_status'],
+        },
+      ),
+    );
+    page.bindText(
+      ff.Pages.confirmed.widgets.byKey('Text_epdwdnvu').single,
+      CustomFunction(
+        orderSubline,
+        args: {
+          'method': State(ff.Pages.confirmed.state.order)['payment_method'],
+          'paymentStatus':
+              State(ff.Pages.confirmed.state.order)['payment_status'],
+        },
+      ),
+    );
+    // Continue shopping should end the checkout, not push another screen on
+    // top of it. Without allowBack: false the whole flow — confirmation,
+    // PayMongo's WebView, a checkout form with an empty bag — stayed on the
+    // stack and the back arrow walked right into it.
+    page.ensureActions(
+      ff.Pages.confirmed.widgets.byKey('Button_4bxfqn66').single,
+      triggerType: FFActionTriggerType.ON_TAP,
+      actions: [Navigate.to(ff.Pages.shop, allowBack: false)],
+    );
+  });
+
+  // ---------------------------------------------------------------------------
+  // 17. Search
+  // ---------------------------------------------------------------------------
+  // The box raced itself. onChanged waited 2000ms before copying the text into
+  // page state, and onSubmitted searched using that copy — so typing a word and
+  // hitting search inside two seconds, which is everybody, searched for the
+  // PREVIOUS value. On a first search that is an empty string, which is why it
+  // looked like the box did nothing at all.
+  //
+  // Reading the field directly on submit removes the race: there is no longer a
+  // copy that can be stale. The 2000ms debounce is left alone — it now only
+  // updates a page-state field nothing reads, and the DSL exposes no way to
+  // change a trigger's debounce, so replacing that chain risks losing it
+  // entirely and firing a request per keystroke.
+  app.editPage(ff.Pages.shop, (page) {
+    page.ensureActions(
+      ff.Pages.shop.widgets.byKey('TextField_tqobar4t').single,
+      triggerType: FFActionTriggerType.ON_TEXTFIELD_SUBMIT,
+      actions: [
+        SetState(ff.Pages.shop.state.isLoading, true),
+        ApiCall(
+          getProducts,
+          outputAs: 'shopSearch',
+          params: {
+            'q': WidgetState('shopSearchField', WidgetStateProperty.text),
+          },
+          onSuccess:
+              (res) => [
+                SetState(ff.Pages.shop.state.shoes, res['products']),
+                SetState(ff.Pages.shop.state.isLoading, false),
+              ],
+          onFailure: [
+            SetState(ff.Pages.shop.state.isLoading, false),
+            Snackbar('Search failed. Check your connection.'),
+          ],
+        ),
+      ],
+    );
+  });
 }
