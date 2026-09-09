@@ -673,6 +673,52 @@ void buildStarterEditFlow(App app) {
     headers: {'Authorization': 'Bearer [token]'},
     response: sessionCheck,
   );
+
+  // Which payment methods are switched on, and which categories have anything
+  // in them. The app hardcoded all four, so turning GCash off in admin took it
+  // off the website and left it on the phone.
+  final storeSettings = app.struct(
+    'StoreSettings',
+    {
+      'cod': bool_,
+      'gcash': bool_,
+      'card': bool_,
+      'categories': listOf(string),
+    },
+    description: 'Storefront switches the app used to hardcode.',
+  );
+  final getSettings = Endpoint.get(
+    'GetSettings',
+    '/settings.php',
+    response: storeSettings,
+  );
+
+  // Already on the group — restated only so Shop's page load can be rewritten
+  // to record a failure instead of leaving an empty grid behind.
+  final getProducts = Endpoint.get(
+    'GetProducts',
+    '/products.php?category=[category]&q=[q]',
+    variables: {'category': string, 'q': string},
+    response: ff.Structs.catalogResponse,
+  );
+
+  // Already on the group, restated for the same reason as GetProducts: its
+  // page load had no failure branch at all and needed rewriting.
+  final myOrdersList = Endpoint.get(
+    'MyOrders',
+    '/my_orders.php',
+    variables: {'token': string},
+    headers: {'Authorization': 'Bearer [token]'},
+    response: ff.Structs.myOrdersResponse,
+  );
+
+  // Defaults are all true: a shop that cannot reach settings.php should show
+  // every payment method rather than none, and the server refuses a disabled
+  // one anyway.
+  app.state('payCod', bool_.withDefault(true));
+  app.state('payGcash', bool_.withDefault(true));
+  app.state('payCard', bool_.withDefault(true));
+  app.state('shopCategories', listOf(string));
   app.apiGroup(
     'Api',
     baseUrl: 'https://snow-jellyfish-553645.hostingersite.com/api',
@@ -704,6 +750,9 @@ void buildStarterEditFlow(App app) {
       getInfoPage,
       sendContact,
       authSession,
+      getSettings,
+      getProducts,
+      myOrdersList,
     ],
   );
 
@@ -2622,5 +2671,241 @@ return next;
         ),
       ],
     );
+  });
+
+  // ---------------------------------------------------------------------------
+  // 13. Settings the shop owns, and screens that admit they failed
+  // ---------------------------------------------------------------------------
+  // Whether a value is still in a live list. Empty means the server did not
+  // say, so nothing is hidden — a shop whose settings call failed shows every
+  // category rather than none.
+  final listStillHas = app.customFunction(
+    'listStillHas',
+    args: {'values': listOf(string), 'value': string},
+    returns: bool_,
+    code: r'''
+final live = values ?? const <String>[];
+if (live.isEmpty) return true;
+return live.contains(value ?? '');
+''',
+    description: 'Whether a live server list still contains this value.',
+  );
+
+  /// A failed load used to be a snackbar and an empty list — four seconds of
+  /// explanation, then a screen indistinguishable from "you have nothing".
+  /// This says so until it is fixed, and retries when tapped, which is the
+  /// only thing a shopper on a dropped connection wants to do. Guarded:
+  /// ensureInsertedBefore is not idempotent.
+  void ensureOfflineBanner({
+    required ProjectPageHandle page,
+    required String anchorKey,
+    required String title,
+    required ProjectStateFieldHandle loadFailed,
+    required List<DslAction> retry,
+  }) {
+    const name = 'offlineBanner';
+    if (!page.widgets.all.any((w) => w.name == name)) {
+      app.editPage(page, (p) {
+        p.ensureInsertedBefore(
+          page.widgets.byKey(anchorKey).single,
+          Container(
+            name: name,
+            padding: 16,
+            borderRadius: 12,
+            color: Colors.secondaryBackground,
+            child: Column(
+              crossAxis: CrossAxis.start,
+              spacing: 6,
+              children: [
+                Text(title, name: 'offlineTitle', style: Styles.titleSmall),
+                Text(
+                  'Check your connection, then tap here to try again.',
+                  name: 'offlineHint',
+                  style: Styles.bodySmall,
+                  color: Colors.secondaryText,
+                ),
+              ],
+            ),
+          ),
+        );
+      });
+    }
+    // Bound in a second pass: a widget handed to an insert is compiled before
+    // it joins the tree, so its binding and tap have to wait until it is there.
+    final node = page.widgets.all.where((w) => w.name == name);
+    if (node.isNotEmpty) {
+      app.editPage(page, (p) {
+        p.bindVisible(
+          page.widgets.byKey(node.first.key).single,
+          State(loadFailed),
+        );
+        p.ensureActions(
+          page.widgets.byKey(node.first.key).single,
+          triggerType: FFActionTriggerType.ON_TAP,
+          actions: retry,
+        );
+      });
+    }
+  }
+
+  // --- Shop -------------------------------------------------------------------
+  app.editPageState(ff.Pages.shop, (state) {
+    state.ensureField(ff.Pages.shop.state.loadFailed, bool_.withDefault(false));
+  });
+
+  /// Shop's page load, restated because editPageOnLoad replaces the chain.
+  /// Settings ride along inside the success branch — everything after an
+  /// ApiCall compiles into it, and they are worthless if the store is down.
+  List<DslAction> loadShop(String tag) => [
+    SetState(ff.Pages.shop.state.isLoading, true),
+    SetState(ff.Pages.shop.state.loadFailed, false),
+    ApiCall(
+      getProducts,
+      outputAs: 'shopLoad$tag',
+      onSuccess:
+          (res) => [
+            SetState(ff.Pages.shop.state.shoes, res['products']),
+            SetState(ff.Pages.shop.state.isLoading, false),
+            ApiCall(
+              getSettings,
+              outputAs: 'settingsLoad$tag',
+              onSuccess:
+                  (settings) => [
+                    UpdateAppState.set(ff.AppState.payCod, settings['cod']),
+                    UpdateAppState.set(ff.AppState.payGcash, settings['gcash']),
+                    UpdateAppState.set(ff.AppState.payCard, settings['card']),
+                    UpdateAppState.set(
+                      ff.AppState.shopCategories,
+                      settings['categories'],
+                    ),
+                  ],
+            ),
+          ],
+      onFailure: [
+        SetState(ff.Pages.shop.state.isLoading, false),
+        SetState(ff.Pages.shop.state.loadFailed, true),
+      ],
+    ),
+  ];
+
+  app.editPageOnLoad(ff.Pages.shop, loadShop(''));
+  ensureOfflineBanner(
+    page: ff.Pages.shop,
+    anchorKey: 'GridView_ilvt3kls',
+    title: 'Could not reach SoleCraftPH.',
+    loadFailed: ff.Pages.shop.state.loadFailed,
+    retry: loadShop('Retry'),
+  );
+
+  // The three category chips are the three entries of PRODUCT_TAXONOMY, so
+  // they are right until a category empties out — then the app keeps offering
+  // a filter that can only come back with nothing. settings.php lists only
+  // categories with something active in them.
+  app.editPage(ff.Pages.shop, (page) {
+    for (final chip in const <String, String>{
+      'Container_k7rad63w': 'Athletic & Performance Footwear',
+      'Container_nkjt8umr': 'Casual & Lifestyle Footwear',
+      'Container_tppnzt06': 'Formal & Dress Footwear',
+    }.entries) {
+      page.bindVisible(
+        ff.Pages.shop.widgets.byKey(chip.key).single,
+        CustomFunction(
+          listStillHas,
+          args: {'values': AppState(ff.AppState.shopCategories), 'value': chip.value},
+        ),
+      );
+    }
+  });
+
+  // --- Bag --------------------------------------------------------------------
+  app.editPageState(ff.Pages.bag, (state) {
+    state.ensureField(ff.Pages.bag.state.loadFailed, bool_.withDefault(false));
+  });
+
+  // Bag's own load rather than the shared pullBag: the other callers of that
+  // helper sit on pages with no loadFailed field to set.
+  List<DslAction> loadBag(String tag) => [
+    SetState(ff.Pages.bag.state.loadFailed, false),
+    If(
+      AppState(ff.AppState.signedIn),
+      then: [
+        ApiCall(
+          cartGet,
+          outputAs: 'bagLoadSyncRes$tag',
+          params: {'token': AppState(ff.AppState.authToken)},
+          onSuccess:
+              (res) => [UpdateAppState.set(ff.AppState.bag, res['items'])],
+          onFailure: [
+            SetState(ff.Pages.bag.state.loadFailed, true),
+            ...authFailure('bagLoadSyncRes$tag', 'Could not load your bag.'),
+          ],
+        ),
+      ],
+    ),
+  ];
+
+  app.editPageOnLoad(ff.Pages.bag, loadBag(''));
+  ensureOfflineBanner(
+    page: ff.Pages.bag,
+    anchorKey: 'ListView_cbzgvh4e',
+    title: 'Could not load your bag.',
+    loadFailed: ff.Pages.bag.state.loadFailed,
+    retry: loadBag('Retry'),
+  );
+
+  // --- My Orders --------------------------------------------------------------
+  app.editPageState(ff.Pages.myOrders, (state) {
+    state.ensureField(
+      ff.Pages.myOrders.state.loadFailed,
+      bool_.withDefault(false),
+    );
+  });
+
+  // The worst of the three: a failed load set isLoading false and said nothing
+  // at all, so an unreachable server and an empty order history looked
+  // identical.
+  List<DslAction> loadMyOrders(String tag) => [
+    SetState(ff.Pages.myOrders.state.isLoading, true),
+    SetState(ff.Pages.myOrders.state.loadFailed, false),
+    ApiCall(
+      myOrdersList,
+      outputAs: 'ordersLoad$tag',
+      params: {'token': AppState(ff.AppState.authToken)},
+      onSuccess:
+          (res) => [
+            SetState(ff.Pages.myOrders.state.orders, res['orders']),
+            SetState(ff.Pages.myOrders.state.isLoading, false),
+          ],
+      onFailure: [
+        SetState(ff.Pages.myOrders.state.isLoading, false),
+        SetState(ff.Pages.myOrders.state.loadFailed, true),
+        ...authFailure('ordersLoad$tag', 'Could not load your orders.'),
+      ],
+    ),
+  ];
+
+  app.editPageOnLoad(ff.Pages.myOrders, loadMyOrders(''));
+  ensureOfflineBanner(
+    page: ff.Pages.myOrders,
+    anchorKey: 'ListView_ko415scl',
+    title: 'Could not load your orders.',
+    loadFailed: ff.Pages.myOrders.state.loadFailed,
+    retry: loadMyOrders('Retry'),
+  );
+
+  // --- Checkout ---------------------------------------------------------------
+  // Checkout offered all three methods whatever admin said, so a shopper could
+  // pick one the shop had switched off and only find out when the order failed.
+  app.editPage(ff.Pages.checkout, (page) {
+    for (final method in <String, ProjectAppStateFieldHandle>{
+      'Container_iuz96ohv': ff.AppState.payCod,
+      'Container_ebi2q81v': ff.AppState.payGcash,
+      'Container_43akn8dy': ff.AppState.payCard,
+    }.entries) {
+      page.bindVisible(
+        ff.Pages.checkout.widgets.byKey(method.key).single,
+        AppState(method.value),
+      );
+    }
   });
 }

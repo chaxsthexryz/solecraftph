@@ -262,6 +262,16 @@ abstract final class Structs {
     },
     description: ffai.generatedProjectStructDescription,
   );
+  static final ffai.StructHandle storeSettings = ffai.StructHandle(
+    "StoreSettings",
+    <String, ffai.DslType>{
+      "card": ffai.bool_,
+      "categories": ffai.listOf(ffai.string),
+      "cod": ffai.bool_,
+      "gcash": ffai.bool_,
+    },
+    description: ffai.generatedProjectStructDescription,
+  );
   static final ffai.StructHandle wishlist = ffai.StructHandle(
     "Wishlist",
     <String, ffai.DslType>{
@@ -311,6 +321,7 @@ abstract final class Structs {
     reviewRow,
     sessionCheck,
     shoe,
+    storeSettings,
     wishlist,
     wishlistFlag,
     wishlistToggled,
@@ -337,6 +348,7 @@ abstract final class CustomCode {
     "cartLines",
     "hasSale",
     "imgUrl",
+    "listStillHas",
     "orderItems",
     "peso",
     "pesoN",

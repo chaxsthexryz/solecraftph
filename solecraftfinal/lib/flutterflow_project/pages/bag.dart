@@ -19,6 +19,12 @@ final class BagParams {
 
 final class BagState {
   const BagState();
+  ffai.ProjectStateFieldHandle get loadFailed =>
+      const ffai.ProjectStateFieldHandle(
+        name: "loadFailed",
+        key: "3a62t1nm",
+        typeName: "Boolean",
+      );
 }
 
 abstract final class BagWidgets {
@@ -90,51 +96,84 @@ abstract final class BagWidgets {
                 ],
               ),
               ffai.ProjectWidgetHandle(
+                key: "Container_9pru8y85",
+                type: "Container",
+                path: "Bag.body[0].children[1]",
+                name: "offlineBanner",
+                triggers: const <String>[
+                  "ON_TAP",
+                ],
+                children: <ffai.ProjectWidgetHandle>[
+                  ffai.ProjectWidgetHandle(
+                    key: "Column_9q5zq3uo",
+                    type: "Column",
+                    path: "Bag.body[0].children[1].children[0]",
+                    name: "Column",
+                    children: <ffai.ProjectWidgetHandle>[
+                      ffai.ProjectWidgetHandle(
+                        key: "Text_pg27grv8",
+                        type: "Text",
+                        path: "Bag.body[0].children[1].children[0].children[0]",
+                        name: "offlineTitle",
+                        text: "Could not load your bag.",
+                      ),
+                      ffai.ProjectWidgetHandle(
+                        key: "Text_i79p0hm6",
+                        type: "Text",
+                        path: "Bag.body[0].children[1].children[0].children[1]",
+                        name: "offlineHint",
+                        text: "Check your connection, then tap here to try again.",
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              ffai.ProjectWidgetHandle(
                 key: "ListView_cbzgvh4e",
                 type: "ListView",
-                path: "Bag.body[0].children[1]",
+                path: "Bag.body[0].children[2]",
                 name: "ListView",
                 children: <ffai.ProjectWidgetHandle>[
                   ffai.ProjectWidgetHandle(
                     key: "Container_yoottai3",
                     type: "Container",
-                    path: "Bag.body[0].children[1].children[0]",
+                    path: "Bag.body[0].children[2].children[0]",
                     name: "Container",
                     children: <ffai.ProjectWidgetHandle>[
                       ffai.ProjectWidgetHandle(
                         key: "Row_fb7iwnpc",
                         type: "Row",
-                        path: "Bag.body[0].children[1].children[0].children[0]",
+                        path: "Bag.body[0].children[2].children[0].children[0]",
                         name: "Row",
                         children: <ffai.ProjectWidgetHandle>[
                           ffai.ProjectWidgetHandle(
                             key: "Image_3prlmvhh",
                             type: "Image",
-                            path: "Bag.body[0].children[1].children[0].children[0].children[0]",
+                            path: "Bag.body[0].children[2].children[0].children[0].children[0]",
                             name: "Image",
                           ),
                           ffai.ProjectWidgetHandle(
                             key: "Column_5f0zwvsu",
                             type: "Column",
-                            path: "Bag.body[0].children[1].children[0].children[0].children[1]",
+                            path: "Bag.body[0].children[2].children[0].children[0].children[1]",
                             name: "Column",
                             children: <ffai.ProjectWidgetHandle>[
                               ffai.ProjectWidgetHandle(
                                 key: "Text_4ygq2yyo",
                                 type: "Text",
-                                path: "Bag.body[0].children[1].children[0].children[0].children[1].children[0]",
+                                path: "Bag.body[0].children[2].children[0].children[0].children[1].children[0]",
                                 name: "Text",
                               ),
                               ffai.ProjectWidgetHandle(
                                 key: "Text_3v0ncfwd",
                                 type: "Text",
-                                path: "Bag.body[0].children[1].children[0].children[0].children[1].children[1]",
+                                path: "Bag.body[0].children[2].children[0].children[0].children[1].children[1]",
                                 name: "Text",
                               ),
                               ffai.ProjectWidgetHandle(
                                 key: "Text_8t5lprr5",
                                 type: "Text",
-                                path: "Bag.body[0].children[1].children[0].children[0].children[1].children[2]",
+                                path: "Bag.body[0].children[2].children[0].children[0].children[1].children[2]",
                                 name: "Text",
                               ),
                             ],
@@ -142,19 +181,19 @@ abstract final class BagWidgets {
                           ffai.ProjectWidgetHandle(
                             key: "Column_s72scooa",
                             type: "Column",
-                            path: "Bag.body[0].children[1].children[0].children[0].children[2]",
+                            path: "Bag.body[0].children[2].children[0].children[0].children[2]",
                             name: "Column",
                             children: <ffai.ProjectWidgetHandle>[
                               ffai.ProjectWidgetHandle(
                                 key: "Row_hbsmqkzs",
                                 type: "Row",
-                                path: "Bag.body[0].children[1].children[0].children[0].children[2].children[0]",
+                                path: "Bag.body[0].children[2].children[0].children[0].children[2].children[0]",
                                 name: "qtyStepper",
                                 children: <ffai.ProjectWidgetHandle>[
                                   ffai.ProjectWidgetHandle(
                                     key: "IconButton_68d3z5ax",
                                     type: "IconButton",
-                                    path: "Bag.body[0].children[1].children[0].children[0].children[2].children[0].children[0]",
+                                    path: "Bag.body[0].children[2].children[0].children[0].children[2].children[0].children[0]",
                                     name: "qtyDown",
                                     triggers: const <String>[
                                       "ON_TAP",
@@ -163,13 +202,13 @@ abstract final class BagWidgets {
                                   ffai.ProjectWidgetHandle(
                                     key: "Text_3czhhb78",
                                     type: "Text",
-                                    path: "Bag.body[0].children[1].children[0].children[0].children[2].children[0].children[1]",
+                                    path: "Bag.body[0].children[2].children[0].children[0].children[2].children[0].children[1]",
                                     name: "qtyValue",
                                   ),
                                   ffai.ProjectWidgetHandle(
                                     key: "IconButton_vi892kbi",
                                     type: "IconButton",
-                                    path: "Bag.body[0].children[1].children[0].children[0].children[2].children[0].children[2]",
+                                    path: "Bag.body[0].children[2].children[0].children[0].children[2].children[0].children[2]",
                                     name: "qtyUp",
                                     triggers: const <String>[
                                       "ON_TAP",
@@ -180,7 +219,7 @@ abstract final class BagWidgets {
                               ffai.ProjectWidgetHandle(
                                 key: "IconButton_vtj0lvjt",
                                 type: "IconButton",
-                                path: "Bag.body[0].children[1].children[0].children[0].children[2].children[1]",
+                                path: "Bag.body[0].children[2].children[0].children[0].children[2].children[1]",
                                 name: "IconButton",
                                 triggers: const <String>[
                                   "ON_TAP",
@@ -197,32 +236,32 @@ abstract final class BagWidgets {
               ffai.ProjectWidgetHandle(
                 key: "Container_fyhciaab",
                 type: "Container",
-                path: "Bag.body[0].children[2]",
+                path: "Bag.body[0].children[3]",
                 name: "Container",
                 children: <ffai.ProjectWidgetHandle>[
                   ffai.ProjectWidgetHandle(
                     key: "Column_677bplej",
                     type: "Column",
-                    path: "Bag.body[0].children[2].children[0]",
+                    path: "Bag.body[0].children[3].children[0]",
                     name: "Column",
                     children: <ffai.ProjectWidgetHandle>[
                       ffai.ProjectWidgetHandle(
                         key: "Row_jqiedgu8",
                         type: "Row",
-                        path: "Bag.body[0].children[2].children[0].children[0]",
+                        path: "Bag.body[0].children[3].children[0].children[0]",
                         name: "Row",
                         children: <ffai.ProjectWidgetHandle>[
                           ffai.ProjectWidgetHandle(
                             key: "Text_fnomau8k",
                             type: "Text",
-                            path: "Bag.body[0].children[2].children[0].children[0].children[0]",
+                            path: "Bag.body[0].children[3].children[0].children[0].children[0]",
                             name: "Text",
                             text: "Subtotal",
                           ),
                           ffai.ProjectWidgetHandle(
                             key: "Text_kjg3elj8",
                             type: "Text",
-                            path: "Bag.body[0].children[2].children[0].children[0].children[1]",
+                            path: "Bag.body[0].children[3].children[0].children[0].children[1]",
                             name: "Text",
                           ),
                         ],
@@ -230,20 +269,20 @@ abstract final class BagWidgets {
                       ffai.ProjectWidgetHandle(
                         key: "Row_bjb6rfnx",
                         type: "Row",
-                        path: "Bag.body[0].children[2].children[0].children[1]",
+                        path: "Bag.body[0].children[3].children[0].children[1]",
                         name: "Row",
                         children: <ffai.ProjectWidgetHandle>[
                           ffai.ProjectWidgetHandle(
                             key: "Text_4pjijff9",
                             type: "Text",
-                            path: "Bag.body[0].children[2].children[0].children[1].children[0]",
+                            path: "Bag.body[0].children[3].children[0].children[1].children[0]",
                             name: "Text",
                             text: "Shipping",
                           ),
                           ffai.ProjectWidgetHandle(
                             key: "Text_9xqd1qc8",
                             type: "Text",
-                            path: "Bag.body[0].children[2].children[0].children[1].children[1]",
+                            path: "Bag.body[0].children[3].children[0].children[1].children[1]",
                             name: "Text",
                             text: "Free over ₱2,000",
                           ),
@@ -252,26 +291,26 @@ abstract final class BagWidgets {
                       ffai.ProjectWidgetHandle(
                         key: "Divider_ienj82zm",
                         type: "Divider",
-                        path: "Bag.body[0].children[2].children[0].children[2]",
+                        path: "Bag.body[0].children[3].children[0].children[2]",
                         name: "Divider",
                       ),
                       ffai.ProjectWidgetHandle(
                         key: "Row_ibnjj5z7",
                         type: "Row",
-                        path: "Bag.body[0].children[2].children[0].children[3]",
+                        path: "Bag.body[0].children[3].children[0].children[3]",
                         name: "Row",
                         children: <ffai.ProjectWidgetHandle>[
                           ffai.ProjectWidgetHandle(
                             key: "Text_99cytu7u",
                             type: "Text",
-                            path: "Bag.body[0].children[2].children[0].children[3].children[0]",
+                            path: "Bag.body[0].children[3].children[0].children[3].children[0]",
                             name: "Text",
                             text: "Total",
                           ),
                           ffai.ProjectWidgetHandle(
                             key: "Text_zuv2oacc",
                             type: "Text",
-                            path: "Bag.body[0].children[2].children[0].children[3].children[1]",
+                            path: "Bag.body[0].children[3].children[0].children[3].children[1]",
                             name: "Text",
                           ),
                         ],
@@ -279,7 +318,7 @@ abstract final class BagWidgets {
                       ffai.ProjectWidgetHandle(
                         key: "Button_vtxoiopm",
                         type: "Button",
-                        path: "Bag.body[0].children[2].children[0].children[4]",
+                        path: "Bag.body[0].children[3].children[0].children[4]",
                         name: "Button",
                         text: "Proceed to Checkout",
                         triggers: const <String>[
@@ -289,7 +328,7 @@ abstract final class BagWidgets {
                       ffai.ProjectWidgetHandle(
                         key: "Button_yymk5f27",
                         type: "Button",
-                        path: "Bag.body[0].children[2].children[0].children[5]",
+                        path: "Bag.body[0].children[3].children[0].children[5]",
                         name: "Button",
                         text: "Clear bag",
                         triggers: const <String>[
