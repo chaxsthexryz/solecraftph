@@ -120,3 +120,22 @@ function login_attempt_record(string $username, bool $succeeded): void
         )->execute([LOGIN_WINDOW_MINUTES * 4]);
     }
 }
+
+/* ---------------------------------------------------------------------------
+ * The same counter, for things that are not logins but are just as abusable:
+ * creating accounts in bulk, or firing reset emails at someone's inbox using
+ * our SMTP. login_attempts already counts per IP, so this reuses it under a
+ * synthetic name that no real username can collide with.
+ * ------------------------------------------------------------------------- */
+
+/** Seconds this action must wait, or 0 to proceed. */
+function throttle_delay(string $action): int
+{
+    return login_throttle_delay('@' . $action);
+}
+
+/** Records one attempt. Every attempt counts — there is no "success" here. */
+function throttle_record(string $action): void
+{
+    login_attempt_record('@' . $action, false);
+}
