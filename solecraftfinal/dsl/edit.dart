@@ -4058,4 +4058,24 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
       );
     });
   }
+
+  // ---------------------------------------------------------------------------
+  // 22. Why the search box still did nothing
+  // ---------------------------------------------------------------------------
+  // The submit handler was fixed earlier and was correct — it reads the field
+  // and calls the API. It was simply never reached: the field is generated
+  // with `maxLines: null`, which in Flutter means multiline. A multiline field
+  // gets a newline key instead of a search key, and pressing it inserts a line
+  // break rather than firing onFieldSubmitted. So the box swallowed every
+  // Enter and the search never ran — "I can't seem to enter" is exactly right.
+  //
+  // One line, which is what a search box is.
+  app.editPage(ff.Pages.shop, (page) {
+    page.mutateNode(
+      ff.Pages.shop.widgets.byKey('TextField_tqobar4t').single,
+      (node) {
+        node.props.textField.maxLinesValue = FFIntegerValue(inputValue: 1);
+      },
+    );
+  });
 }
