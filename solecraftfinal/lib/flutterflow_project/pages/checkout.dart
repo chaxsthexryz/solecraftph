@@ -221,23 +221,24 @@ abstract final class CheckoutWidgets {
                         ],
                       ),
                       ffai.ProjectWidgetHandle(
-                        key: "Button_v90pgdk6",
-                        type: "Button",
-                        path: "Checkout.body[0].children[2].children[0].children[3]",
-                        name: "checkoutPinButton",
-                        text: "Pin on map",
-                        triggers: const <String>[
-                          "ON_TAP",
-                        ],
-                      ),
-                      ffai.ProjectWidgetHandle(
                         key: "TextField_bng08kxc",
                         type: "TextField",
-                        path: "Checkout.body[0].children[2].children[0].children[4]",
+                        path: "Checkout.body[0].children[2].children[0].children[3]",
                         name: "coAddress",
                         text: "Delivery address",
                         triggers: const <String>[
                           "ON_TEXTFIELD_CHANGE",
+                          "ON_TAP",
+                        ],
+                      ),
+                      ffai.ProjectWidgetHandle(
+                        key: "Button_2jbywvqg",
+                        type: "Button",
+                        path: "Checkout.body[0].children[2].children[0].children[4]",
+                        name: "checkoutPinButton",
+                        text: "Pin on map",
+                        triggers: const <String>[
+                          "ON_TAP",
                         ],
                       ),
                       ffai.ProjectWidgetHandle(
