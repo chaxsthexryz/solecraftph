@@ -12,7 +12,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggl
 }
 
 $wishlistIds = (auth_is_logged_in() && !auth_is_admin()) ? wishlist_product_ids((int) $_SESSION['user_id']) : [];
+// One banners table, two presentations. A row with an image is a full-width
+// promo at the top of the page; a row without one is the thin text strip it
+// has always been. Split here so an image banner does not appear as both.
 $activeBanners = banner_list_active();
+$promoBanners  = [];
+foreach ($activeBanners as $i => $b) {
+    // Null-coalesced because this has to keep rendering on a database where
+    // upgrade_v10_banner_images.sql has not run yet.
+    if (($b['image_url'] ?? '') !== '') {
+        $promoBanners[] = $b;
+        unset($activeBanners[$i]);
+    }
+}
+$activeBanners = array_values($activeBanners);
 
 $search      = trim($_GET['q'] ?? '');
 $category    = trim($_GET['category'] ?? '');
@@ -51,8 +64,23 @@ if (!$heroVideoExists) {
 // pills on top — burying the thing it is advertising under the site chrome.
 // Shown whole instead, at its own aspect ratio, with the header underneath
 // going back to plain text on paper.
+// Banners uploaded in admin come first: they carry a title for the alt text,
+// a link, an order and an on/off switch, and the shop owner can change them
+// without touching the server.
 $promoSlides = [];
-if (!$heroVideoExists && !empty($customHeroFiles)) {
+foreach ($promoBanners as $b) {
+    $promoSlides[] = [
+        'url'  => BASE_PATH . '/' . $b['image_url'],
+        'alt'  => $b['title'],
+        'link' => $b['link_url'] ?: '',
+    ];
+}
+
+// Failing that, anything dropped straight into assets/media/hero/. No link and
+// no ordering beyond the filename, but it needs no database and no admin
+// login — which is the point of keeping it: it is the way back in when the
+// panel is unreachable.
+if (empty($promoSlides) && !$heroVideoExists && !empty($customHeroFiles)) {
     $promoSlides = array_map(static function (string $path): array {
         $file = basename($path);
         return [
@@ -60,7 +88,8 @@ if (!$heroVideoExists && !empty($customHeroFiles)) {
             // Best effort, and better than nothing: a screen reader gets
             // "Mid Season Sale 50 Off" from mid-season-sale-50-off.jpg. Name
             // the files in words and the alt text writes itself.
-            'alt' => ucwords(str_replace(['-', '_'], ' ', pathinfo($file, PATHINFO_FILENAME))),
+            'alt'  => ucwords(str_replace(['-', '_'], ' ', pathinfo($file, PATHINFO_FILENAME))),
+            'link' => '',
         ];
     }, array_values($customHeroFiles));
 }
@@ -119,8 +148,10 @@ if ($fadeCount > 1) {
        width the screen happens to be, so a promo is never cropped and never
        letterboxed. */
     .promo__stack{position:relative;}
-    .promo__slide{display:block;width:100%;height:auto;}
-    .promo__slide--over{position:absolute;inset:0;height:100%;object-fit:cover;opacity:0;}
+    .promo__slide{display:block;position:relative;}
+    .promo__slide img{display:block;width:100%;height:auto;}
+    .promo__slide--over{position:absolute;inset:0;opacity:0;}
+    .promo__slide--over img{height:100%;object-fit:cover;}
     @media (prefers-reduced-motion:reduce){
       /* Crossfading artwork under someone who asked for less motion is exactly
          the thing that setting is for. They get the first banner, held. */
@@ -142,13 +173,22 @@ if ($fadeCount > 1) {
   <section class="promo">
     <div class="promo__stack">
       <?php foreach ($promoSlides as $i => $slide): ?>
-        <img class="promo__slide<?= $i > 0 ? ' promo__slide--over' : '' ?>"
-             src="<?= htmlspecialchars($slide['url']) ?>"
-             alt="<?= htmlspecialchars($slide['alt']) ?>"
-             <?= $i > 0 ? 'loading="lazy" ' : '' ?>
-             <?php if (count($promoSlides) > 1): ?>
-             style="animation:heroFade <?= $heroTotal ?>s ease-in-out infinite;animation-delay:<?= $i * $heroSegment ?>s;"
-             <?php endif; ?>>
+        <?php
+          // A linked banner is an <a>, an unlinked one a <div> — same class, so
+          // the stacking and the fade do not care which it is. The anchor wraps
+          // the image rather than the image being the anchor, because the
+          // first slide has to stay in normal flow to give the band its height.
+          $tag   = $slide['link'] !== '' ? 'a' : 'div';
+          $attrs = $slide['link'] !== '' ? ' href="' . htmlspecialchars($slide['link']) . '"' : '';
+          if (count($promoSlides) > 1) {
+              $attrs .= ' style="animation:heroFade ' . $heroTotal . 's ease-in-out infinite;'
+                     . 'animation-delay:' . ($i * $heroSegment) . 's;"';
+          }
+        ?>
+        <<?= $tag ?> class="promo__slide<?= $i > 0 ? ' promo__slide--over' : '' ?>"<?= $attrs ?>>
+          <img src="<?= htmlspecialchars($slide['url']) ?>"
+               alt="<?= htmlspecialchars($slide['alt']) ?>"<?= $i > 0 ? ' loading="lazy"' : '' ?>>
+        </<?= $tag ?>>
       <?php endforeach; ?>
     </div>
   </section>
