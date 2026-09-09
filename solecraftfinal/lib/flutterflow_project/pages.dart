@@ -4,6 +4,7 @@ library;
 
 import 'package:flutterflow_ai/flutterflow_ai.dart' as ffai;
 import 'pages/account.dart' show accountHandle;
+import 'pages/addresses.dart' show addressesHandle;
 import 'pages/bag.dart' show bagHandle;
 import 'pages/checkout.dart' show checkoutHandle;
 import 'pages/confirmed.dart' show confirmedHandle;
@@ -23,6 +24,7 @@ import 'pages/wishlist.dart' show wishlistHandle;
 
 abstract final class Pages {
   static final account = accountHandle;
+  static final addresses = addressesHandle;
   static final bag = bagHandle;
   static final checkout = checkoutHandle;
   static final confirmed = confirmedHandle;
@@ -41,6 +43,7 @@ abstract final class Pages {
   static final wishlist = wishlistHandle;
   static final all = <ffai.ProjectPageHandle>[
     account,
+    addresses,
     bag,
     checkout,
     confirmed,

@@ -55,6 +55,12 @@ final class CheckoutState {
         key: "tvjy0ehp",
         typeName: "Boolean",
       );
+  ffai.ProjectStateFieldHandle get saved =>
+      const ffai.ProjectStateFieldHandle(
+        name: "saved",
+        key: "d4xcyq6n",
+        typeName: "List<DataStruct<AddressRow>>",
+      );
 }
 
 abstract final class CheckoutWidgets {
@@ -143,9 +149,42 @@ abstract final class CheckoutWidgets {
                     name: "Column",
                     children: <ffai.ProjectWidgetHandle>[
                       ffai.ProjectWidgetHandle(
+                        key: "Container_0dchiayu",
+                        type: "Container",
+                        path: "Checkout.body[0].children[2].children[0].children[0]",
+                        name: "addressPicker",
+                        children: <ffai.ProjectWidgetHandle>[
+                          ffai.ProjectWidgetHandle(
+                            key: "ListView_q1zsk1e2",
+                            type: "ListView",
+                            path: "Checkout.body[0].children[2].children[0].children[0].children[0]",
+                            name: "addressPickerList",
+                            children: <ffai.ProjectWidgetHandle>[
+                              ffai.ProjectWidgetHandle(
+                                key: "Container_lmt4rmqm",
+                                type: "Container",
+                                path: "Checkout.body[0].children[2].children[0].children[0].children[0].children[0]",
+                                name: "addressPickerChip",
+                                triggers: const <String>[
+                                  "ON_TAP",
+                                ],
+                                children: <ffai.ProjectWidgetHandle>[
+                                  ffai.ProjectWidgetHandle(
+                                    key: "Text_gj3jif01",
+                                    type: "Text",
+                                    path: "Checkout.body[0].children[2].children[0].children[0].children[0].children[0].children[0]",
+                                    name: "Text",
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      ffai.ProjectWidgetHandle(
                         key: "TextField_34iw5du7",
                         type: "TextField",
-                        path: "Checkout.body[0].children[2].children[0].children[0]",
+                        path: "Checkout.body[0].children[2].children[0].children[1]",
                         name: "coName",
                         text: "Full name",
                         triggers: const <String>[
@@ -155,7 +194,7 @@ abstract final class CheckoutWidgets {
                       ffai.ProjectWidgetHandle(
                         key: "TextField_zxgfjsxb",
                         type: "TextField",
-                        path: "Checkout.body[0].children[2].children[0].children[1]",
+                        path: "Checkout.body[0].children[2].children[0].children[2]",
                         name: "coEmail",
                         text: "Email",
                         triggers: const <String>[
@@ -165,7 +204,7 @@ abstract final class CheckoutWidgets {
                       ffai.ProjectWidgetHandle(
                         key: "TextField_bng08kxc",
                         type: "TextField",
-                        path: "Checkout.body[0].children[2].children[0].children[2]",
+                        path: "Checkout.body[0].children[2].children[0].children[3]",
                         name: "coAddress",
                         text: "Delivery address",
                         triggers: const <String>[
@@ -175,7 +214,7 @@ abstract final class CheckoutWidgets {
                       ffai.ProjectWidgetHandle(
                         key: "TextField_9li215mu",
                         type: "TextField",
-                        path: "Checkout.body[0].children[2].children[0].children[3]",
+                        path: "Checkout.body[0].children[2].children[0].children[4]",
                         name: "coPhone",
                         text: "Mobile number",
                         triggers: const <String>[

@@ -149,9 +149,18 @@ abstract final class AccountWidgets {
                 ],
               ),
               ffai.ProjectWidgetHandle(
-                key: "ListTile_ra3qqzuv",
+                key: "ListTile_pvn5iupa",
                 type: "ListTile",
                 path: "Account.body[0].children[2]",
+                name: "addressesTile",
+                triggers: const <String>[
+                  "ON_TAP",
+                ],
+              ),
+              ffai.ProjectWidgetHandle(
+                key: "ListTile_ra3qqzuv",
+                type: "ListTile",
+                path: "Account.body[0].children[3]",
                 name: "accountProfileTile",
                 triggers: const <String>[
                   "ON_TAP",
@@ -160,7 +169,7 @@ abstract final class AccountWidgets {
               ffai.ProjectWidgetHandle(
                 key: "ListTile_yxcqduiu",
                 type: "ListTile",
-                path: "Account.body[0].children[3]",
+                path: "Account.body[0].children[4]",
                 name: "accountNotificationsTile",
                 triggers: const <String>[
                   "ON_TAP",
@@ -169,7 +178,7 @@ abstract final class AccountWidgets {
               ffai.ProjectWidgetHandle(
                 key: "ListTile_nfw3mvu8",
                 type: "ListTile",
-                path: "Account.body[0].children[4]",
+                path: "Account.body[0].children[5]",
                 name: "accountWishlistTile",
                 triggers: const <String>[
                   "ON_TAP",
@@ -178,7 +187,7 @@ abstract final class AccountWidgets {
               ffai.ProjectWidgetHandle(
                 key: "ListTile_81kcu172",
                 type: "ListTile",
-                path: "Account.body[0].children[5]",
+                path: "Account.body[0].children[6]",
                 name: "ListTile",
                 triggers: const <String>[
                   "ON_TAP",
@@ -187,7 +196,7 @@ abstract final class AccountWidgets {
               ffai.ProjectWidgetHandle(
                 key: "ListTile_vjqn585s",
                 type: "ListTile",
-                path: "Account.body[0].children[6]",
+                path: "Account.body[0].children[7]",
                 name: "ListTile",
                 triggers: const <String>[
                   "ON_TAP",
@@ -196,13 +205,13 @@ abstract final class AccountWidgets {
               ffai.ProjectWidgetHandle(
                 key: "ListTile_dak60bnf",
                 type: "ListTile",
-                path: "Account.body[0].children[7]",
+                path: "Account.body[0].children[8]",
                 name: "ListTile",
               ),
               ffai.ProjectWidgetHandle(
                 key: "ListTile_yulwqsdg",
                 type: "ListTile",
-                path: "Account.body[0].children[8]",
+                path: "Account.body[0].children[9]",
                 name: "accountHelpTile",
                 triggers: const <String>[
                   "ON_TAP",
@@ -211,7 +220,7 @@ abstract final class AccountWidgets {
               ffai.ProjectWidgetHandle(
                 key: "Button_e62wmj76",
                 type: "Button",
-                path: "Account.body[0].children[9]",
+                path: "Account.body[0].children[10]",
                 name: "Button",
                 text: "Sign out",
                 triggers: const <String>[
