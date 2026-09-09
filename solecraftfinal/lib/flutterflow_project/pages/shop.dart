@@ -31,6 +31,12 @@ final class ShopState {
         key: "b7y968ww",
         typeName: "Boolean",
       );
+  ffai.ProjectStateFieldHandle get loadFailed =>
+      const ffai.ProjectStateFieldHandle(
+        name: "loadFailed",
+        key: "o0ymbcoo",
+        typeName: "Boolean",
+      );
   ffai.ProjectStateFieldHandle get search =>
       const ffai.ProjectStateFieldHandle(
         name: "search",
@@ -221,15 +227,48 @@ abstract final class ShopWidgets {
                 name: "ProgressBar",
               ),
               ffai.ProjectWidgetHandle(
+                key: "Container_ympcv07g",
+                type: "Container",
+                path: "Shop.body[0].children[3]",
+                name: "offlineBanner",
+                triggers: const <String>[
+                  "ON_TAP",
+                ],
+                children: <ffai.ProjectWidgetHandle>[
+                  ffai.ProjectWidgetHandle(
+                    key: "Column_eo0g0ez8",
+                    type: "Column",
+                    path: "Shop.body[0].children[3].children[0]",
+                    name: "Column",
+                    children: <ffai.ProjectWidgetHandle>[
+                      ffai.ProjectWidgetHandle(
+                        key: "Text_0vcctbnd",
+                        type: "Text",
+                        path: "Shop.body[0].children[3].children[0].children[0]",
+                        name: "offlineTitle",
+                        text: "Could not reach SoleCraftPH.",
+                      ),
+                      ffai.ProjectWidgetHandle(
+                        key: "Text_a1tzdxs1",
+                        type: "Text",
+                        path: "Shop.body[0].children[3].children[0].children[1]",
+                        name: "offlineHint",
+                        text: "Check your connection, then tap here to try again.",
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              ffai.ProjectWidgetHandle(
                 key: "GridView_ilvt3kls",
                 type: "GridView",
-                path: "Shop.body[0].children[3]",
+                path: "Shop.body[0].children[4]",
                 name: "GridView",
                 children: <ffai.ProjectWidgetHandle>[
                   ffai.ProjectWidgetHandle(
                     key: "Container_vzkzbk79",
                     type: "Container",
-                    path: "Shop.body[0].children[3].children[0]",
+                    path: "Shop.body[0].children[4].children[0]",
                     name: "ShoeCardTap",
                     triggers: const <String>[
                       "ON_TAP",
@@ -238,7 +277,7 @@ abstract final class ShopWidgets {
                       ffai.ProjectWidgetHandle(
                         key: "Container_er1fj8un",
                         type: "Container",
-                        path: "Shop.body[0].children[3].children[0].children[0]",
+                        path: "Shop.body[0].children[4].children[0].children[0]",
                         name: "ShoeCard",
                         componentName: "ShoeCard",
                       ),

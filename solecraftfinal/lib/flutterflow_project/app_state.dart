@@ -29,6 +29,30 @@ abstract final class AppState {
     typeName: "Integer",
     persisted: true,
   );
+  static const payCard = ffai.ProjectAppStateFieldHandle(
+    name: "payCard",
+    key: "3syj000x",
+    typeName: "Boolean",
+    persisted: false,
+  );
+  static const payCod = ffai.ProjectAppStateFieldHandle(
+    name: "payCod",
+    key: "u1n8rujp",
+    typeName: "Boolean",
+    persisted: false,
+  );
+  static const payGcash = ffai.ProjectAppStateFieldHandle(
+    name: "payGcash",
+    key: "mjqorqnd",
+    typeName: "Boolean",
+    persisted: false,
+  );
+  static const shopCategories = ffai.ProjectAppStateFieldHandle(
+    name: "shopCategories",
+    key: "icja1jxw",
+    typeName: "List<String>",
+    persisted: false,
+  );
   static const signedIn = ffai.ProjectAppStateFieldHandle(
     name: "signedIn",
     key: "w9gopo6y",
@@ -82,6 +106,10 @@ abstract final class AppState {
     bag,
     isAdmin,
     lastOrderId,
+    payCard,
+    payCod,
+    payGcash,
+    shopCategories,
     signedIn,
     userAddress,
     userEmail,

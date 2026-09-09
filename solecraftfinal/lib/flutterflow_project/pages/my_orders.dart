@@ -25,6 +25,12 @@ final class MyOrdersState {
         key: "ejgd3w5u",
         typeName: "Boolean",
       );
+  ffai.ProjectStateFieldHandle get loadFailed =>
+      const ffai.ProjectStateFieldHandle(
+        name: "loadFailed",
+        key: "adcgrrpd",
+        typeName: "Boolean",
+      );
   ffai.ProjectStateFieldHandle get orders =>
       const ffai.ProjectStateFieldHandle(
         name: "orders",
@@ -115,15 +121,48 @@ abstract final class MyOrdersWidgets {
                 name: "ProgressBar",
               ),
               ffai.ProjectWidgetHandle(
+                key: "Container_7d73oufu",
+                type: "Container",
+                path: "MyOrders.body[0].children[2]",
+                name: "offlineBanner",
+                triggers: const <String>[
+                  "ON_TAP",
+                ],
+                children: <ffai.ProjectWidgetHandle>[
+                  ffai.ProjectWidgetHandle(
+                    key: "Column_930uuywz",
+                    type: "Column",
+                    path: "MyOrders.body[0].children[2].children[0]",
+                    name: "Column",
+                    children: <ffai.ProjectWidgetHandle>[
+                      ffai.ProjectWidgetHandle(
+                        key: "Text_dyzojq7c",
+                        type: "Text",
+                        path: "MyOrders.body[0].children[2].children[0].children[0]",
+                        name: "offlineTitle",
+                        text: "Could not load your orders.",
+                      ),
+                      ffai.ProjectWidgetHandle(
+                        key: "Text_dig6hjli",
+                        type: "Text",
+                        path: "MyOrders.body[0].children[2].children[0].children[1]",
+                        name: "offlineHint",
+                        text: "Check your connection, then tap here to try again.",
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              ffai.ProjectWidgetHandle(
                 key: "ListView_ko415scl",
                 type: "ListView",
-                path: "MyOrders.body[0].children[2]",
+                path: "MyOrders.body[0].children[3]",
                 name: "ListView",
                 children: <ffai.ProjectWidgetHandle>[
                   ffai.ProjectWidgetHandle(
                     key: "Container_x3gjkj3t",
                     type: "Container",
-                    path: "MyOrders.body[0].children[2].children[0]",
+                    path: "MyOrders.body[0].children[3].children[0]",
                     name: "Container",
                     triggers: const <String>[
                       "ON_TAP",
@@ -132,26 +171,26 @@ abstract final class MyOrdersWidgets {
                       ffai.ProjectWidgetHandle(
                         key: "Column_t4musqqp",
                         type: "Column",
-                        path: "MyOrders.body[0].children[2].children[0].children[0]",
+                        path: "MyOrders.body[0].children[3].children[0].children[0]",
                         name: "Column",
                         children: <ffai.ProjectWidgetHandle>[
                           ffai.ProjectWidgetHandle(
                             key: "Row_d7j4by5y",
                             type: "Row",
-                            path: "MyOrders.body[0].children[2].children[0].children[0].children[0]",
+                            path: "MyOrders.body[0].children[3].children[0].children[0].children[0]",
                             name: "Row",
                             children: <ffai.ProjectWidgetHandle>[
                               ffai.ProjectWidgetHandle(
                                 key: "Text_bztfz470",
                                 type: "Text",
-                                path: "MyOrders.body[0].children[2].children[0].children[0].children[0].children[0]",
+                                path: "MyOrders.body[0].children[3].children[0].children[0].children[0].children[0]",
                                 name: "Text",
                                 text: "Order #",
                               ),
                               ffai.ProjectWidgetHandle(
                                 key: "Text_0cm12rss",
                                 type: "Text",
-                                path: "MyOrders.body[0].children[2].children[0].children[0].children[0].children[1]",
+                                path: "MyOrders.body[0].children[3].children[0].children[0].children[0].children[1]",
                                 name: "Text",
                               ),
                             ],
@@ -159,19 +198,19 @@ abstract final class MyOrdersWidgets {
                           ffai.ProjectWidgetHandle(
                             key: "Row_xdwgsgux",
                             type: "Row",
-                            path: "MyOrders.body[0].children[2].children[0].children[0].children[1]",
+                            path: "MyOrders.body[0].children[3].children[0].children[0].children[1]",
                             name: "Row",
                             children: <ffai.ProjectWidgetHandle>[
                               ffai.ProjectWidgetHandle(
                                 key: "Container_cbsp3ss0",
                                 type: "Container",
-                                path: "MyOrders.body[0].children[2].children[0].children[0].children[1].children[0]",
+                                path: "MyOrders.body[0].children[3].children[0].children[0].children[1].children[0]",
                                 name: "Container",
                                 children: <ffai.ProjectWidgetHandle>[
                                   ffai.ProjectWidgetHandle(
                                     key: "Text_iue0zak6",
                                     type: "Text",
-                                    path: "MyOrders.body[0].children[2].children[0].children[0].children[1].children[0].children[0]",
+                                    path: "MyOrders.body[0].children[3].children[0].children[0].children[1].children[0].children[0]",
                                     name: "Text",
                                   ),
                                 ],
@@ -179,7 +218,7 @@ abstract final class MyOrdersWidgets {
                               ffai.ProjectWidgetHandle(
                                 key: "Text_6ogjczfo",
                                 type: "Text",
-                                path: "MyOrders.body[0].children[2].children[0].children[0].children[1].children[1]",
+                                path: "MyOrders.body[0].children[3].children[0].children[0].children[1].children[1]",
                                 name: "Text",
                               ),
                             ],
@@ -187,7 +226,7 @@ abstract final class MyOrdersWidgets {
                           ffai.ProjectWidgetHandle(
                             key: "Text_09mdfn36",
                             type: "Text",
-                            path: "MyOrders.body[0].children[2].children[0].children[0].children[2]",
+                            path: "MyOrders.body[0].children[3].children[0].children[0].children[2]",
                             name: "Text",
                           ),
                         ],
