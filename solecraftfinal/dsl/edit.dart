@@ -4744,6 +4744,39 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
   );
 
   // ---------------------------------------------------------------------------
+  // Why the bottom of every tab page was hidden
+  // ---------------------------------------------------------------------------
+  // The nav bar was the "floating" type, and FlutterFlow builds that one as:
+  //
+  //   Scaffold(
+  //     extendBody: true,
+  //     body: MediaQuery(
+  //       data: queryData
+  //           .removeViewInsets(removeBottom: true)
+  //           .removeViewPadding(removeBottom: true),
+  //       child: ...),
+  //     bottomNavigationBar: FloatingNavbar(...))
+  //
+  // `extendBody: true` runs the page *under* the bar instead of above it, and
+  // the two `removeBottom` calls strip the bottom inset out of MediaQuery, so
+  // the page's own SafeArea has nothing left to react to. Between them the
+  // page cannot see either the nav bar or the system gesture bar, which is
+  // why Clear bag sat behind both with no way to scroll it clear.
+  //
+  // The floating style buys exactly one thing — content visible around a
+  // detached pill — and this bar is not detached: margin 0, full width,
+  // elevation 0, an 8px radius. So it was paying the whole cost for none of
+  // the benefit. The standard Flutter bar looks the same here and is a real
+  // Scaffold slot, so every tab page gets its height reserved automatically.
+  //
+  // Set on the proto directly: app.bottomNav(...) is declare-once and would
+  // want the four tabs restated, which risks the nav order for a change that
+  // is one field. Assignment, so reruns are free.
+  app.raw((project) {
+    project.ensureNavBar().navBarType = FFNavBar_NavBarType.FLUTTER_NAV_BAR;
+  });
+
+  // ---------------------------------------------------------------------------
   // The addresses page body above is dead code, and has been for a while
   // ---------------------------------------------------------------------------
   // `app.ensurePage` skips an existing page entirely — creation, state fields
@@ -5081,8 +5114,7 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
     });
   }
 
-  // The same map, on checkout. Sits directly above the address box it fills,
-  // so the relationship between the two is obvious without a label saying so.
+  // The same map, on checkout.
   //
   // Worth having here as well as on the addresses page: a guest ordering to
   // somewhere they will never use again has no reason to save an address, and
@@ -5091,18 +5123,61 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
     (w) => w.name == 'checkoutPinButton',
   )) {
     app.editPage(ff.Pages.checkout, (page) {
-      page.ensureInsertedBefore(
+      page.ensureInsertedAfter(
         ff.Pages.checkout.widgets.byKey('TextField_bng08kxc').single,
         Button(
           'Pin on map',
           name: 'checkoutPinButton',
           width: double.infinity,
-          height: 48,
+          height: 44,
           borderRadius: 12,
           variant: ButtonVariant.outlined,
           color: Colors.secondaryBackground,
           textColor: Colors.primaryText,
         ),
+      );
+    });
+  }
+
+  // It went in above the address box first, which dropped a tall outlined
+  // button between Email and Delivery address and cut the run of fields in
+  // half — on screen it read as belonging to the email. It belongs under the
+  // box it fills.
+  //
+  // Not done with ensureMovedTo. That wants a parent plus a child index rather
+  // than "after this sibling" (a sibling destination throws "Unsupported slot
+  // placement: TextField.after", and AppBar.actions is the SDK's only named
+  // multi-child slot). Given the parent Column and an index it compiled, and
+  // then the project failed validation with "Action in checkoutPinButton has
+  // an output variable with the same name as that of another widget" — the
+  // signature of the node existing twice, i.e. the remove half of the move not
+  // taking. Deleting it and letting the insert above put a fresh one in the
+  // right place is duller and actually works.
+  //
+  // It takes three runs of this file to settle, each gated by its own guard:
+  // remove, then insert after the address box, then attach the actions. That
+  // is the same shape as every other inserted widget here.
+  final checkoutPinIndex = _childIndexOf(
+    ff.Pages.checkout.widgets.all
+        .where((w) => w.name == 'checkoutPinButton')
+        .firstOrNull
+        ?.path,
+  );
+  final addressBoxIndex = _childIndexOf(
+    ff.Pages.checkout.widgets.byKey('TextField_bng08kxc').single.path,
+  );
+  if (checkoutPinIndex != null &&
+      addressBoxIndex != null &&
+      checkoutPinIndex < addressBoxIndex) {
+    app.editPage(ff.Pages.checkout, (page) {
+      page.ensureRemoved(
+        ff.Pages.checkout.widgets
+            .byKey(
+              ff.Pages.checkout.widgets.all
+                  .firstWhere((w) => w.name == 'checkoutPinButton')
+                  .key,
+            )
+            .single,
       );
     });
   }
@@ -5120,12 +5195,12 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
         triggerType: FFActionTriggerType.ON_TAP,
         actions: [
           const RequestPermissions(permission: PermissionKind.location),
-          CallCustomAction(currentPin, outputAs: 'checkoutPinStart'),
+          CallCustomAction(currentPin, outputAs: 'mapOpenAt'),
           UpdateAppState.set(ff.AppState.pinConfirmed, false),
           ShowBottomSheet(
             pinSheet,
             params: {
-              'startPin': ActionOutput('checkoutPinStart'),
+              'startPin': ActionOutput('mapOpenAt'),
               'onDone': const [NavigateBack()],
             },
             enableDrag: false,
@@ -5229,4 +5304,16 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
       });
     }
   });
+}
+
+/// The trailing `children[N]` index out of a generated widget path, or null
+/// when the path has none.
+///
+/// Used to tell whether two siblings are in the order we want without holding
+/// their positions as constants — the numbers shift whenever anything is
+/// inserted above them.
+int? _childIndexOf(String? path) {
+  if (path == null) return null;
+  final match = RegExp(r'\[(\d+)\]$').firstMatch(path);
+  return match == null ? null : int.tryParse(match.group(1)!);
 }
