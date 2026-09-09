@@ -11,6 +11,29 @@ abstract final class Enums {
 }
 
 abstract final class Structs {
+  static final ffai.StructHandle addressList = ffai.StructHandle(
+    "AddressList",
+    <String, ffai.DslType>{
+      "count": ffai.int_,
+      "items": ffai.listOf(Structs.addressRow),
+    },
+    description: ffai.generatedProjectStructDescription,
+  );
+  static final ffai.StructHandle addressRow = ffai.StructHandle(
+    "AddressRow",
+    <String, ffai.DslType>{
+      "address": ffai.string,
+      "id": ffai.int_,
+      "is_default": ffai.bool_,
+      "label": ffai.string,
+      "latitude": ffai.string,
+      "longitude": ffai.string,
+      "map_url": ffai.string,
+      "phone": ffai.string,
+      "recipient_name": ffai.string,
+    },
+    description: ffai.generatedProjectStructDescription,
+  );
   static final ffai.StructHandle apiMessage = ffai.StructHandle(
     "ApiMessage",
     <String, ffai.DslType>{
@@ -321,6 +344,8 @@ abstract final class Structs {
     description: ffai.generatedProjectStructDescription,
   );
   static final all = <ffai.StructHandle>[
+    addressList,
+    addressRow,
     apiMessage,
     apiNote,
     authResponse,
@@ -373,6 +398,7 @@ abstract final class CustomCode {
     "bagTotal",
     "bumpQty",
     "cartLines",
+    "hasNoAddresses",
     "hasSale",
     "imgUrl",
     "listStillHas",
@@ -381,12 +407,14 @@ abstract final class CustomCode {
     "orderSubline",
     "peso",
     "pesoN",
+    "pinPart",
     "sizeSellable",
     "subcategoriesOf",
     "titleCase",
     "toNum",
   ];
   static const actions = <String>[
+    "currentPin",
     "deviceToken",
   ];
   static const widgets = <String>[

@@ -833,6 +833,145 @@ return (rows ?? <TaxonomyRowStruct>[])
     description: 'The subcategories belonging to one category.',
   );
 
+  final addressRow = app.struct(
+    'AddressRow',
+    {
+      'id': int_,
+      'label': string,
+      'recipient_name': string,
+      'phone': string,
+      'address': string,
+      // Strings, not doubles: they are only ever displayed or handed back to
+      // the server, and a JSON double renders as 14.599512000000001 on some
+      // devices. Empty when this address has no pin.
+      'latitude': string,
+      'longitude': string,
+      'is_default': bool_,
+      'map_url': string,
+    },
+    description: 'One saved delivery address.',
+  );
+  final addressList = app.struct(
+    'AddressList',
+    {'count': int_, 'items': listOf(addressRow)},
+    description: 'Every address the signed-in shopper has saved.',
+  );
+
+  final getAddresses = Endpoint.get(
+    'GetAddresses',
+    '/addresses.php',
+    variables: {'token': string},
+    headers: {'Authorization': 'Bearer [token]'},
+    response: addressList,
+  );
+  // Every write answers with the whole list, so the screen never has to
+  // re-fetch to show the result of what it just did.
+  final saveAddress = Endpoint.post(
+    'SaveAddress',
+    '/addresses.php?action=save',
+    variables: {
+      'token': string,
+      'id': int_,
+      'label': string,
+      'recipient_name': string,
+      'phone': string,
+      'address': string,
+      'latitude': string,
+      'longitude': string,
+    },
+    headers: {'Authorization': 'Bearer [token]'},
+    body: const {
+      'id': '<id>',
+      'label': '<label>',
+      'recipient_name': '<recipient_name>',
+      'phone': '<phone>',
+      'address': '<address>',
+      'latitude': '<latitude>',
+      'longitude': '<longitude>',
+    },
+    response: addressList,
+  );
+  final deleteAddress = Endpoint.post(
+    'DeleteAddress',
+    '/addresses.php?action=delete',
+    variables: {'token': string, 'id': int_},
+    headers: {'Authorization': 'Bearer [token]'},
+    body: const {'id': '<id>'},
+    response: addressList,
+  );
+  final defaultAddress = Endpoint.post(
+    'DefaultAddress',
+    '/addresses.php?action=default',
+    variables: {'token': string, 'id': int_},
+    headers: {'Authorization': 'Bearer [token]'},
+    body: const {'id': '<id>'},
+    response: addressList,
+  );
+
+  // Where the phone is, as "lat,lng" — or empty when it cannot be had. One
+  // string rather than two outputs because an action can only produce one
+  // value, and half a coordinate is worse than none.
+  app.pubDependency('geolocator', '13.0.2');
+  final currentPin = app.customAction(
+    'currentPin',
+    args: const <String, DslType>{},
+    returns: string,
+    code: r'''
+import 'package:geolocator/geolocator.dart';
+
+Future<String> currentPin() async {
+  try {
+    if (!await Geolocator.isLocationServiceEnabled()) return '';
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      return '';
+    }
+    final position = await Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        timeLimit: Duration(seconds: 15),
+      ),
+    );
+    return '${position.latitude},${position.longitude}';
+  } catch (_) {
+    // Location off, permission refused, no fix in fifteen seconds — none of
+    // it is worth an error in a shopper's face. They can still type.
+    return '';
+  }
+}
+''',
+    description: 'This device\'s coordinates as "lat,lng", or empty.',
+  );
+
+  // Splitting the pin back apart for the two fields the API wants.
+  final pinPart = app.customFunction(
+    'pinPart',
+    args: {'pin': string, 'index': int_},
+    returns: string,
+    code: r'''
+final parts = (pin ?? '').split(',');
+final i = index ?? 0;
+if (parts.length != 2) return '';
+return parts[i].trim();
+''',
+    description: 'Latitude (0) or longitude (1) out of a "lat,lng" pin.',
+  );
+
+  // `Equals(State('saved'), [])` is not expressible — a Dart list literal is
+  // not a DSL expression — so the empty state asks a function instead.
+  final hasNoAddresses = app.customFunction(
+    'hasNoAddresses',
+    args: {'rows': listOf(addressRow)},
+    returns: bool_,
+    code: r'''
+return (rows ?? <AddressRowStruct>[]).isEmpty;
+''',
+    description: 'True when the shopper has saved no addresses yet.',
+  );
   app.apiGroup(
     'Api',
     baseUrl: 'https://snow-jellyfish-553645.hostingersite.com/api',
@@ -870,6 +1009,10 @@ return (rows ?? <TaxonomyRowStruct>[])
       registerDevice,
       getTaxonomy,
       getProductsFiltered,
+      getAddresses,
+      saveAddress,
+      deleteAddress,
+      defaultAddress,
     ],
   );
 
@@ -3502,4 +3645,365 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
       ],
     );
   });
+
+  // ---------------------------------------------------------------------------
+  // 20. Shipping details: autofill, saved addresses, and a pin
+  // ---------------------------------------------------------------------------
+
+  /// Reloads the address list. Used by the page load, by pull-to-refresh, and
+  /// after each write only when that write could not return the list itself.
+  List<DslAction> loadAddresses(String tag) => [
+    ApiCall(
+      getAddresses,
+      outputAs: 'addressLoad$tag',
+      params: {'token': AppState(ff.AppState.authToken)},
+      onSuccess: (res) => [SetState(ff.Pages.addresses.state.saved, res['items'])],
+      onFailure: authFailure(
+        'addressLoad$tag',
+        'Could not load your addresses.',
+      ),
+    ),
+  ];
+
+  final addressesPage = app.ensurePage(
+    'Addresses',
+    route: '/addresses',
+    description:
+        'Saved delivery addresses — Home, Work, wherever the shoes should go.',
+    state: {
+      'saved': listOf(addressRow),
+      // The form doubles as both "add" and "edit": a non-zero editingId means
+      // the save is an update. Cheaper than a second screen that would be the
+      // same six fields.
+      'editingId': int_.withDefault(0),
+      'pin': string.withDefault(''),
+      'formOpen': bool_.withDefault(false),
+    },
+    onLoad: loadAddresses(''),
+    body: Scaffold(
+      appBar: AppBar(title: 'Delivery Addresses'),
+      body: Column(
+        scrollable: true,
+        crossAxis: CrossAxis.start,
+        spacing: 14,
+        padding: 16,
+        children: [
+          Text(
+            'Saved addresses',
+            name: 'addressesHeading',
+            style: Styles.titleMedium,
+          ),
+          ListView(
+            name: 'addressList',
+            shrinkWrap: true,
+            scrollPhysics: ScrollPhysics.never,
+            spacing: 10,
+            source: State(ff.Pages.addresses.state.saved),
+            itemBuilder:
+                (item) => Container(
+                  name: 'addressCard',
+                  padding: 14,
+                  borderRadius: 12,
+                  color: Colors.secondaryBackground,
+                  borderColor: Colors.alternate,
+                  borderWidth: 1,
+                  child: Column(
+                    crossAxis: CrossAxis.start,
+                    spacing: 6,
+                    children: [
+                      Row(
+                        mainAxis: MainAxis.spaceBetween,
+                        crossAxis: CrossAxis.center,
+                        children: [
+                          Text(
+                            item['label'],
+                            name: 'addressLabel',
+                            style: Styles.titleSmall,
+                          ),
+                          Text(
+                            'Default',
+                            name: 'addressDefaultTag',
+                            style: Styles.bodySmall,
+                            color: Colors.secondary,
+                            visible: item['is_default'],
+                          ),
+                        ],
+                      ),
+                      Text(
+                        item['address'],
+                        name: 'addressLine',
+                        style: Styles.bodySmall,
+                        color: Colors.secondaryText,
+                      ),
+                      Text(
+                        item['phone'],
+                        name: 'addressPhone',
+                        style: Styles.bodySmall,
+                        color: Colors.secondaryText,
+                      ),
+                      Text(
+                        'Pinned on the map',
+                        name: 'addressPinned',
+                        style: Styles.bodySmall,
+                        color: Colors.secondary,
+                        visible: Not(Equals(item['latitude'], '')),
+                      ),
+                      Row(
+                        spacing: 10,
+                        children: [
+                          Container(
+                            name: 'makeDefault',
+                            padding: 6,
+                            child: Text(
+                              'Make default',
+                              style: Styles.bodySmall,
+                              color: Colors.primary,
+                            ),
+                            onTap: [
+                              ApiCall(
+                                defaultAddress,
+                                outputAs: 'setDefaultRes',
+                                params: {
+                                  'token': AppState(ff.AppState.authToken),
+                                  'id': item['id'],
+                                },
+                                onSuccess:
+                                    (res) => [SetState(ff.Pages.addresses.state.saved, res['items'])],
+                                onFailure: [
+                                  Snackbar('Could not change your default.'),
+                                ],
+                              ),
+                            ],
+                          ),
+                          Container(
+                            name: 'deleteAddressAction',
+                            padding: 6,
+                            child: Text(
+                              'Delete',
+                              style: Styles.bodySmall,
+                              color: Colors.error,
+                            ),
+                            onTap: [
+                              ApiCall(
+                                deleteAddress,
+                                outputAs: 'deleteAddressRes',
+                                params: {
+                                  'token': AppState(ff.AppState.authToken),
+                                  'id': item['id'],
+                                },
+                                onSuccess:
+                                    (res) => [
+                                      SetState(ff.Pages.addresses.state.saved, res['items']),
+                                      Snackbar('Address removed.'),
+                                    ],
+                                onFailure: [
+                                  Snackbar('Could not remove that address.'),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+          ),
+          Text(
+            'No saved addresses yet. Add one below and checkout will fill '
+            'itself in next time.',
+            name: 'addressesEmpty',
+            style: Styles.bodySmall,
+            color: Colors.secondaryText,
+            visible: CustomFunction(hasNoAddresses, args: {'rows': State(ff.Pages.addresses.state.saved)}),
+          ),
+          Divider(),
+          Text('Add an address', name: 'addFormHeading', style: Styles.titleMedium),
+          TextField(name: 'addrLabel', hint: 'Label — Home, Work, Mum\'s'),
+          TextField(name: 'addrRecipient', hint: 'Who receives it'),
+          TextField(
+            name: 'addrPhone',
+            hint: 'Contact number',
+            keyboard: Keyboard.number,
+          ),
+          TextField(
+            name: 'addrLine',
+            hint: 'House / street / barangay / city',
+          ),
+          // Pin-only, deliberately. A Philippine delivery address is rarely
+          // something a geocoder can produce — "blk 12 lot 4, corner of the
+          // sari-sari store" — so the coordinates ride alongside what the
+          // customer types rather than trying to replace it. What the rider
+          // actually needs is the pin, and a pin costs nothing.
+          Button(
+            'Use my current location',
+            name: 'useMyLocation',
+            width: double.infinity,
+            height: 52,
+            borderRadius: 12,
+            onTap: [
+              CallCustomAction(currentPin, outputAs: 'pinResult'),
+              If(
+                Equals(ActionOutput('pinResult'), ''),
+                then: [
+                  Snackbar(
+                    'Could not get your location. Check that location is on '
+                    'and try again — you can still type the address.',
+                  ),
+                ],
+                orElse: [
+                  SetState(ff.Pages.addresses.state.pin, ActionOutput('pinResult')),
+                  Snackbar('Location pinned. It will be saved with this address.'),
+                ],
+              ),
+            ],
+          ),
+          Text(
+            'Location pinned',
+            name: 'pinnedNotice',
+            style: Styles.bodySmall,
+            color: Colors.secondary,
+            visible: Not(Equals(State(ff.Pages.addresses.state.pin), '')),
+          ),
+          Button(
+            'Save address',
+            name: 'saveAddressButton',
+            width: double.infinity,
+            height: 52,
+            borderRadius: 12,
+            onTap: [
+              ApiCall(
+                saveAddress,
+                outputAs: 'saveAddressRes',
+                params: {
+                  'token': AppState(ff.AppState.authToken),
+                  'id': State(ff.Pages.addresses.state.editingId),
+                  'label': WidgetState('addrLabel', WidgetStateProperty.text),
+                  'recipient_name': WidgetState(
+                    'addrRecipient',
+                    WidgetStateProperty.text,
+                  ),
+                  'phone': WidgetState('addrPhone', WidgetStateProperty.text),
+                  'address': WidgetState('addrLine', WidgetStateProperty.text),
+                  'latitude': CustomFunction(
+                    pinPart,
+                    args: {'pin': State(ff.Pages.addresses.state.pin), 'index': 0},
+                  ),
+                  'longitude': CustomFunction(
+                    pinPart,
+                    args: {'pin': State(ff.Pages.addresses.state.pin), 'index': 1},
+                  ),
+                },
+                onSuccess:
+                    (res) => [
+                      SetState(ff.Pages.addresses.state.saved, res['items']),
+                      SetState(ff.Pages.addresses.state.pin, ''),
+                      SetState(ff.Pages.addresses.state.editingId, 0),
+                      Snackbar('Address saved.'),
+                    ],
+                onFailure: [
+                  Snackbar(
+                    'Could not save that. An address line is required, and you '
+                    'can keep up to ten.',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+
+  // A way in from Account, guarded because ensureInsertedBefore duplicates on
+  // a rerun — which is how the Account screen grew two Notifications tiles the
+  // first time round.
+  app.editPage(ff.Pages.account, (page) {
+    if (!ff.Pages.account.widgets.all.any((w) => w.name == 'addressesTile')) {
+      page.ensureInsertedBefore(
+        ff.Pages.account.widgets.byKey('ListTile_ra3qqzuv').single,
+        ListTile(
+          title: 'Delivery addresses',
+          leadingIcon: 'location_on_outlined',
+          name: 'addressesTile',
+          onTap: [Navigate.to(addressesPage)],
+        ),
+      );
+    }
+  });
+
+  // Checkout's page load set four page-state fields — fullName, email, phone,
+  // address — that the four boxes on screen never read, because those are
+  // bound to controllers which start empty. So a signed-in customer retyped
+  // everything they had already given us, while the state sat there correctly
+  // filled in. SetFormField writes into the controllers themselves.
+  //
+  // The saved default address wins over the profile's single address field,
+  // and falls back to it when there is nothing saved yet.
+  app.editPageState(ff.Pages.checkout, (state) {
+    state.ensureField('saved', listOf(addressRow));
+  });
+  app.editPageOnLoad(ff.Pages.checkout, [
+    SetFormField(ff.Pages.checkout.widgets.byKey('TextField_34iw5du7').single, AppState(ff.AppState.userFullName)),
+    SetFormField(ff.Pages.checkout.widgets.byKey('TextField_zxgfjsxb').single, AppState(ff.AppState.userEmail)),
+    SetFormField(ff.Pages.checkout.widgets.byKey('TextField_9li215mu').single, AppState(ff.AppState.userPhone)),
+    SetFormField(ff.Pages.checkout.widgets.byKey('TextField_bng08kxc').single, AppState(ff.AppState.userAddress)),
+    ApiCall(
+      getAddresses,
+      outputAs: 'checkoutAddresses',
+      params: {'token': AppState(ff.AppState.authToken)},
+      onSuccess: (res) => [SetState(ff.Pages.checkout.state.saved, res['items'])],
+    ),
+  ]);
+
+
+  // A row of saved addresses above the form. Tapping one fills the boxes,
+  // which is the whole point of having saved it. Empty for a customer with
+  // none, which is what keeps it out of the way.
+  if (!ff.Pages.checkout.widgets.all.any((w) => w.name == 'addressPicker')) {
+    app.editPage(ff.Pages.checkout, (page) {
+      page.ensureInsertedBefore(
+        ff.Pages.checkout.widgets.byKey('TextField_34iw5du7').single,
+        Container(
+          name: 'addressPicker',
+          height: 52,
+          child: ListView(
+            name: 'addressPickerList',
+            horizontal: true,
+            shrinkWrap: true,
+            spacing: 8,
+            source: State(ff.Pages.checkout.state.saved),
+            itemBuilder:
+                (item) => Container(
+                  name: 'addressPickerChip',
+                  padding: 12,
+                  borderRadius: 999,
+                  color: Colors.secondaryBackground,
+                  borderColor: Colors.alternate,
+                  borderWidth: 1,
+                  alignment: Alignment.center,
+                  child: Text(item['label'], style: Styles.bodySmall),
+                ),
+          ),
+        ),
+      );
+    });
+  }
+
+  // Bound on the pass after the insert, like every other inserted widget here.
+  final pickerChip =
+      ff.Pages.checkout.widgets.all.where((w) => w.name == 'addressPickerChip');
+  if (pickerChip.isNotEmpty) {
+    app.editPage(ff.Pages.checkout, (page) {
+      page.ensureActions(
+        ff.Pages.checkout.widgets.byKey(pickerChip.first.key).single,
+        triggerType: FFActionTriggerType.ON_TAP,
+        actions: [
+          SetFormField(ff.Pages.checkout.widgets.byKey('TextField_34iw5du7').single, ItemRef()['recipient_name']),
+          SetFormField(ff.Pages.checkout.widgets.byKey('TextField_9li215mu').single, ItemRef()['phone']),
+          SetFormField(ff.Pages.checkout.widgets.byKey('TextField_bng08kxc').single, ItemRef()['address']),
+          Snackbar('Delivering to your saved address.'),
+        ],
+      );
+    });
+  }
 }
