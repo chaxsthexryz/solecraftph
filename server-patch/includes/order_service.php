@@ -121,9 +121,23 @@ function order_create(array $customer, array $cartItems): int
             $total += $line['price'] * $line['qty'];
         }
 
+        // The map pin, when the customer chose a saved address that had one.
+        // Copied onto the order rather than looked up from the address book
+        // later: that book is theirs to edit or delete, and an order has to
+        // keep saying where it actually went. Both halves or neither — half a
+        // coordinate points at the Gulf of Guinea.
+        $lat = isset($customer['latitude']) && $customer['latitude'] !== ''
+            ? (float) $customer['latitude'] : null;
+        $lng = isset($customer['longitude']) && $customer['longitude'] !== ''
+            ? (float) $customer['longitude'] : null;
+        if ($lat === null || $lng === null) {
+            $lat = null;
+            $lng = null;
+        }
+
         $stmt = $db->prepare(
-            'INSERT INTO orders (user_id, customer_name, customer_email, customer_phone, customer_address, payment_method, total_amount, status)
-             VALUES (:user_id, :name, :email, :phone, :address, :payment_method, :total, "pending")'
+            'INSERT INTO orders (user_id, customer_name, customer_email, customer_phone, customer_address, latitude, longitude, payment_method, total_amount, status)
+             VALUES (:user_id, :name, :email, :phone, :address, :latitude, :longitude, :payment_method, :total, "pending")'
         );
         $stmt->execute([
             ':user_id'        => $customer['user_id'] ?? null,
@@ -131,6 +145,8 @@ function order_create(array $customer, array $cartItems): int
             ':email'          => $customer['email'],
             ':phone'          => $customer['phone'],
             ':address'        => $customer['address'],
+            ':latitude'       => $lat,
+            ':longitude'      => $lng,
             ':payment_method' => $customer['payment_method'] ?? 'COD',
             ':total'          => $total,
         ]);
@@ -405,4 +421,18 @@ function order_send_confirmation_email(
         . nl2br(htmlspecialchars((string) ($customer['address'] ?? ''))) . '</span></p>'
         . mail_button('View your order', mail_site_url() . '/order_detail.php?id=' . $orderId)
     );
+}
+
+/**
+ * A Google Maps link for an order's pin, or empty when it has none.
+ * Used by the admin order page and the packing slip — a rider looking for
+ * "blk 12 lot 4, corner of the sari-sari store" wants the pin, not the prose.
+ */
+function order_map_url(array $order): string
+{
+    if (empty($order['latitude']) || empty($order['longitude'])) {
+        return '';
+    }
+    return 'https://www.google.com/maps/search/?api=1&query='
+        . rawurlencode($order['latitude'] . ',' . $order['longitude']);
 }
