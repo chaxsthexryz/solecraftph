@@ -102,6 +102,17 @@ $method = $_SERVER['REQUEST_METHOD'];
  * POST ?action=register
  * ------------------------------------------------------------------------- */
 if ($action === 'register' && $method === 'POST') {
+    // Nothing stopped one address creating accounts in a loop. Counted per IP
+    // by the same table that throttles sign-in; a real customer registers once
+    // and never sees this.
+    require_once __DIR__ . '/../includes/login_throttle.php';
+    $wait = throttle_delay('register');
+    if ($wait > 0) {
+        header('Retry-After: ' . $wait);
+        auth_api_error(login_throttle_message($wait), 429);
+    }
+    throttle_record('register');
+
     $input = auth_api_body();
 
     $username = trim((string) ($input['username'] ?? ''));
@@ -265,7 +276,15 @@ if ($action === 'forgot' && $method === 'POST') {
         auth_api_error('Please enter a valid email address.', 422);
     }
 
-    password_reset_request($email);
+    // Unthrottled, this endpoint is a way to flood any address with mail sent
+    // from our own SMTP account — the reputational damage lands on us, not on
+    // whoever fired it. The answer stays identical either way, so a throttled
+    // caller still cannot use it to discover whether an account exists.
+    require_once __DIR__ . '/../includes/login_throttle.php';
+    if (throttle_delay('forgot') === 0) {
+        throttle_record('forgot');
+        password_reset_request($email);
+    }
 
     echo json_encode([
         'message' => 'If that email has an account, a reset link is on its way.',

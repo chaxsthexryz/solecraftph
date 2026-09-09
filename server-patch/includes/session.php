@@ -25,3 +25,19 @@ if (session_status() === PHP_SESSION_NONE) {
     ]);
     session_start();
 }
+
+/* ---------------------------------------------------------------------------
+ * CSRF, for browser requests only.
+ *
+ * The API and the PayMongo webhook are deliberately exempt. They authenticate
+ * with a bearer token and a signature respectively, carry JSON rather than a
+ * form, and have no session to hang a token on — guarding them would break the
+ * mobile app and every payment confirmation without adding protection they do
+ * not already have.
+ * ------------------------------------------------------------------------- */
+$scriptPath = $_SERVER['SCRIPT_NAME'] ?? '';
+if (strpos($scriptPath, '/api/') === false && strpos($scriptPath, '/webhook/') === false) {
+    require_once __DIR__ . '/csrf.php';
+    csrf_guard();      // refuse a forged POST before any handler runs
+    csrf_autoinject(); // and make sure every real form carries a token
+}
