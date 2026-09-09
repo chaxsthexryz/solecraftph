@@ -238,9 +238,17 @@ abstract final class Structs {
     },
     description: ffai.generatedProjectStructDescription,
   );
+  static final ffai.StructHandle sessionCheck = ffai.StructHandle(
+    "SessionCheck",
+    <String, ffai.DslType>{
+      "valid": ffai.bool_,
+    },
+    description: ffai.generatedProjectStructDescription,
+  );
   static final ffai.StructHandle shoe = ffai.StructHandle(
     "Shoe",
     <String, ffai.DslType>{
+      "available_sizes": ffai.listOf(ffai.string),
       "badge": ffai.string,
       "category": ffai.string,
       "description": ffai.string,
@@ -301,6 +309,7 @@ abstract final class Structs {
     profileSaved,
     reviewFeed,
     reviewRow,
+    sessionCheck,
     shoe,
     wishlist,
     wishlistFlag,
@@ -320,6 +329,7 @@ abstract final class CustomCode {
   static const functions = <String>[
     "activePrice",
     "badgeOf",
+    "bagBlocker",
     "bagCount",
     "bagSubtotal",
     "bagTotal",
@@ -330,6 +340,7 @@ abstract final class CustomCode {
     "orderItems",
     "peso",
     "pesoN",
+    "sizeSellable",
     "titleCase",
     "toNum",
   ];
