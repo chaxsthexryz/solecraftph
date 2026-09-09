@@ -401,6 +401,7 @@ abstract final class CustomCode {
     "hasNoAddresses",
     "hasSale",
     "imgUrl",
+    "joinPin",
     "listStillHas",
     "orderHeadline",
     "orderItems",
@@ -419,6 +420,7 @@ abstract final class CustomCode {
     "deviceToken",
   ];
   static const widgets = <String>[
+    "PinMap",
   ];
 }
 

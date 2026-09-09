@@ -154,9 +154,27 @@ abstract final class AddressesWidgets {
                             name: "Row",
                             children: <ffai.ProjectWidgetHandle>[
                               ffai.ProjectWidgetHandle(
-                                key: "Container_k6s1ay3a",
+                                key: "Container_jp5ddehk",
                                 type: "Container",
                                 path: "Addresses.body[0].children[1].children[0].children[0].children[4].children[0]",
+                                name: "editAddress",
+                                triggers: const <String>[
+                                  "ON_TAP",
+                                ],
+                                children: <ffai.ProjectWidgetHandle>[
+                                  ffai.ProjectWidgetHandle(
+                                    key: "Text_6ciwlfx9",
+                                    type: "Text",
+                                    path: "Addresses.body[0].children[1].children[0].children[0].children[4].children[0].children[0]",
+                                    name: "Text",
+                                    text: "Edit",
+                                  ),
+                                ],
+                              ),
+                              ffai.ProjectWidgetHandle(
+                                key: "Container_k6s1ay3a",
+                                type: "Container",
+                                path: "Addresses.body[0].children[1].children[0].children[0].children[4].children[1]",
                                 name: "makeDefault",
                                 triggers: const <String>[
                                   "ON_TAP",
@@ -165,7 +183,7 @@ abstract final class AddressesWidgets {
                                   ffai.ProjectWidgetHandle(
                                     key: "Text_9jpt24fn",
                                     type: "Text",
-                                    path: "Addresses.body[0].children[1].children[0].children[0].children[4].children[0].children[0]",
+                                    path: "Addresses.body[0].children[1].children[0].children[0].children[4].children[1].children[0]",
                                     name: "Text",
                                     text: "Make default",
                                   ),
@@ -174,7 +192,7 @@ abstract final class AddressesWidgets {
                               ffai.ProjectWidgetHandle(
                                 key: "Container_7k7uxuos",
                                 type: "Container",
-                                path: "Addresses.body[0].children[1].children[0].children[0].children[4].children[1]",
+                                path: "Addresses.body[0].children[1].children[0].children[0].children[4].children[2]",
                                 name: "deleteAddressAction",
                                 triggers: const <String>[
                                   "ON_TAP",
@@ -183,7 +201,7 @@ abstract final class AddressesWidgets {
                                   ffai.ProjectWidgetHandle(
                                     key: "Text_tdocbrpr",
                                     type: "Text",
-                                    path: "Addresses.body[0].children[1].children[0].children[0].children[4].children[1].children[0]",
+                                    path: "Addresses.body[0].children[1].children[0].children[0].children[4].children[2].children[0]",
                                     name: "Text",
                                     text: "Delete",
                                   ),
@@ -250,7 +268,7 @@ abstract final class AddressesWidgets {
                 type: "Button",
                 path: "Addresses.body[0].children[9]",
                 name: "useMyLocation",
-                text: "Use my current location",
+                text: "Pin on map",
                 triggers: const <String>[
                   "ON_TAP",
                 ],
@@ -260,7 +278,6 @@ abstract final class AddressesWidgets {
                 type: "Text",
                 path: "Addresses.body[0].children[10]",
                 name: "pinnedNotice",
-                text: "Location pinned",
               ),
               ffai.ProjectWidgetHandle(
                 key: "Button_vu4f5z6e",

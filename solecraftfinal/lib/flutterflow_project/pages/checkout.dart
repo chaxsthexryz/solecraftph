@@ -49,6 +49,12 @@ final class CheckoutState {
         key: "n3ep9gef",
         typeName: "String",
       );
+  ffai.ProjectStateFieldHandle get pickedAddressId =>
+      const ffai.ProjectStateFieldHandle(
+        name: "pickedAddressId",
+        key: "17xfgtl5",
+        typeName: "Integer",
+      );
   ffai.ProjectStateFieldHandle get pickedLat =>
       const ffai.ProjectStateFieldHandle(
         name: "pickedLat",
@@ -173,7 +179,7 @@ abstract final class CheckoutWidgets {
                             name: "addressPickerList",
                             children: <ffai.ProjectWidgetHandle>[
                               ffai.ProjectWidgetHandle(
-                                key: "Container_lmt4rmqm",
+                                key: "Container_h6ev4xbj",
                                 type: "Container",
                                 path: "Checkout.body[0].children[2].children[0].children[0].children[0].children[0]",
                                 name: "addressPickerChip",
@@ -182,10 +188,11 @@ abstract final class CheckoutWidgets {
                                 ],
                                 children: <ffai.ProjectWidgetHandle>[
                                   ffai.ProjectWidgetHandle(
-                                    key: "Text_gj3jif01",
-                                    type: "Text",
+                                    key: "Container_g41w3a2h",
+                                    type: "Container",
                                     path: "Checkout.body[0].children[2].children[0].children[0].children[0].children[0].children[0]",
-                                    name: "Text",
+                                    name: "CatChip",
+                                    componentName: "CatChip",
                                   ),
                                 ],
                               ),
@@ -214,9 +221,19 @@ abstract final class CheckoutWidgets {
                         ],
                       ),
                       ffai.ProjectWidgetHandle(
+                        key: "Button_v90pgdk6",
+                        type: "Button",
+                        path: "Checkout.body[0].children[2].children[0].children[3]",
+                        name: "checkoutPinButton",
+                        text: "Pin on map",
+                        triggers: const <String>[
+                          "ON_TAP",
+                        ],
+                      ),
+                      ffai.ProjectWidgetHandle(
                         key: "TextField_bng08kxc",
                         type: "TextField",
-                        path: "Checkout.body[0].children[2].children[0].children[3]",
+                        path: "Checkout.body[0].children[2].children[0].children[4]",
                         name: "coAddress",
                         text: "Delivery address",
                         triggers: const <String>[
@@ -226,7 +243,7 @@ abstract final class CheckoutWidgets {
                       ffai.ProjectWidgetHandle(
                         key: "TextField_9li215mu",
                         type: "TextField",
-                        path: "Checkout.body[0].children[2].children[0].children[4]",
+                        path: "Checkout.body[0].children[2].children[0].children[5]",
                         name: "coPhone",
                         text: "Mobile number",
                         triggers: const <String>[
