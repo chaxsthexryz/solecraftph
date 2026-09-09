@@ -656,6 +656,23 @@ void buildStarterEditFlow(App app) {
     response: apiNote,
   );
 
+  // Telling an expired token apart from a flat connection needs the HTTP
+  // status, or the body of the call that failed. The action DSL can read
+  // neither — only the parsed body of a call that succeeded. So the question
+  // gets asked of an endpoint that always succeeds and puts the answer in its
+  // body: /auth.php?action=session, which exists for exactly this.
+  final sessionCheck = app.struct(
+    'SessionCheck',
+    {'valid': bool_},
+    description: 'Whether the stored API token is still good.',
+  );
+  final authSession = Endpoint.get(
+    'AuthSession',
+    '/auth.php?action=session',
+    variables: {'token': string},
+    headers: {'Authorization': 'Bearer [token]'},
+    response: sessionCheck,
+  );
   app.apiGroup(
     'Api',
     baseUrl: 'https://snow-jellyfish-553645.hostingersite.com/api',
@@ -686,6 +703,7 @@ void buildStarterEditFlow(App app) {
       getInfoPages,
       getInfoPage,
       sendContact,
+      authSession,
     ],
   );
 
@@ -760,6 +778,104 @@ return map;
   });
 
   // ---------------------------------------------------------------------------
+  // 3b. The four criticals from APP-REVIEW.md
+  // ---------------------------------------------------------------------------
+  // api/products.php now sends `available_sizes` — the US sizes with stock
+  // left, or every offered size for a shoe not yet counted per size. Guarded
+  // rather than ensured: addDataStructField throws on a rerun.
+  app.raw((project) {
+    final existing = findDataStructField(
+      project,
+      structName: 'Shoe',
+      fieldName: 'available_sizes',
+    );
+    if (existing == null) {
+      addDataStructField(
+        project,
+        structName: 'Shoe',
+        fieldName: 'available_sizes',
+        type: FFDataTypeV2(scalarType: FFBaseDataType.String),
+        isList: true,
+        description:
+            'US sizes still in stock. Empty only when the shoe is sold out.',
+      );
+    }
+  });
+
+  // Whether one size tile can still be tapped. An empty list means the shoe
+  // predates per-size stock — every size stays tappable and order_create keeps
+  // the last word, which is how the app behaved before sizes were counted.
+  final sizeSellable = app.customFunction(
+    'sizeSellable',
+    args: {'availableSizes': listOf(string), 'size': string},
+    returns: bool_,
+    code: r'''
+final sizes = availableSizes ?? const <String>[];
+if (sizes.isEmpty) return true;
+return sizes.contains(size ?? '');
+''',
+    description: 'Whether this US size is still buyable.',
+  );
+
+  // Empty when the shoe, size and quantity under the cursor may go in the bag,
+  // otherwise the reason they may not — one call both decides and explains, so
+  // the refusal always carries a message the shopper can act on.
+  final bagBlocker = app.customFunction(
+    'bagBlocker',
+    args: {
+      'availableSizes': listOf(string),
+      'size': string,
+      'stock': int_,
+      'qty': int_,
+    },
+    returns: string,
+    code: r'''
+final chosen = size ?? '';
+if (chosen.isEmpty) return 'Choose a size first.';
+final sizes = availableSizes ?? const <String>[];
+if (sizes.isNotEmpty && !sizes.contains(chosen)) {
+  return 'US $chosen is sold out.';
+}
+final left = stock ?? 0;
+if (left < 1) return 'This shoe is out of stock.';
+if ((qty ?? 1) > left) {
+  return left == 1 ? 'Only 1 left in stock.' : 'Only $left left in stock.';
+}
+return '';
+''',
+    description: 'Why this shoe cannot go in the bag; empty when it can.',
+  );
+
+  /// onFailure for an authenticated call: asks the server whether the token is
+  /// still good, and acts on the answer. Alive means this was a transient
+  /// failure and [otherwise] stands; dead signs the customer out and says so.
+  /// A probe that cannot be reached at all is a flat connection, not an
+  /// expired session, so it falls back to [otherwise] and nobody gets signed
+  /// out over a dropped signal. Without any of this the screen just renders
+  /// empty, which reads as "you have nothing here".
+  List<DslAction> authFailure(String outputName, String otherwise) => [
+    ApiCall(
+      authSession,
+      outputAs: '${outputName}Probe',
+      params: {'token': AppState(ff.AppState.authToken)},
+      onSuccess:
+          (res) => [
+            If(
+              res['valid'],
+              then: [Snackbar(otherwise)],
+              orElse: [
+                UpdateAppState.set(ff.AppState.authToken, ''),
+                UpdateAppState.set(ff.AppState.signedIn, false),
+                Snackbar('Your session expired. Please sign in again.'),
+                Navigate.to(ff.Pages.signIn),
+              ],
+            ),
+          ],
+      onFailure: [Snackbar(otherwise)],
+    ),
+  ];
+
+  // ---------------------------------------------------------------------------
   // 4. The two sync halves, reused by every wiring point below
   // ---------------------------------------------------------------------------
   List<DslAction> pushBag(String outputName) => [
@@ -798,6 +914,7 @@ return map;
           params: {'token': AppState(ff.AppState.authToken)},
           onSuccess:
               (res) => [UpdateAppState.set(ff.AppState.bag, res['items'])],
+          onFailure: authFailure(outputName, 'Could not load your bag.'),
         ),
       ],
     ),
@@ -836,29 +953,81 @@ return map;
     'image': State(ff.Pages.shoeDetails.state.shoe)['image'],
   });
 
+  // Nothing stopped a shopper adding a size the shoe has none of, or more
+  // pairs than exist — order_create refused it, but only after the address and
+  // payment method had been filled in. Decide here instead, and say why.
+  final bagRefusal = CustomFunction(
+    bagBlocker,
+    args: {
+      'availableSizes':
+          State(ff.Pages.shoeDetails.state.shoe)['available_sizes'],
+      'size': State(ff.Pages.shoeDetails.state.selectedSize),
+      'stock': State(ff.Pages.shoeDetails.state.shoe)['stock'],
+      'qty': State(ff.Pages.shoeDetails.state.qty),
+    },
+  );
+
+  /// [whenOk] only runs when the shoe, size and quantity are actually buyable.
+  List<DslAction> guardBag(List<DslAction> whenOk) => [
+    If(Equals(bagRefusal, ''), then: whenOk, orElse: [Snackbar(bagRefusal)]),
+  ];
+
   app.editPage(ff.Pages.shoeDetails, (page) {
     page.ensureActions(
       ff.Pages.shoeDetails.widgets.byKey('Button_jfnhj8yy').single,
       triggerType: FFActionTriggerType.ON_TAP,
-      actions: [
+      actions: guardBag([
         UpdateAppState.addToList(ff.AppState.bag, addToBagItem),
         Snackbar('Added to bag'),
         ...pushBag('addToBagSyncRes'),
-      ],
+      ]),
     );
 
     page.ensureActions(
       ff.Pages.shoeDetails.widgets.byKey('Button_zce571f8').single,
       triggerType: FFActionTriggerType.ON_TAP,
-      actions: [
+      actions: guardBag([
         UpdateAppState.addToList(ff.AppState.bag, addToBagItem),
         // Navigation goes BEFORE the sync: everything after an ApiCall compiles
         // into its success branch, so a failed (or skipped, when signed out)
         // sync would otherwise strand the shopper on this page.
         Navigate.to(ff.Pages.checkout),
         ...pushBag('buyNowSyncRes'),
-      ],
+      ]),
     );
+
+    // The six size tiles. Each one set selectedSize unconditionally, so the
+    // picker happily offered a US 12 the shop has none of; available_sizes
+    // decides now, and a sold-out tap says so rather than doing nothing.
+    for (final tile in const <String, String>{
+      'Container_dnejwlbx': '7',
+      'Container_nutazx4c': '8',
+      'Container_zr4v91kl': '9',
+      'Container_p5rm8umn': '10',
+      'Container_582gr6n9': '11',
+      'Container_xoentfqj': '12',
+    }.entries) {
+      page.ensureActions(
+        ff.Pages.shoeDetails.widgets.byKey(tile.key).single,
+        triggerType: FFActionTriggerType.ON_TAP,
+        actions: [
+          If(
+            CustomFunction(
+              sizeSellable,
+              args: {
+                'availableSizes':
+                    State(ff.Pages.shoeDetails.state.shoe)['available_sizes'],
+                'size': tile.value,
+              },
+            ),
+            then: [
+              SetState(ff.Pages.shoeDetails.state.selectedSize, tile.value),
+            ],
+            orElse: [Snackbar('US ${tile.value} is sold out.')],
+          ),
+        ],
+      );
+    }
   });
 
   // Quantity arithmetic has to live in custom code — the DSL has no
@@ -1292,7 +1461,7 @@ return next;
         outputAs: 'profileLoad',
         params: {'token': AppState(ff.AppState.authToken)},
         onSuccess: (res) => [SetState(ff.Pages.profile.state.me, res)],
-        onFailure: [Snackbar('Could not load your profile.')],
+        onFailure: authFailure('profileLoad', 'Could not load your profile.'),
       ),
     ],
     body: Scaffold(
@@ -1489,7 +1658,10 @@ return next;
         outputAs: 'notificationsLoad',
         params: {'token': AppState(ff.AppState.authToken)},
         onSuccess: (res) => [SetState(ff.Pages.notifications.state.feed, res)],
-        onFailure: [Snackbar('Could not load your notifications.')],
+        onFailure: authFailure(
+          'notificationsLoad',
+          'Could not load your notifications.',
+        ),
       ),
     ],
     body: Scaffold(
@@ -1629,7 +1801,7 @@ return next;
         outputAs: 'wishlistLoad',
         params: {'token': AppState(ff.AppState.authToken)},
         onSuccess: (res) => [SetState(ff.Pages.wishlist.state.saved, res)],
-        onFailure: [Snackbar('Could not load your wishlist.')],
+        onFailure: authFailure('wishlistLoad', 'Could not load your wishlist.'),
       ),
     ],
     body: Scaffold(
@@ -1922,6 +2094,13 @@ return next;
   app.editPageState(ff.Pages.shoeDetails, (state) {
     state.ensureField('wishlisted', bool_.withDefault(false));
     state.ensureField('reviews', reviewFeed);
+    // Was '9'. A shopper who never touched the size row still got a US 9 added
+    // silently — no prompt, no highlight, discovered when the parcel arrived.
+    // Empty means nothing is preselected and bagBlocker refuses the tap.
+    state.ensureField(
+      ff.Pages.shoeDetails.state.selectedSize,
+      string.withDefault(''),
+    );
   });
 
   // ShoeDetails' existing load is restated here — editPageOnLoad replaces the

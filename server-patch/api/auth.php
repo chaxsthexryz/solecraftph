@@ -215,6 +215,25 @@ if ($action === 'me' && $method === 'GET') {
 }
 
 /* ---------------------------------------------------------------------------
+ * GET ?action=session — is this token still good?
+ *
+ * Answers 200 either way, with {"valid": true|false}. That looks redundant
+ * next to ?action=me, which already 401s on a dead token, but the mobile app
+ * cannot see an HTTP status or read the body of a failed call — only a parsed
+ * success body. Without this it cannot tell an expired token apart from an
+ * unreachable server, and would sign customers out over a dropped connection.
+ * ------------------------------------------------------------------------- */
+if ($action === 'session' && $method === 'GET') {
+    $userId = auth_user_id_from_bearer_token();
+    $user   = $userId === null ? null : auth_api_find_user($userId);
+
+    echo json_encode([
+        'valid' => $user !== null && ($user['status'] ?? 'active') !== 'suspended',
+    ]);
+    exit;
+}
+
+/* ---------------------------------------------------------------------------
  * POST ?action=logout — idempotent.
  * ------------------------------------------------------------------------- */
 if ($action === 'logout' && $method === 'POST') {
@@ -255,4 +274,4 @@ if ($action === 'forgot' && $method === 'POST') {
 }
 
 http_response_code(400);
-echo json_encode(['error' => 'Unknown or unsupported action. Use ?action=register, ?action=login, ?action=forgot, ?action=me, or ?action=logout']);
+echo json_encode(['error' => 'Unknown or unsupported action. Use ?action=register, ?action=login, ?action=forgot, ?action=me, ?action=session, or ?action=logout']);
