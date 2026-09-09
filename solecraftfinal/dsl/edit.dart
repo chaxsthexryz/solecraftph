@@ -860,6 +860,27 @@ Future<String> deviceToken() async {
 
   // The subcategories of one category, as a plain list the chip row can repeat
   // over. Returns nothing for an empty category, which is what hides the row.
+
+  // Every category this shop sells has an ampersand in its name — "Athletic &
+  // Performance Footwear" — and FlutterFlow builds a request URL by plain
+  // string interpolation:
+  //
+  //     '${baseUrl}/products.php?category=${category}&q=${q}'
+  //
+  // So the & inside the value ended the parameter. The server received
+  // category="Athletic " plus a stray parameter called "Performance Footwear",
+  // matched nothing, and returned an empty grid. Encoded, the same request
+  // returns all fifteen shoes. This has been broken since the chips were first
+  // wired; the subcategory work only made it visible.
+  final urlSafe = app.customFunction(
+    'urlSafe',
+    args: {'value': string},
+    returns: string,
+    code: r'''
+return Uri.encodeQueryComponent(value ?? '');
+''',
+    description: 'Percent-encodes a value so it survives being pasted into a query string.',
+  );
   final subcategoriesOf = app.customFunction(
     'subcategoriesOf',
     args: {'rows': listOf(taxonomyRow), 'category': string},
@@ -3541,7 +3562,12 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
           getProducts,
           outputAs: 'shopSearch',
           params: {
-            'q': WidgetState('shopSearchField', WidgetStateProperty.text),
+            'q': CustomFunction(
+              urlSafe,
+              args: {
+                'value': WidgetState('shopSearchField', WidgetStateProperty.text),
+              },
+            ),
           },
           onSuccess:
               (res) => [
@@ -3578,8 +3604,14 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
       getProductsFiltered,
       outputAs: 'catalog$tag',
       params: {
-        'category': State('activeCategoryName'),
-        'subcategory': State('activeSubcategory'),
+        'category': CustomFunction(
+          urlSafe,
+          args: {'value': State('activeCategoryName')},
+        ),
+        'subcategory': CustomFunction(
+          urlSafe,
+          args: {'value': State('activeSubcategory')},
+        ),
       },
       onSuccess:
           (res) => [

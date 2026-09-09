@@ -412,6 +412,7 @@ abstract final class CustomCode {
     "subcategoriesOf",
     "titleCase",
     "toNum",
+    "urlSafe",
   ];
   static const actions = <String>[
     "currentPin",
