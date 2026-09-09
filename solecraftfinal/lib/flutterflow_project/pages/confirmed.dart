@@ -81,14 +81,12 @@ abstract final class ConfirmedWidgets {
                 type: "Text",
                 path: "Confirmed.body[0].children[1]",
                 name: "Text",
-                text: "Thank you!",
               ),
               ffai.ProjectWidgetHandle(
                 key: "Text_epdwdnvu",
                 type: "Text",
                 path: "Confirmed.body[0].children[2]",
                 name: "Text",
-                text: "Your order has been placed on SoleCraftPH.",
               ),
               ffai.ProjectWidgetHandle(
                 key: "Container_gwkyy1nr",
