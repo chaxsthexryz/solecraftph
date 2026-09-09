@@ -3651,38 +3651,59 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
 
   // The second row. Its source is empty until a category is picked, which is
   // what keeps it out of the way on the default view.
+  // The subcategory row, built from the same CatChip component the category
+  // chips use. Reusing the component rather than restyling a Container is what
+  // makes the two rows match — a hand-rolled copy would drift the first time
+  // either is touched, and the selected state is the whole point of the row.
+  final subcategoryRow = Container(
+    name: 'subcategoryRow',
+    height: 44,
+    padding: 4,
+    child: ListView(
+      name: 'subcategoryList',
+      horizontal: true,
+      shrinkWrap: true,
+      spacing: 8,
+      source: CustomFunction(
+        subcategoriesOf,
+        args: {
+          'rows': AppState('taxonomy'),
+          'category': State('activeCategoryName'),
+        },
+      ),
+      // The Container carries the tap and the name the wiring pass looks for;
+      // the component carries the look.
+      itemBuilder: (item) => Container(
+        name: 'subcategoryChip',
+        child: ff.Components.catChip(
+          active: Equals(State('activeSubcategory'), item),
+          label: item,
+        ),
+      ),
+    ),
+  );
+
   if (!ff.Pages.shop.widgets.all.any((w) => w.name == 'subcategoryRow')) {
     app.editPage(ff.Pages.shop, (page) {
       page.ensureInsertedBefore(
         ff.Pages.shop.widgets.byKey('GridView_ilvt3kls').single,
-        Container(
-          name: 'subcategoryRow',
-          height: 44,
-          padding: 4,
-          child: ListView(
-            name: 'subcategoryList',
-            horizontal: true,
-            shrinkWrap: true,
-            spacing: 8,
-            source: CustomFunction(
-              subcategoriesOf,
-              args: {
-                'rows': AppState('taxonomy'),
-                'category': State('activeCategoryName'),
-              },
-            ),
-            itemBuilder: (item) => Container(
-              name: 'subcategoryChip',
-              padding: 10,
-              borderRadius: 999,
-              color: Colors.secondaryBackground,
-              borderColor: Colors.alternate,
-              borderWidth: 1,
-              alignment: Alignment.center,
-              child: Text(item, style: Styles.bodySmall),
-            ),
-          ),
-        ),
+        subcategoryRow,
+      );
+    });
+  } else {
+    // Already there from an earlier run, holding the plain unstyled chip.
+    // ensureReplaced keeps the key, so nothing else pointing at this row
+    // breaks.
+    app.editPage(ff.Pages.shop, (page) {
+      page.ensureReplaced(
+        ff.Pages.shop.widgets
+            .byKey(
+              ff.Pages.shop.widgets.all
+                  .firstWhere((w) => w.name == 'subcategoryRow')
+                  .key,
+            )
+            .single,
+        subcategoryRow,
       );
     });
   }
