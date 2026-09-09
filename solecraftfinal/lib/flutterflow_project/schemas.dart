@@ -79,6 +79,13 @@ abstract final class Structs {
     },
     description: ffai.generatedProjectStructDescription,
   );
+  static final ffai.StructHandle deviceRegistered = ffai.StructHandle(
+    "DeviceRegistered",
+    <String, ffai.DslType>{
+      "registered": ffai.bool_,
+    },
+    description: ffai.generatedProjectStructDescription,
+  );
   static final ffai.StructHandle infoMenu = ffai.StructHandle(
     "InfoMenu",
     <String, ffai.DslType>{
@@ -304,6 +311,7 @@ abstract final class Structs {
     bagItem,
     cartResponse,
     catalogResponse,
+    deviceRegistered,
     infoMenu,
     infoPage,
     infoPageRow,
@@ -357,6 +365,7 @@ abstract final class CustomCode {
     "toNum",
   ];
   static const actions = <String>[
+    "deviceToken",
   ];
   static const widgets = <String>[
   ];

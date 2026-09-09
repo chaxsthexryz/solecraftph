@@ -719,6 +719,55 @@ void buildStarterEditFlow(App app) {
   app.state('payGcash', bool_.withDefault(true));
   app.state('payCard', bool_.withDefault(true));
   app.state('shopCategories', listOf(string));
+
+  // ---------------------------------------------------------------------------
+  // 15. Push notifications
+  // ---------------------------------------------------------------------------
+  // The bell only ever showed what was in the notifications table, which meant
+  // "your order shipped" reached whoever happened to open the app. The server
+  // now pushes from notification_notify_customer(), the one function every
+  // customer notification already went through — it just needs to know which
+  // devices to send to.
+  final registerDevice = Endpoint.post(
+    'RegisterDevice',
+    '/devices.php?action=register',
+    variables: {'token': string, 'device_token': string, 'platform': string},
+    headers: {'Authorization': 'Bearer [token]'},
+    body: const {'token': '<device_token>', 'platform': '<platform>'},
+    response: app.struct(
+      'DeviceRegistered',
+      {'registered': bool_},
+      description: 'Whether this device will receive order updates.',
+    ),
+  );
+
+  // Asking for the token also asks for the notification permission, which is
+  // the moment Android wants a reason on screen — so this runs from Shop,
+  // after the store has drawn, rather than cold at launch.
+  final deviceToken = app.customAction(
+    'deviceToken',
+    args: const <String, DslType>{},
+    returns: string,
+    code: r'''
+import 'package:firebase_messaging/firebase_messaging.dart';
+
+Future<String> deviceToken() async {
+  try {
+    final messaging = FirebaseMessaging.instance;
+    final settings = await messaging.requestPermission();
+    if (settings.authorizationStatus == AuthorizationStatus.denied) {
+      return '';
+    }
+    return await messaging.getToken() ?? '';
+  } catch (_) {
+    // No Firebase config, no Play Services, permission dialog dismissed —
+    // none of it is worth interrupting the shopper over.
+    return '';
+  }
+}
+''',
+    description: 'This device\'s FCM token, or empty if push is unavailable.',
+  );
   app.apiGroup(
     'Api',
     baseUrl: 'https://snow-jellyfish-553645.hostingersite.com/api',
@@ -753,6 +802,7 @@ void buildStarterEditFlow(App app) {
       getSettings,
       getProducts,
       myOrdersList,
+      registerDevice,
     ],
   );
 
@@ -2779,6 +2829,13 @@ return live.contains(value ?? '');
           (res) => [
             SetState(ff.Pages.shop.state.shoes, res['products']),
             SetState(ff.Pages.shop.state.isLoading, false),
+            // Settings first, and device registration nested inside its
+            // success rather than sitting after it. Everything following an
+            // ApiCall compiles into that call's success branch — including a
+            // sibling that merely happens to come later — so ordering these
+            // the other way round put the settings call inside the "this
+            // device has a push token" branch, and a signed-out shopper
+            // stopped getting the payment methods entirely.
             ApiCall(
               getSettings,
               outputAs: 'settingsLoad$tag',
@@ -2790,6 +2847,31 @@ return live.contains(value ?? '');
                     UpdateAppState.set(
                       ff.AppState.shopCategories,
                       settings['categories'],
+                    ),
+                    // Hand this device's push token to the server so an order
+                    // update can reach the app when it is closed.
+                    If(
+                      AppState(ff.AppState.signedIn),
+                      then: [
+                        CallCustomAction(
+                          deviceToken,
+                          outputAs: 'fcmToken$tag',
+                        ),
+                        If(
+                          Not(Equals(ActionOutput('fcmToken$tag'), '')),
+                          then: [
+                            ApiCall(
+                              registerDevice,
+                              outputAs: 'deviceRes$tag',
+                              params: {
+                                'token': AppState(ff.AppState.authToken),
+                                'device_token': ActionOutput('fcmToken$tag'),
+                                'platform': 'android',
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ],
             ),
