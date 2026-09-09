@@ -3947,6 +3947,12 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
             height: 52,
             borderRadius: 12,
             onTap: [
+              // Android returns "denied" from Geolocator.requestPermission()
+              // without ever showing a dialog unless ACCESS_FINE_LOCATION is
+              // declared in the manifest — which is why this button failed
+              // even with location switched on at the OS level. FlutterFlow
+              // emits that declaration from this action.
+              const RequestPermissions(permission: PermissionKind.location),
               CallCustomAction(currentPin, outputAs: 'pinResult'),
               If(
                 Equals(ActionOutput('pinResult'), ''),
