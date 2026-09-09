@@ -4131,4 +4131,45 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
       },
     );
   });
+
+  // ---------------------------------------------------------------------------
+  // 23. Making the chosen size look chosen
+  // ---------------------------------------------------------------------------
+  // Each size tile already held two variants, one shown when selected and one
+  // when not — but the only difference between them was the text colour, and
+  // both colours were dark. Tapping a size changed the state correctly and
+  // looked like nothing had happened.
+  //
+  // The selected variant now fills with ink and prints its number in paper,
+  // which is exactly what CatChip does for the category rows above. Same idea,
+  // same two colours, so the two selectors read the same way.
+  app.editPage(ff.Pages.shoeDetails, (page) {
+    for (final key in const <String>[
+      'Container_b9zgmtae', // 7
+      'Container_xbzzmorq', // 8
+      'Container_8ap8umo2', // 9
+      'Container_0gxv45bd', // 10
+      'Container_tkfz20fj', // 11
+      'Container_r2y30mp6', // 12
+    ]) {
+      page.update(ff.Pages.shoeDetails.widgets.byKey(key).single, (patch) {
+        patch.color(Colors.primary);
+        patch.borderRadius(8);
+        patch.padding(8);
+      });
+    }
+    // The numbers inside those tiles, inverted so they stay legible on ink.
+    for (final key in const <String>[
+      'Text_dhxw5gav', // 7
+      'Text_yypf8xof', // 8
+      'Text_za5fo0g2', // 9
+      'Text_ayahx0zy', // 10
+      'Text_q79ygwh4', // 11
+      'Text_sk49pcg5', // 12
+    ]) {
+      page.update(ff.Pages.shoeDetails.widgets.byKey(key).single, (patch) {
+        patch.color(Colors.primaryBackground);
+      });
+    }
+  });
 }
