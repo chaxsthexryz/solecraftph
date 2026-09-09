@@ -702,6 +702,17 @@ void buildStarterEditFlow(App app) {
     response: ff.Structs.catalogResponse,
   );
 
+  // A second products endpoint rather than a subcategory parameter on the
+  // first: endpoints, like structs, are create-if-missing, so changing
+  // GetProducts' shape throws on every rerun. GetProducts stays for the
+  // unfiltered shop load; this one carries the category drill-down.
+  final getProductsFiltered = Endpoint.get(
+    'GetProductsFiltered',
+    '/products.php?category=[category]&subcategory=[subcategory]&q=[q]',
+    variables: {'category': string, 'subcategory': string, 'q': string},
+    response: ff.Structs.catalogResponse,
+  );
+
   // Already on the group, restated for the same reason as GetProducts: its
   // page load had no failure branch at all and needed rewriting.
   final myOrdersList = Endpoint.get(
@@ -776,6 +787,52 @@ Future<String> deviceToken() async {
 ''',
     description: 'This device\'s FCM token, or empty if push is unavailable.',
   );
+
+  // ---------------------------------------------------------------------------
+  // 18. The second level of categories
+  // ---------------------------------------------------------------------------
+  // The website drills down — pick Athletic & Performance Footwear and a second
+  // row of Road Running / Trail Running / Training & Gym appears. The app had
+  // three top-level chips and stopped, even though /api/products.php has always
+  // accepted ?subcategory=.
+  //
+  // Served by its own endpoint rather than added to StoreSettings: app.struct
+  // is create-if-missing, so adding a field to a struct that already exists in
+  // the project throws on the next run.
+  final taxonomyRow = app.struct(
+    'TaxonomyRow',
+    {'category': string, 'subcategory': string},
+    description: 'One category / subcategory pair that has stock behind it.',
+  );
+  final taxonomyList = app.struct(
+    'TaxonomyList',
+    {'count': int_, 'items': listOf(taxonomyRow)},
+    description: 'Every category / subcategory pair the shop can sell.',
+  );
+  final getTaxonomy = Endpoint.get(
+    'GetTaxonomy',
+    '/settings.php?action=taxonomy',
+    response: taxonomyList,
+  );
+
+  // The subcategories of one category, as a plain list the chip row can repeat
+  // over. Returns nothing for an empty category, which is what hides the row.
+  final subcategoriesOf = app.customFunction(
+    'subcategoriesOf',
+    args: {'rows': listOf(taxonomyRow), 'category': string},
+    returns: listOf(string),
+    code: r'''
+final wanted = category ?? '';
+if (wanted.isEmpty) return <String>[];
+return (rows ?? <TaxonomyRowStruct>[])
+    .where((r) => (r.category ?? '') == wanted)
+    .map((r) => r.subcategory ?? '')
+    .where((s) => s.isNotEmpty)
+    .toList();
+''',
+    description: 'The subcategories belonging to one category.',
+  );
+
   app.apiGroup(
     'Api',
     baseUrl: 'https://snow-jellyfish-553645.hostingersite.com/api',
@@ -811,6 +868,8 @@ Future<String> deviceToken() async {
       getProducts,
       myOrdersList,
       registerDevice,
+      getTaxonomy,
+      getProductsFiltered,
     ],
   );
 
@@ -2840,13 +2899,11 @@ return live.contains(value ?? '');
           (res) => [
             SetState(ff.Pages.shop.state.shoes, res['products']),
             SetState(ff.Pages.shop.state.isLoading, false),
-            // Settings first, and device registration nested inside its
-            // success rather than sitting after it. Everything following an
-            // ApiCall compiles into that call's success branch — including a
-            // sibling that merely happens to come later — so ordering these
-            // the other way round put the settings call inside the "this
-            // device has a push token" branch, and a signed-out shopper
-            // stopped getting the payment methods entirely.
+            // These three nest deliberately. Everything after an ApiCall
+            // compiles into that call's success branch — siblings included —
+            // so the only way to order them is to nest them, cheapest and
+            // most important first. Products, then the store's switches, then
+            // the category tree, then this device's push token.
             ApiCall(
               getSettings,
               outputAs: 'settingsLoad$tag',
@@ -2859,30 +2916,46 @@ return live.contains(value ?? '');
                       ff.AppState.shopCategories,
                       settings['categories'],
                     ),
-                    // Hand this device's push token to the server so an order
-                    // update can reach the app when it is closed.
-                    If(
-                      AppState(ff.AppState.signedIn),
-                      then: [
-                        CallCustomAction(
-                          deviceToken,
-                          outputAs: 'fcmToken$tag',
-                        ),
-                        If(
-                          Not(Equals(ActionOutput('fcmToken$tag'), '')),
-                          then: [
-                            ApiCall(
-                              registerDevice,
-                              outputAs: 'deviceRes$tag',
-                              params: {
-                                'token': AppState(ff.AppState.authToken),
-                                'device_token': ActionOutput('fcmToken$tag'),
-                                'platform': 'android',
-                              },
+                    ApiCall(
+                      getTaxonomy,
+                      outputAs: 'taxonomyLoad$tag',
+                      onSuccess:
+                          (tax) => [
+                            // Written, never re-declared. app.state() on a
+                            // list-of-struct field sets its isList flag after
+                            // creation, so the stored shape stops matching the
+                            // declaration and every later run dies on the
+                            // mismatch. The field exists; leaving the
+                            // declaration out is what makes reruns survivable.
+                            UpdateAppState.set('taxonomy', tax['items']),
+                            If(
+                              AppState(ff.AppState.signedIn),
+                              then: [
+                                CallCustomAction(
+                                  deviceToken,
+                                  outputAs: 'fcmToken$tag',
+                                ),
+                                If(
+                                  Not(Equals(ActionOutput('fcmToken$tag'), '')),
+                                  then: [
+                                    ApiCall(
+                                      registerDevice,
+                                      outputAs: 'deviceRes$tag',
+                                      params: {
+                                        'token': AppState(
+                                          ff.AppState.authToken,
+                                        ),
+                                        'device_token': ActionOutput(
+                                          'fcmToken$tag',
+                                        ),
+                                        'platform': 'android',
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ],
-                        ),
-                      ],
                     ),
                   ],
             ),
@@ -3277,4 +3350,119 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
       ],
     );
   });
+
+  // activeCategory holds a short key — 'all', 'performance' — that the chip
+  // styling compares against, and which is no use to the API. These hold the
+  // real names the server wants, so the two concerns stop fighting.
+  app.editPageState(ff.Pages.shop, (state) {
+    // Page state, not app state: an app-state field holding a list of structs
+    // needs an isList flag set after creation, so its stored shape no longer
+    // matches its declaration and the next run dies on the mismatch. Page
+    // state fields go through an update path that is happy to be re-run.
+    state.ensureField('activeCategoryName', string.withDefault(''));
+    state.ensureField('activeSubcategory', string.withDefault(''));
+  });
+
+  /// One catalogue load, filtered by whatever category and subcategory are
+  /// currently chosen. Empty strings mean "no filter", which is how
+  /// product_list() already reads a missing parameter.
+  List<DslAction> loadCatalog(String tag) => [
+    SetState(ff.Pages.shop.state.isLoading, true),
+    ApiCall(
+      getProductsFiltered,
+      outputAs: 'catalog$tag',
+      params: {
+        'category': State('activeCategoryName'),
+        'subcategory': State('activeSubcategory'),
+      },
+      onSuccess:
+          (res) => [
+            SetState(ff.Pages.shop.state.shoes, res['products']),
+            SetState(ff.Pages.shop.state.isLoading, false),
+          ],
+      onFailure: [
+        SetState(ff.Pages.shop.state.isLoading, false),
+        Snackbar('Could not load that category.'),
+      ],
+    ),
+  ];
+
+  // Each category chip restated: it kept its own highlight key, gained the real
+  // category name, and clears any subcategory left over from the last one —
+  // otherwise picking Formal while Road Running was selected asks the server
+  // for dress boots that are also road running shoes, and gets nothing.
+  app.editPage(ff.Pages.shop, (page) {
+    for (final chip in const <String, List<String>>{
+      'Container_xfqqjoas': ['all', ''],
+      'Container_k7rad63w': ['performance', 'Athletic & Performance Footwear'],
+      'Container_nkjt8umr': ['casual', 'Casual & Lifestyle Footwear'],
+      'Container_tppnzt06': ['formal', 'Formal & Dress Footwear'],
+    }.entries) {
+      page.ensureActions(
+        ff.Pages.shop.widgets.byKey(chip.key).single,
+        triggerType: FFActionTriggerType.ON_TAP,
+        actions: [
+          SetState(ff.Pages.shop.state.activeCategory, chip.value[0]),
+          SetState('activeCategoryName', chip.value[1]),
+          SetState('activeSubcategory', ''),
+          ...loadCatalog(chip.value[0]),
+        ],
+      );
+    }
+  });
+
+  // The second row. Its source is empty until a category is picked, which is
+  // what keeps it out of the way on the default view.
+  if (!ff.Pages.shop.widgets.all.any((w) => w.name == 'subcategoryRow')) {
+    app.editPage(ff.Pages.shop, (page) {
+      page.ensureInsertedBefore(
+        ff.Pages.shop.widgets.byKey('GridView_ilvt3kls').single,
+        Container(
+          name: 'subcategoryRow',
+          height: 44,
+          padding: 4,
+          child: ListView(
+            name: 'subcategoryList',
+            horizontal: true,
+            shrinkWrap: true,
+            spacing: 8,
+            source: CustomFunction(
+              subcategoriesOf,
+              args: {
+                'rows': AppState('taxonomy'),
+                'category': State('activeCategoryName'),
+              },
+            ),
+            itemBuilder: (item) => Container(
+              name: 'subcategoryChip',
+              padding: 10,
+              borderRadius: 999,
+              color: Colors.secondaryBackground,
+              borderColor: Colors.alternate,
+              borderWidth: 1,
+              alignment: Alignment.center,
+              child: Text(item, style: Styles.bodySmall),
+            ),
+          ),
+        ),
+      );
+    });
+  }
+
+  // Bound on the pass after the insert: a widget handed to an insert is
+  // compiled before it joins the tree.
+  final subChip =
+      ff.Pages.shop.widgets.all.where((w) => w.name == 'subcategoryChip');
+  if (subChip.isNotEmpty) {
+    app.editPage(ff.Pages.shop, (page) {
+      page.ensureActions(
+        ff.Pages.shop.widgets.byKey(subChip.first.key).single,
+        triggerType: FFActionTriggerType.ON_TAP,
+        actions: [
+          SetState('activeSubcategory', ItemRef()),
+          ...loadCatalog('Sub'),
+        ],
+      );
+    });
+  }
 }

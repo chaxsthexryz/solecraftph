@@ -27,6 +27,21 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     exit;
 }
 
+
+// The category > subcategory pairs the shop actually has stock in, flattened
+// to a list because a nested map is awkward for a typed mobile client to bind.
+// Served here rather than added to the main response because the app's
+// StoreSettings struct cannot gain a field without being recreated.
+if (($_GET['action'] ?? '') === 'taxonomy') {
+    $items = [];
+    foreach (product_subcategory_map() as $category => $subcategories) {
+        foreach ($subcategories as $subcategory) {
+            $items[] = ['category' => $category, 'subcategory' => $subcategory];
+        }
+    }
+    echo json_encode(['count' => count($items), 'items' => $items]);
+    exit;
+}
 $methods = settings_enabled_payment_methods();
 
 // Flat booleans rather than a list: the app binds each payment button's
