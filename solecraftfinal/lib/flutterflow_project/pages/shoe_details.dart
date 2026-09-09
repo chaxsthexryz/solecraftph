@@ -127,27 +127,33 @@ abstract final class ShoeDetailsWidgets {
                 name: "Image",
               ),
               ffai.ProjectWidgetHandle(
+                key: "ProgressBar_w9g6jvtr",
+                type: "ProgressBar",
+                path: "ShoeDetails.body[0].children[1]",
+                name: "loadingSpinner",
+              ),
+              ffai.ProjectWidgetHandle(
                 key: "Container_vrmuiokl",
                 type: "Container",
-                path: "ShoeDetails.body[0].children[1]",
+                path: "ShoeDetails.body[0].children[2]",
                 name: "Container",
                 children: <ffai.ProjectWidgetHandle>[
                   ffai.ProjectWidgetHandle(
                     key: "Column_6e9jeovr",
                     type: "Column",
-                    path: "ShoeDetails.body[0].children[1].children[0]",
+                    path: "ShoeDetails.body[0].children[2].children[0]",
                     name: "Column",
                     children: <ffai.ProjectWidgetHandle>[
                       ffai.ProjectWidgetHandle(
                         key: "Container_0kyzkilm",
                         type: "Container",
-                        path: "ShoeDetails.body[0].children[1].children[0].children[0]",
+                        path: "ShoeDetails.body[0].children[2].children[0].children[0]",
                         name: "Container",
                         children: <ffai.ProjectWidgetHandle>[
                           ffai.ProjectWidgetHandle(
                             key: "Text_2un49q6b",
                             type: "Text",
-                            path: "ShoeDetails.body[0].children[1].children[0].children[0].children[0]",
+                            path: "ShoeDetails.body[0].children[2].children[0].children[0].children[0]",
                             name: "Text",
                           ),
                         ],
@@ -155,37 +161,37 @@ abstract final class ShoeDetailsWidgets {
                       ffai.ProjectWidgetHandle(
                         key: "Text_4nk7jlf3",
                         type: "Text",
-                        path: "ShoeDetails.body[0].children[1].children[0].children[1]",
+                        path: "ShoeDetails.body[0].children[2].children[0].children[1]",
                         name: "Text",
                       ),
                       ffai.ProjectWidgetHandle(
                         key: "Text_1ha5gljh",
                         type: "Text",
-                        path: "ShoeDetails.body[0].children[1].children[0].children[2]",
+                        path: "ShoeDetails.body[0].children[2].children[0].children[2]",
                         name: "Text",
                       ),
                       ffai.ProjectWidgetHandle(
                         key: "Row_77x5ejt6",
                         type: "Row",
-                        path: "ShoeDetails.body[0].children[1].children[0].children[3]",
+                        path: "ShoeDetails.body[0].children[2].children[0].children[3]",
                         name: "Row",
                         children: <ffai.ProjectWidgetHandle>[
                           ffai.ProjectWidgetHandle(
                             key: "Text_pu0ezzvl",
                             type: "Text",
-                            path: "ShoeDetails.body[0].children[1].children[0].children[3].children[0]",
+                            path: "ShoeDetails.body[0].children[2].children[0].children[3].children[0]",
                             name: "Text",
                           ),
                           ffai.ProjectWidgetHandle(
                             key: "Container_xf904bsm",
                             type: "Container",
-                            path: "ShoeDetails.body[0].children[1].children[0].children[3].children[1]",
+                            path: "ShoeDetails.body[0].children[2].children[0].children[3].children[1]",
                             name: "Container",
                             children: <ffai.ProjectWidgetHandle>[
                               ffai.ProjectWidgetHandle(
                                 key: "Text_16exorsd",
                                 type: "Text",
-                                path: "ShoeDetails.body[0].children[1].children[0].children[3].children[1].children[0]",
+                                path: "ShoeDetails.body[0].children[2].children[0].children[3].children[1].children[0]",
                                 name: "Text",
                                 text: "SALE",
                               ),
@@ -196,31 +202,31 @@ abstract final class ShoeDetailsWidgets {
                       ffai.ProjectWidgetHandle(
                         key: "Text_hcmj8pvj",
                         type: "Text",
-                        path: "ShoeDetails.body[0].children[1].children[0].children[4]",
+                        path: "ShoeDetails.body[0].children[2].children[0].children[4]",
                         name: "Text",
                       ),
                       ffai.ProjectWidgetHandle(
                         key: "Row_bs5b4ra3",
                         type: "Row",
-                        path: "ShoeDetails.body[0].children[1].children[0].children[5]",
+                        path: "ShoeDetails.body[0].children[2].children[0].children[5]",
                         name: "Row",
                         children: <ffai.ProjectWidgetHandle>[
                           ffai.ProjectWidgetHandle(
                             key: "Icon_m08tfaba",
                             type: "Icon",
-                            path: "ShoeDetails.body[0].children[1].children[0].children[5].children[0]",
+                            path: "ShoeDetails.body[0].children[2].children[0].children[5].children[0]",
                             name: "Icon",
                           ),
                           ffai.ProjectWidgetHandle(
                             key: "Text_91asihci",
                             type: "Text",
-                            path: "ShoeDetails.body[0].children[1].children[0].children[5].children[1]",
+                            path: "ShoeDetails.body[0].children[2].children[0].children[5].children[1]",
                             name: "Text",
                           ),
                           ffai.ProjectWidgetHandle(
                             key: "Text_bjj8gg68",
                             type: "Text",
-                            path: "ShoeDetails.body[0].children[1].children[0].children[5].children[2]",
+                            path: "ShoeDetails.body[0].children[2].children[0].children[5].children[2]",
                             name: "Text",
                             text: "in stock",
                           ),
@@ -229,26 +235,26 @@ abstract final class ShoeDetailsWidgets {
                       ffai.ProjectWidgetHandle(
                         key: "Divider_j32q5rhc",
                         type: "Divider",
-                        path: "ShoeDetails.body[0].children[1].children[0].children[6]",
+                        path: "ShoeDetails.body[0].children[2].children[0].children[6]",
                         name: "Divider",
                       ),
                       ffai.ProjectWidgetHandle(
                         key: "Text_czr81cx3",
                         type: "Text",
-                        path: "ShoeDetails.body[0].children[1].children[0].children[7]",
+                        path: "ShoeDetails.body[0].children[2].children[0].children[7]",
                         name: "Text",
                         text: "Select size (US)",
                       ),
                       ffai.ProjectWidgetHandle(
                         key: "Row_se93mwdd",
                         type: "Row",
-                        path: "ShoeDetails.body[0].children[1].children[0].children[8]",
+                        path: "ShoeDetails.body[0].children[2].children[0].children[8]",
                         name: "Row",
                         children: <ffai.ProjectWidgetHandle>[
                           ffai.ProjectWidgetHandle(
                             key: "Container_dnejwlbx",
                             type: "Container",
-                            path: "ShoeDetails.body[0].children[1].children[0].children[8].children[0]",
+                            path: "ShoeDetails.body[0].children[2].children[0].children[8].children[0]",
                             name: "Container",
                             triggers: const <String>[
                               "ON_TAP",
@@ -257,19 +263,19 @@ abstract final class ShoeDetailsWidgets {
                               ffai.ProjectWidgetHandle(
                                 key: "Column_ee9tnkz2",
                                 type: "Column",
-                                path: "ShoeDetails.body[0].children[1].children[0].children[8].children[0].children[0]",
+                                path: "ShoeDetails.body[0].children[2].children[0].children[8].children[0].children[0]",
                                 name: "Column",
                                 children: <ffai.ProjectWidgetHandle>[
                                   ffai.ProjectWidgetHandle(
                                     key: "Container_b9zgmtae",
                                     type: "Container",
-                                    path: "ShoeDetails.body[0].children[1].children[0].children[8].children[0].children[0].children[0]",
+                                    path: "ShoeDetails.body[0].children[2].children[0].children[8].children[0].children[0].children[0]",
                                     name: "Container",
                                     children: <ffai.ProjectWidgetHandle>[
                                       ffai.ProjectWidgetHandle(
                                         key: "Text_dhxw5gav",
                                         type: "Text",
-                                        path: "ShoeDetails.body[0].children[1].children[0].children[8].children[0].children[0].children[0].children[0]",
+                                        path: "ShoeDetails.body[0].children[2].children[0].children[8].children[0].children[0].children[0].children[0]",
                                         name: "Text",
                                         text: "7",
                                       ),
@@ -278,13 +284,13 @@ abstract final class ShoeDetailsWidgets {
                                   ffai.ProjectWidgetHandle(
                                     key: "Container_iqtdx7jj",
                                     type: "Container",
-                                    path: "ShoeDetails.body[0].children[1].children[0].children[8].children[0].children[0].children[1]",
+                                    path: "ShoeDetails.body[0].children[2].children[0].children[8].children[0].children[0].children[1]",
                                     name: "Container",
                                     children: <ffai.ProjectWidgetHandle>[
                                       ffai.ProjectWidgetHandle(
                                         key: "Text_uk319h67",
                                         type: "Text",
-                                        path: "ShoeDetails.body[0].children[1].children[0].children[8].children[0].children[0].children[1].children[0]",
+                                        path: "ShoeDetails.body[0].children[2].children[0].children[8].children[0].children[0].children[1].children[0]",
                                         name: "Text",
                                         text: "7",
                                       ),
@@ -297,7 +303,7 @@ abstract final class ShoeDetailsWidgets {
                           ffai.ProjectWidgetHandle(
                             key: "Container_nutazx4c",
                             type: "Container",
-                            path: "ShoeDetails.body[0].children[1].children[0].children[8].children[1]",
+                            path: "ShoeDetails.body[0].children[2].children[0].children[8].children[1]",
                             name: "Container",
                             triggers: const <String>[
                               "ON_TAP",
@@ -306,19 +312,19 @@ abstract final class ShoeDetailsWidgets {
                               ffai.ProjectWidgetHandle(
                                 key: "Column_z797f6wn",
                                 type: "Column",
-                                path: "ShoeDetails.body[0].children[1].children[0].children[8].children[1].children[0]",
+                                path: "ShoeDetails.body[0].children[2].children[0].children[8].children[1].children[0]",
                                 name: "Column",
                                 children: <ffai.ProjectWidgetHandle>[
                                   ffai.ProjectWidgetHandle(
                                     key: "Container_xbzzmorq",
                                     type: "Container",
-                                    path: "ShoeDetails.body[0].children[1].children[0].children[8].children[1].children[0].children[0]",
+                                    path: "ShoeDetails.body[0].children[2].children[0].children[8].children[1].children[0].children[0]",
                                     name: "Container",
                                     children: <ffai.ProjectWidgetHandle>[
                                       ffai.ProjectWidgetHandle(
                                         key: "Text_yypf8xof",
                                         type: "Text",
-                                        path: "ShoeDetails.body[0].children[1].children[0].children[8].children[1].children[0].children[0].children[0]",
+                                        path: "ShoeDetails.body[0].children[2].children[0].children[8].children[1].children[0].children[0].children[0]",
                                         name: "Text",
                                         text: "8",
                                       ),
@@ -327,13 +333,13 @@ abstract final class ShoeDetailsWidgets {
                                   ffai.ProjectWidgetHandle(
                                     key: "Container_on8i8mes",
                                     type: "Container",
-                                    path: "ShoeDetails.body[0].children[1].children[0].children[8].children[1].children[0].children[1]",
+                                    path: "ShoeDetails.body[0].children[2].children[0].children[8].children[1].children[0].children[1]",
                                     name: "Container",
                                     children: <ffai.ProjectWidgetHandle>[
                                       ffai.ProjectWidgetHandle(
                                         key: "Text_2l32d4lf",
                                         type: "Text",
-                                        path: "ShoeDetails.body[0].children[1].children[0].children[8].children[1].children[0].children[1].children[0]",
+                                        path: "ShoeDetails.body[0].children[2].children[0].children[8].children[1].children[0].children[1].children[0]",
                                         name: "Text",
                                         text: "8",
                                       ),
@@ -346,7 +352,7 @@ abstract final class ShoeDetailsWidgets {
                           ffai.ProjectWidgetHandle(
                             key: "Container_zr4v91kl",
                             type: "Container",
-                            path: "ShoeDetails.body[0].children[1].children[0].children[8].children[2]",
+                            path: "ShoeDetails.body[0].children[2].children[0].children[8].children[2]",
                             name: "Container",
                             triggers: const <String>[
                               "ON_TAP",
@@ -355,19 +361,19 @@ abstract final class ShoeDetailsWidgets {
                               ffai.ProjectWidgetHandle(
                                 key: "Column_3cr05d05",
                                 type: "Column",
-                                path: "ShoeDetails.body[0].children[1].children[0].children[8].children[2].children[0]",
+                                path: "ShoeDetails.body[0].children[2].children[0].children[8].children[2].children[0]",
                                 name: "Column",
                                 children: <ffai.ProjectWidgetHandle>[
                                   ffai.ProjectWidgetHandle(
                                     key: "Container_8ap8umo2",
                                     type: "Container",
-                                    path: "ShoeDetails.body[0].children[1].children[0].children[8].children[2].children[0].children[0]",
+                                    path: "ShoeDetails.body[0].children[2].children[0].children[8].children[2].children[0].children[0]",
                                     name: "Container",
                                     children: <ffai.ProjectWidgetHandle>[
                                       ffai.ProjectWidgetHandle(
                                         key: "Text_za5fo0g2",
                                         type: "Text",
-                                        path: "ShoeDetails.body[0].children[1].children[0].children[8].children[2].children[0].children[0].children[0]",
+                                        path: "ShoeDetails.body[0].children[2].children[0].children[8].children[2].children[0].children[0].children[0]",
                                         name: "Text",
                                         text: "9",
                                       ),
@@ -376,13 +382,13 @@ abstract final class ShoeDetailsWidgets {
                                   ffai.ProjectWidgetHandle(
                                     key: "Container_s0bkwoor",
                                     type: "Container",
-                                    path: "ShoeDetails.body[0].children[1].children[0].children[8].children[2].children[0].children[1]",
+                                    path: "ShoeDetails.body[0].children[2].children[0].children[8].children[2].children[0].children[1]",
                                     name: "Container",
                                     children: <ffai.ProjectWidgetHandle>[
                                       ffai.ProjectWidgetHandle(
                                         key: "Text_17bjo40n",
                                         type: "Text",
-                                        path: "ShoeDetails.body[0].children[1].children[0].children[8].children[2].children[0].children[1].children[0]",
+                                        path: "ShoeDetails.body[0].children[2].children[0].children[8].children[2].children[0].children[1].children[0]",
                                         name: "Text",
                                         text: "9",
                                       ),
@@ -395,7 +401,7 @@ abstract final class ShoeDetailsWidgets {
                           ffai.ProjectWidgetHandle(
                             key: "Container_p5rm8umn",
                             type: "Container",
-                            path: "ShoeDetails.body[0].children[1].children[0].children[8].children[3]",
+                            path: "ShoeDetails.body[0].children[2].children[0].children[8].children[3]",
                             name: "Container",
                             triggers: const <String>[
                               "ON_TAP",
@@ -404,19 +410,19 @@ abstract final class ShoeDetailsWidgets {
                               ffai.ProjectWidgetHandle(
                                 key: "Column_wltogb2g",
                                 type: "Column",
-                                path: "ShoeDetails.body[0].children[1].children[0].children[8].children[3].children[0]",
+                                path: "ShoeDetails.body[0].children[2].children[0].children[8].children[3].children[0]",
                                 name: "Column",
                                 children: <ffai.ProjectWidgetHandle>[
                                   ffai.ProjectWidgetHandle(
                                     key: "Container_0gxv45bd",
                                     type: "Container",
-                                    path: "ShoeDetails.body[0].children[1].children[0].children[8].children[3].children[0].children[0]",
+                                    path: "ShoeDetails.body[0].children[2].children[0].children[8].children[3].children[0].children[0]",
                                     name: "Container",
                                     children: <ffai.ProjectWidgetHandle>[
                                       ffai.ProjectWidgetHandle(
                                         key: "Text_ayahx0zy",
                                         type: "Text",
-                                        path: "ShoeDetails.body[0].children[1].children[0].children[8].children[3].children[0].children[0].children[0]",
+                                        path: "ShoeDetails.body[0].children[2].children[0].children[8].children[3].children[0].children[0].children[0]",
                                         name: "Text",
                                         text: "10",
                                       ),
@@ -425,13 +431,13 @@ abstract final class ShoeDetailsWidgets {
                                   ffai.ProjectWidgetHandle(
                                     key: "Container_7khwgabg",
                                     type: "Container",
-                                    path: "ShoeDetails.body[0].children[1].children[0].children[8].children[3].children[0].children[1]",
+                                    path: "ShoeDetails.body[0].children[2].children[0].children[8].children[3].children[0].children[1]",
                                     name: "Container",
                                     children: <ffai.ProjectWidgetHandle>[
                                       ffai.ProjectWidgetHandle(
                                         key: "Text_kv98i7f5",
                                         type: "Text",
-                                        path: "ShoeDetails.body[0].children[1].children[0].children[8].children[3].children[0].children[1].children[0]",
+                                        path: "ShoeDetails.body[0].children[2].children[0].children[8].children[3].children[0].children[1].children[0]",
                                         name: "Text",
                                         text: "10",
                                       ),
@@ -444,7 +450,7 @@ abstract final class ShoeDetailsWidgets {
                           ffai.ProjectWidgetHandle(
                             key: "Container_582gr6n9",
                             type: "Container",
-                            path: "ShoeDetails.body[0].children[1].children[0].children[8].children[4]",
+                            path: "ShoeDetails.body[0].children[2].children[0].children[8].children[4]",
                             name: "Container",
                             triggers: const <String>[
                               "ON_TAP",
@@ -453,19 +459,19 @@ abstract final class ShoeDetailsWidgets {
                               ffai.ProjectWidgetHandle(
                                 key: "Column_uhiag5df",
                                 type: "Column",
-                                path: "ShoeDetails.body[0].children[1].children[0].children[8].children[4].children[0]",
+                                path: "ShoeDetails.body[0].children[2].children[0].children[8].children[4].children[0]",
                                 name: "Column",
                                 children: <ffai.ProjectWidgetHandle>[
                                   ffai.ProjectWidgetHandle(
                                     key: "Container_tkfz20fj",
                                     type: "Container",
-                                    path: "ShoeDetails.body[0].children[1].children[0].children[8].children[4].children[0].children[0]",
+                                    path: "ShoeDetails.body[0].children[2].children[0].children[8].children[4].children[0].children[0]",
                                     name: "Container",
                                     children: <ffai.ProjectWidgetHandle>[
                                       ffai.ProjectWidgetHandle(
                                         key: "Text_q79ygwh4",
                                         type: "Text",
-                                        path: "ShoeDetails.body[0].children[1].children[0].children[8].children[4].children[0].children[0].children[0]",
+                                        path: "ShoeDetails.body[0].children[2].children[0].children[8].children[4].children[0].children[0].children[0]",
                                         name: "Text",
                                         text: "11",
                                       ),
@@ -474,13 +480,13 @@ abstract final class ShoeDetailsWidgets {
                                   ffai.ProjectWidgetHandle(
                                     key: "Container_odgztyiz",
                                     type: "Container",
-                                    path: "ShoeDetails.body[0].children[1].children[0].children[8].children[4].children[0].children[1]",
+                                    path: "ShoeDetails.body[0].children[2].children[0].children[8].children[4].children[0].children[1]",
                                     name: "Container",
                                     children: <ffai.ProjectWidgetHandle>[
                                       ffai.ProjectWidgetHandle(
                                         key: "Text_spmndoxa",
                                         type: "Text",
-                                        path: "ShoeDetails.body[0].children[1].children[0].children[8].children[4].children[0].children[1].children[0]",
+                                        path: "ShoeDetails.body[0].children[2].children[0].children[8].children[4].children[0].children[1].children[0]",
                                         name: "Text",
                                         text: "11",
                                       ),
@@ -493,7 +499,7 @@ abstract final class ShoeDetailsWidgets {
                           ffai.ProjectWidgetHandle(
                             key: "Container_xoentfqj",
                             type: "Container",
-                            path: "ShoeDetails.body[0].children[1].children[0].children[8].children[5]",
+                            path: "ShoeDetails.body[0].children[2].children[0].children[8].children[5]",
                             name: "Container",
                             triggers: const <String>[
                               "ON_TAP",
@@ -502,19 +508,19 @@ abstract final class ShoeDetailsWidgets {
                               ffai.ProjectWidgetHandle(
                                 key: "Column_ht81k5ad",
                                 type: "Column",
-                                path: "ShoeDetails.body[0].children[1].children[0].children[8].children[5].children[0]",
+                                path: "ShoeDetails.body[0].children[2].children[0].children[8].children[5].children[0]",
                                 name: "Column",
                                 children: <ffai.ProjectWidgetHandle>[
                                   ffai.ProjectWidgetHandle(
                                     key: "Container_r2y30mp6",
                                     type: "Container",
-                                    path: "ShoeDetails.body[0].children[1].children[0].children[8].children[5].children[0].children[0]",
+                                    path: "ShoeDetails.body[0].children[2].children[0].children[8].children[5].children[0].children[0]",
                                     name: "Container",
                                     children: <ffai.ProjectWidgetHandle>[
                                       ffai.ProjectWidgetHandle(
                                         key: "Text_sk49pcg5",
                                         type: "Text",
-                                        path: "ShoeDetails.body[0].children[1].children[0].children[8].children[5].children[0].children[0].children[0]",
+                                        path: "ShoeDetails.body[0].children[2].children[0].children[8].children[5].children[0].children[0].children[0]",
                                         name: "Text",
                                         text: "12",
                                       ),
@@ -523,13 +529,13 @@ abstract final class ShoeDetailsWidgets {
                                   ffai.ProjectWidgetHandle(
                                     key: "Container_smh9gsbu",
                                     type: "Container",
-                                    path: "ShoeDetails.body[0].children[1].children[0].children[8].children[5].children[0].children[1]",
+                                    path: "ShoeDetails.body[0].children[2].children[0].children[8].children[5].children[0].children[1]",
                                     name: "Container",
                                     children: <ffai.ProjectWidgetHandle>[
                                       ffai.ProjectWidgetHandle(
                                         key: "Text_kfvsh1ci",
                                         type: "Text",
-                                        path: "ShoeDetails.body[0].children[1].children[0].children[8].children[5].children[0].children[1].children[0]",
+                                        path: "ShoeDetails.body[0].children[2].children[0].children[8].children[5].children[0].children[1].children[0]",
                                         name: "Text",
                                         text: "12",
                                       ),
@@ -544,32 +550,32 @@ abstract final class ShoeDetailsWidgets {
                       ffai.ProjectWidgetHandle(
                         key: "Divider_64q8qzk6",
                         type: "Divider",
-                        path: "ShoeDetails.body[0].children[1].children[0].children[9]",
+                        path: "ShoeDetails.body[0].children[2].children[0].children[9]",
                         name: "Divider",
                       ),
                       ffai.ProjectWidgetHandle(
                         key: "Row_v3aflo7f",
                         type: "Row",
-                        path: "ShoeDetails.body[0].children[1].children[0].children[10]",
+                        path: "ShoeDetails.body[0].children[2].children[0].children[10]",
                         name: "Row",
                         children: <ffai.ProjectWidgetHandle>[
                           ffai.ProjectWidgetHandle(
                             key: "Text_spwe09qm",
                             type: "Text",
-                            path: "ShoeDetails.body[0].children[1].children[0].children[10].children[0]",
+                            path: "ShoeDetails.body[0].children[2].children[0].children[10].children[0]",
                             name: "Text",
                             text: "Quantity",
                           ),
                           ffai.ProjectWidgetHandle(
                             key: "Row_2xj0ixjf",
                             type: "Row",
-                            path: "ShoeDetails.body[0].children[1].children[0].children[10].children[1]",
+                            path: "ShoeDetails.body[0].children[2].children[0].children[10].children[1]",
                             name: "Row",
                             children: <ffai.ProjectWidgetHandle>[
                               ffai.ProjectWidgetHandle(
                                 key: "IconButton_7galbigs",
                                 type: "IconButton",
-                                path: "ShoeDetails.body[0].children[1].children[0].children[10].children[1].children[0]",
+                                path: "ShoeDetails.body[0].children[2].children[0].children[10].children[1].children[0]",
                                 name: "IconButton",
                                 triggers: const <String>[
                                   "ON_TAP",
@@ -578,13 +584,13 @@ abstract final class ShoeDetailsWidgets {
                               ffai.ProjectWidgetHandle(
                                 key: "Text_mdu7vh5n",
                                 type: "Text",
-                                path: "ShoeDetails.body[0].children[1].children[0].children[10].children[1].children[1]",
+                                path: "ShoeDetails.body[0].children[2].children[0].children[10].children[1].children[1]",
                                 name: "Text",
                               ),
                               ffai.ProjectWidgetHandle(
                                 key: "IconButton_45ad3drt",
                                 type: "IconButton",
-                                path: "ShoeDetails.body[0].children[1].children[0].children[10].children[1].children[2]",
+                                path: "ShoeDetails.body[0].children[2].children[0].children[10].children[1].children[2]",
                                 name: "IconButton",
                                 triggers: const <String>[
                                   "ON_TAP",
@@ -597,7 +603,7 @@ abstract final class ShoeDetailsWidgets {
                       ffai.ProjectWidgetHandle(
                         key: "Button_jfnhj8yy",
                         type: "Button",
-                        path: "ShoeDetails.body[0].children[1].children[0].children[11]",
+                        path: "ShoeDetails.body[0].children[2].children[0].children[11]",
                         name: "Button",
                         text: "Add to Bag",
                         triggers: const <String>[
@@ -607,7 +613,7 @@ abstract final class ShoeDetailsWidgets {
                       ffai.ProjectWidgetHandle(
                         key: "Button_zce571f8",
                         type: "Button",
-                        path: "ShoeDetails.body[0].children[1].children[0].children[12]",
+                        path: "ShoeDetails.body[0].children[2].children[0].children[12]",
                         name: "Button",
                         text: "Buy Now",
                         triggers: const <String>[
@@ -617,7 +623,7 @@ abstract final class ShoeDetailsWidgets {
                       ffai.ProjectWidgetHandle(
                         key: "Container_4pex2mmx",
                         type: "Container",
-                        path: "ShoeDetails.body[0].children[1].children[0].children[13]",
+                        path: "ShoeDetails.body[0].children[2].children[0].children[13]",
                         name: "reviewsStrip",
                         triggers: const <String>[
                           "ON_TAP",
@@ -626,31 +632,31 @@ abstract final class ShoeDetailsWidgets {
                           ffai.ProjectWidgetHandle(
                             key: "Row_2ft6ampb",
                             type: "Row",
-                            path: "ShoeDetails.body[0].children[1].children[0].children[13].children[0]",
+                            path: "ShoeDetails.body[0].children[2].children[0].children[13].children[0]",
                             name: "Row",
                             children: <ffai.ProjectWidgetHandle>[
                               ffai.ProjectWidgetHandle(
                                 key: "Row_2aiddjwt",
                                 type: "Row",
-                                path: "ShoeDetails.body[0].children[1].children[0].children[13].children[0].children[0]",
+                                path: "ShoeDetails.body[0].children[2].children[0].children[13].children[0].children[0]",
                                 name: "Row",
                                 children: <ffai.ProjectWidgetHandle>[
                                   ffai.ProjectWidgetHandle(
                                     key: "Icon_ukxmw8aj",
                                     type: "Icon",
-                                    path: "ShoeDetails.body[0].children[1].children[0].children[13].children[0].children[0].children[0]",
+                                    path: "ShoeDetails.body[0].children[2].children[0].children[13].children[0].children[0].children[0]",
                                     name: "Icon",
                                   ),
                                   ffai.ProjectWidgetHandle(
                                     key: "Text_3a383kad",
                                     type: "Text",
-                                    path: "ShoeDetails.body[0].children[1].children[0].children[13].children[0].children[0].children[1]",
+                                    path: "ShoeDetails.body[0].children[2].children[0].children[13].children[0].children[0].children[1]",
                                     name: "reviewsAverage",
                                   ),
                                   ffai.ProjectWidgetHandle(
                                     key: "Text_w78qgwav",
                                     type: "Text",
-                                    path: "ShoeDetails.body[0].children[1].children[0].children[13].children[0].children[0].children[2]",
+                                    path: "ShoeDetails.body[0].children[2].children[0].children[13].children[0].children[0].children[2]",
                                     name: "reviewsCount",
                                   ),
                                 ],
@@ -658,7 +664,7 @@ abstract final class ShoeDetailsWidgets {
                               ffai.ProjectWidgetHandle(
                                 key: "Icon_uvjd1y11",
                                 type: "Icon",
-                                path: "ShoeDetails.body[0].children[1].children[0].children[13].children[0].children[1]",
+                                path: "ShoeDetails.body[0].children[2].children[0].children[13].children[0].children[1]",
                                 name: "Icon",
                               ),
                             ],

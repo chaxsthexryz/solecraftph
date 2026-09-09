@@ -264,6 +264,9 @@ abstract final class ShopWidgets {
                 type: "GridView",
                 path: "Shop.body[0].children[4]",
                 name: "GridView",
+                triggers: const <String>[
+                  "ON_PULL_TO_REFRESH",
+                ],
                 children: <ffai.ProjectWidgetHandle>[
                   ffai.ProjectWidgetHandle(
                     key: "Container_vzkzbk79",

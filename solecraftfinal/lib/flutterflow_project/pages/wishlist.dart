@@ -76,6 +76,9 @@ abstract final class WishlistWidgets {
                 type: "ListView",
                 path: "Wishlist.body[0].children[1]",
                 name: "ListView",
+                triggers: const <String>[
+                  "ON_PULL_TO_REFRESH",
+                ],
                 children: <ffai.ProjectWidgetHandle>[
                   ffai.ProjectWidgetHandle(
                     key: "Container_wgyw1nt1",

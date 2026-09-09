@@ -180,6 +180,9 @@ abstract final class ReviewsWidgets {
                 type: "ListView",
                 path: "Reviews.body[0].children[6]",
                 name: "ListView",
+                triggers: const <String>[
+                  "ON_PULL_TO_REFRESH",
+                ],
                 children: <ffai.ProjectWidgetHandle>[
                   ffai.ProjectWidgetHandle(
                     key: "Container_8nn8rzoo",

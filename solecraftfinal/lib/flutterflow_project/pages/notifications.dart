@@ -100,6 +100,9 @@ abstract final class NotificationsWidgets {
                 type: "ListView",
                 path: "Notifications.body[0].children[2]",
                 name: "ListView",
+                triggers: const <String>[
+                  "ON_PULL_TO_REFRESH",
+                ],
                 children: <ffai.ProjectWidgetHandle>[
                   ffai.ProjectWidgetHandle(
                     key: "Container_3awzjtap",
