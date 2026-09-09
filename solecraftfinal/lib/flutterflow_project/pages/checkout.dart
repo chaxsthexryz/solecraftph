@@ -49,6 +49,18 @@ final class CheckoutState {
         key: "n3ep9gef",
         typeName: "String",
       );
+  ffai.ProjectStateFieldHandle get pickedLat =>
+      const ffai.ProjectStateFieldHandle(
+        name: "pickedLat",
+        key: "97t8bbxa",
+        typeName: "String",
+      );
+  ffai.ProjectStateFieldHandle get pickedLng =>
+      const ffai.ProjectStateFieldHandle(
+        name: "pickedLng",
+        key: "rblawuiu",
+        typeName: "String",
+      );
   ffai.ProjectStateFieldHandle get placing =>
       const ffai.ProjectStateFieldHandle(
         name: "placing",

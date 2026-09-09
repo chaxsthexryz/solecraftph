@@ -364,6 +364,49 @@ void buildStarterEditFlow(App app) {
     response: ff.Structs.orderCreated,
   );
 
+  // ---------------------------------------------------------------------------
+  // 21. Carrying the pin onto the order
+  // ---------------------------------------------------------------------------
+  // The pin was saved against the address and stopped there — orders only ever
+  // got the address text, so a customer could place their house on the map and
+  // the admin order page would show nothing to open. orders now has
+  // latitude/longitude columns; this is what fills them.
+  //
+  // A second endpoint rather than two more variables on CreateOrder, for the
+  // same reason as GetProductsFiltered: endpoints are create-if-missing, and
+  // changing one's shape throws on every rerun.
+  final createOrderPinned = Endpoint.post(
+    'CreateOrderPinned',
+    '/orders.php',
+    variables: {
+      'token': string,
+      'name': string,
+      'email': string,
+      'phone': string,
+      'address': string,
+      'payment': string,
+      'latitude': string,
+      'longitude': string,
+      'items': json,
+    },
+    headers: {'Authorization': 'Bearer [token]'},
+    body: const {
+      'customer': {
+        'name': '<name>',
+        'email': '<email>',
+        'phone': '<phone>',
+        'address': '<address>',
+        'payment_method': '<payment>',
+        // Empty strings when the chosen address has no pin, which order_create
+        // reads as "no coordinates" rather than as a point off West Africa.
+        'latitude': '<latitude>',
+        'longitude': '<longitude>',
+      },
+      'items': '<items>',
+    },
+    response: ff.Structs.orderCreated,
+  );
+
   // Confirmed reads the order back through GetOrder, which now needs a token —
   // api/orders.php refuses to answer on the order id alone. Declared with the
   // token so the validator can see the variable the page passes.
@@ -1013,6 +1056,7 @@ return (rows ?? <AddressRowStruct>[]).isEmpty;
       saveAddress,
       deleteAddress,
       defaultAddress,
+      createOrderPinned,
     ],
   );
 
@@ -2821,6 +2865,13 @@ return next;
     ),
   );
 
+  app.editPageState(ff.Pages.checkout, (state) {
+    state.ensureField('saved', listOf(addressRow));
+    // The pin belonging to whichever saved address was tapped. Empty when the
+    // customer typed their address by hand, or picked one with no pin.
+    state.ensureField('pickedLat', string.withDefault(''));
+    state.ensureField('pickedLng', string.withDefault(''));
+  });
   // ---------------------------------------------------------------------------
   // 8b. Checkout — hand GCash / Card orders to PayMongo
   // ---------------------------------------------------------------------------
@@ -2839,7 +2890,7 @@ return next;
         const ValidateForm('checkoutForm'),
         SetState(ff.Pages.checkout.state.placing, true),
         ApiCall(
-          createOrder,
+          createOrderPinned,
           outputAs: 'placeOrderRes',
           params: {
             'token': AppState(ff.AppState.authToken),
@@ -2848,6 +2899,8 @@ return next;
             'phone': WidgetState('coPhone', WidgetStateProperty.text),
             'address': WidgetState('coAddress', WidgetStateProperty.text),
             'payment': State(ff.Pages.checkout.state.payMethod),
+            'latitude': State('pickedLat'),
+            'longitude': State('pickedLng'),
             'items': CustomFunction(
               CustomFunctionHandle(
                 name: 'orderItems',
@@ -3939,9 +3992,6 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
   //
   // The saved default address wins over the profile's single address field,
   // and falls back to it when there is nothing saved yet.
-  app.editPageState(ff.Pages.checkout, (state) {
-    state.ensureField('saved', listOf(addressRow));
-  });
   app.editPageOnLoad(ff.Pages.checkout, [
     SetFormField(ff.Pages.checkout.widgets.byKey('TextField_34iw5du7').single, AppState(ff.AppState.userFullName)),
     SetFormField(ff.Pages.checkout.widgets.byKey('TextField_zxgfjsxb').single, AppState(ff.AppState.userEmail)),
@@ -4001,6 +4051,8 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
           SetFormField(ff.Pages.checkout.widgets.byKey('TextField_34iw5du7').single, ItemRef()['recipient_name']),
           SetFormField(ff.Pages.checkout.widgets.byKey('TextField_9li215mu').single, ItemRef()['phone']),
           SetFormField(ff.Pages.checkout.widgets.byKey('TextField_bng08kxc').single, ItemRef()['address']),
+          SetState('pickedLat', ItemRef()['latitude']),
+          SetState('pickedLng', ItemRef()['longitude']),
           Snackbar('Delivering to your saved address.'),
         ],
       );
