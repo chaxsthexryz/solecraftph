@@ -42,11 +42,32 @@ if (!$heroVideoExists) {
     natsort($customHeroFiles);
 }
 
+// Promo banners get their own band above the page header rather than being
+// used as wallpaper behind it.
+//
+// A promotional image already carries its own headline, discount and call to
+// action. The hero treatment below would crop it to a tall box, drop a 72%
+// black scrim over it, and then print our own heading, search box and category
+// pills on top — burying the thing it is advertising under the site chrome.
+// Shown whole instead, at its own aspect ratio, with the header underneath
+// going back to plain text on paper.
+$promoSlides = [];
 if (!$heroVideoExists && !empty($customHeroFiles)) {
-    // Your own promo images — independent of any product.
-    $heroSlides = array_map(static function (string $path) {
-        return ['image_url' => BASE_PATH . '/assets/media/hero/' . rawurlencode(basename($path)), 'name' => ''];
+    $promoSlides = array_map(static function (string $path): array {
+        $file = basename($path);
+        return [
+            'url' => BASE_PATH . '/assets/media/hero/' . rawurlencode($file),
+            // Best effort, and better than nothing: a screen reader gets
+            // "Mid Season Sale 50 Off" from mid-season-sale-50-off.jpg. Name
+            // the files in words and the alt text writes itself.
+            'alt' => ucwords(str_replace(['-', '_'], ' ', pathinfo($file, PATHINFO_FILENAME))),
+        ];
     }, array_values($customHeroFiles));
+}
+
+if (!empty($promoSlides)) {
+    // Handled by the promo band below; the header goes back to plain text.
+    $heroSlides = [];
 } elseif (!$heroVideoExists) {
     // Fallback: auto-slideshow of the newest product photos.
     $heroSlides = array_map(static function (array $p) {
@@ -58,10 +79,14 @@ if (!$heroVideoExists && !empty($customHeroFiles)) {
 $heroHasMedia = $heroVideoExists || !empty($heroSlides);
 
 $heroSlideCount = count($heroSlides);
+// One set of fade timings, serving whichever band is on screen — the promo
+// banners and the product hero are mutually exclusive, so they can share both
+// the arithmetic and the @keyframes name below.
+$fadeCount   = !empty($promoSlides) ? count($promoSlides) : $heroSlideCount;
 $heroSegment = 5;   // seconds each photo stays fully visible (incl. its own fade)
 $heroFade    = 1.1; // seconds of crossfade
-$heroTotal   = max($heroSegment, $heroSlideCount * $heroSegment);
-if ($heroSlideCount > 1) {
+$heroTotal   = max($heroSegment, $fadeCount * $heroSegment);
+if ($fadeCount > 1) {
     $heroFadeInPct = round($heroFade / $heroTotal * 100, 3);
     $heroHoldPct   = round(($heroSegment - $heroFade) / $heroTotal * 100, 3);
     $heroOutPct    = round($heroSegment / $heroTotal * 100, 3);
@@ -81,6 +106,52 @@ if ($heroSlideCount > 1) {
     <?php endforeach; ?>
   </div>
 </div>
+<?php endif; ?>
+
+<?php if (!empty($promoSlides)): ?>
+  <style>
+    /* Only the homepage has this band, so it lives here rather than in
+       style.css — one fewer file to keep in step. */
+    .promo{background:var(--ink);border-bottom:1.5px solid var(--ink);}
+    /* The first image sits in normal flow and sets the band's height; the rest
+       are stacked over it. That is what makes this responsive without picking
+       an aspect ratio: the band is exactly as tall as the artwork at whatever
+       width the screen happens to be, so a promo is never cropped and never
+       letterboxed. */
+    .promo__stack{position:relative;}
+    .promo__slide{display:block;width:100%;height:auto;}
+    .promo__slide--over{position:absolute;inset:0;height:100%;object-fit:cover;opacity:0;}
+    @media (prefers-reduced-motion:reduce){
+      /* Crossfading artwork under someone who asked for less motion is exactly
+         the thing that setting is for. They get the first banner, held. */
+      .promo__slide{animation:none!important;}
+      .promo__slide--over{display:none;}
+    }
+  </style>
+  <?php if (count($promoSlides) > 1): ?>
+    <style>
+      @keyframes heroFade{
+        0%{opacity:0;}
+        <?= $heroFadeInPct ?>%{opacity:1;}
+        <?= $heroHoldPct ?>%{opacity:1;}
+        <?= $heroOutPct ?>%{opacity:0;}
+        100%{opacity:0;}
+      }
+    </style>
+  <?php endif; ?>
+  <section class="promo">
+    <div class="promo__stack">
+      <?php foreach ($promoSlides as $i => $slide): ?>
+        <img class="promo__slide<?= $i > 0 ? ' promo__slide--over' : '' ?>"
+             src="<?= htmlspecialchars($slide['url']) ?>"
+             alt="<?= htmlspecialchars($slide['alt']) ?>"
+             <?= $i > 0 ? 'loading="lazy" ' : '' ?>
+             <?php if (count($promoSlides) > 1): ?>
+             style="animation:heroFade <?= $heroTotal ?>s ease-in-out infinite;animation-delay:<?= $i * $heroSegment ?>s;"
+             <?php endif; ?>>
+      <?php endforeach; ?>
+    </div>
+  </section>
 <?php endif; ?>
 
 <header class="pagehead<?= $heroHasMedia ? ' pagehead--media' : '' ?>">
