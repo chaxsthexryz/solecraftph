@@ -25,6 +25,18 @@ final class ShopState {
         key: "kjggwo3p",
         typeName: "String",
       );
+  ffai.ProjectStateFieldHandle get activeCategoryName =>
+      const ffai.ProjectStateFieldHandle(
+        name: "activeCategoryName",
+        key: "uifpx0zv",
+        typeName: "String",
+      );
+  ffai.ProjectStateFieldHandle get activeSubcategory =>
+      const ffai.ProjectStateFieldHandle(
+        name: "activeSubcategory",
+        key: "gu7zb1ex",
+        typeName: "String",
+      );
   ffai.ProjectStateFieldHandle get isLoading =>
       const ffai.ProjectStateFieldHandle(
         name: "isLoading",
@@ -48,6 +60,12 @@ final class ShopState {
         name: "shoes",
         key: "vzjm24w8",
         typeName: "List<DataStruct<Shoe>>",
+      );
+  ffai.ProjectStateFieldHandle get taxonomy =>
+      const ffai.ProjectStateFieldHandle(
+        name: "taxonomy",
+        key: "ixxdqmqq",
+        typeName: "List<DataStruct<TaxonomyRow>>",
       );
 }
 
@@ -260,9 +278,42 @@ abstract final class ShopWidgets {
                 ],
               ),
               ffai.ProjectWidgetHandle(
+                key: "Container_jzshebzu",
+                type: "Container",
+                path: "Shop.body[0].children[4]",
+                name: "subcategoryRow",
+                children: <ffai.ProjectWidgetHandle>[
+                  ffai.ProjectWidgetHandle(
+                    key: "ListView_mt9oswn3",
+                    type: "ListView",
+                    path: "Shop.body[0].children[4].children[0]",
+                    name: "subcategoryList",
+                    children: <ffai.ProjectWidgetHandle>[
+                      ffai.ProjectWidgetHandle(
+                        key: "Container_p86mhz7l",
+                        type: "Container",
+                        path: "Shop.body[0].children[4].children[0].children[0]",
+                        name: "subcategoryChip",
+                        triggers: const <String>[
+                          "ON_TAP",
+                        ],
+                        children: <ffai.ProjectWidgetHandle>[
+                          ffai.ProjectWidgetHandle(
+                            key: "Text_ljmym8gt",
+                            type: "Text",
+                            path: "Shop.body[0].children[4].children[0].children[0].children[0]",
+                            name: "Text",
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              ffai.ProjectWidgetHandle(
                 key: "GridView_ilvt3kls",
                 type: "GridView",
-                path: "Shop.body[0].children[4]",
+                path: "Shop.body[0].children[5]",
                 name: "GridView",
                 triggers: const <String>[
                   "ON_PULL_TO_REFRESH",
@@ -271,7 +322,7 @@ abstract final class ShopWidgets {
                   ffai.ProjectWidgetHandle(
                     key: "Container_vzkzbk79",
                     type: "Container",
-                    path: "Shop.body[0].children[4].children[0]",
+                    path: "Shop.body[0].children[5].children[0]",
                     name: "ShoeCardTap",
                     triggers: const <String>[
                       "ON_TAP",
@@ -280,7 +331,7 @@ abstract final class ShopWidgets {
                       ffai.ProjectWidgetHandle(
                         key: "Container_er1fj8un",
                         type: "Container",
-                        path: "Shop.body[0].children[4].children[0].children[0]",
+                        path: "Shop.body[0].children[5].children[0].children[0]",
                         name: "ShoeCard",
                         componentName: "ShoeCard",
                       ),

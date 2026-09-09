@@ -280,6 +280,22 @@ abstract final class Structs {
     },
     description: ffai.generatedProjectStructDescription,
   );
+  static final ffai.StructHandle taxonomyList = ffai.StructHandle(
+    "TaxonomyList",
+    <String, ffai.DslType>{
+      "count": ffai.int_,
+      "items": ffai.listOf(Structs.taxonomyRow),
+    },
+    description: ffai.generatedProjectStructDescription,
+  );
+  static final ffai.StructHandle taxonomyRow = ffai.StructHandle(
+    "TaxonomyRow",
+    <String, ffai.DslType>{
+      "category": ffai.string,
+      "subcategory": ffai.string,
+    },
+    description: ffai.generatedProjectStructDescription,
+  );
   static final ffai.StructHandle wishlist = ffai.StructHandle(
     "Wishlist",
     <String, ffai.DslType>{
@@ -331,6 +347,8 @@ abstract final class Structs {
     sessionCheck,
     shoe,
     storeSettings,
+    taxonomyList,
+    taxonomyRow,
     wishlist,
     wishlistFlag,
     wishlistToggled,
@@ -364,6 +382,7 @@ abstract final class CustomCode {
     "peso",
     "pesoN",
     "sizeSellable",
+    "subcategoriesOf",
     "titleCase",
     "toNum",
   ];

@@ -59,6 +59,12 @@ abstract final class AppState {
     typeName: "Boolean",
     persisted: true,
   );
+  static const taxonomy = ffai.ProjectAppStateFieldHandle(
+    name: "taxonomy",
+    key: "j1zuytml",
+    typeName: "List<DataStruct<TaxonomyRow>>",
+    persisted: false,
+  );
   static const userAddress = ffai.ProjectAppStateFieldHandle(
     name: "userAddress",
     key: "tk51564r",
@@ -111,6 +117,7 @@ abstract final class AppState {
     payGcash,
     shopCategories,
     signedIn,
+    taxonomy,
     userAddress,
     userEmail,
     userFullName,
