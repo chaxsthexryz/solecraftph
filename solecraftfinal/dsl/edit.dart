@@ -162,7 +162,10 @@ List<DslAction> _toggleHeart(Endpoint toggle, String outputName) => [
       'token': AppState(ff.AppState.authToken),
       'product_id': PageParam('id'),
     },
-    onSuccess: (res) => [SetState(ff.Pages.shoeDetails.state.wishlisted, res['wishlisted'])],
+    onSuccess:
+        (res) => [
+          SetState(ff.Pages.shoeDetails.state.wishlisted, res['wishlisted']),
+        ],
     onFailure: [Snackbar('Sign in to save shoes to your wishlist.')],
   ),
 ];
@@ -704,11 +707,9 @@ void buildStarterEditFlow(App app) {
   // neither — only the parsed body of a call that succeeded. So the question
   // gets asked of an endpoint that always succeeds and puts the answer in its
   // body: /auth.php?action=session, which exists for exactly this.
-  final sessionCheck = app.struct(
-    'SessionCheck',
-    {'valid': bool_},
-    description: 'Whether the stored API token is still good.',
-  );
+  final sessionCheck = app.struct('SessionCheck', {
+    'valid': bool_,
+  }, description: 'Whether the stored API token is still good.');
   final authSession = Endpoint.get(
     'AuthSession',
     '/auth.php?action=session',
@@ -720,16 +721,12 @@ void buildStarterEditFlow(App app) {
   // Which payment methods are switched on, and which categories have anything
   // in them. The app hardcoded all four, so turning GCash off in admin took it
   // off the website and left it on the phone.
-  final storeSettings = app.struct(
-    'StoreSettings',
-    {
-      'cod': bool_,
-      'gcash': bool_,
-      'card': bool_,
-      'categories': listOf(string),
-    },
-    description: 'Storefront switches the app used to hardcode.',
-  );
+  final storeSettings = app.struct('StoreSettings', {
+    'cod': bool_,
+    'gcash': bool_,
+    'card': bool_,
+    'categories': listOf(string),
+  }, description: 'Storefront switches the app used to hardcode.');
   final getSettings = Endpoint.get(
     'GetSettings',
     '/settings.php',
@@ -788,11 +785,9 @@ void buildStarterEditFlow(App app) {
     variables: {'token': string, 'device_token': string, 'platform': string},
     headers: {'Authorization': 'Bearer [token]'},
     body: const {'token': '<device_token>', 'platform': '<platform>'},
-    response: app.struct(
-      'DeviceRegistered',
-      {'registered': bool_},
-      description: 'Whether this device will receive order updates.',
-    ),
+    response: app.struct('DeviceRegistered', {
+      'registered': bool_,
+    }, description: 'Whether this device will receive order updates.'),
   );
 
   // Depended on explicitly rather than inherited from FlutterFlow's push
@@ -842,16 +837,14 @@ Future<String> deviceToken() async {
   // Served by its own endpoint rather than added to StoreSettings: app.struct
   // is create-if-missing, so adding a field to a struct that already exists in
   // the project throws on the next run.
-  final taxonomyRow = app.struct(
-    'TaxonomyRow',
-    {'category': string, 'subcategory': string},
-    description: 'One category / subcategory pair that has stock behind it.',
-  );
-  final taxonomyList = app.struct(
-    'TaxonomyList',
-    {'count': int_, 'items': listOf(taxonomyRow)},
-    description: 'Every category / subcategory pair the shop can sell.',
-  );
+  final taxonomyRow = app.struct('TaxonomyRow', {
+    'category': string,
+    'subcategory': string,
+  }, description: 'One category / subcategory pair that has stock behind it.');
+  final taxonomyList = app.struct('TaxonomyList', {
+    'count': int_,
+    'items': listOf(taxonomyRow),
+  }, description: 'Every category / subcategory pair the shop can sell.');
   final getTaxonomy = Endpoint.get(
     'GetTaxonomy',
     '/settings.php?action=taxonomy',
@@ -879,7 +872,8 @@ Future<String> deviceToken() async {
     code: r'''
 return Uri.encodeQueryComponent(value ?? '');
 ''',
-    description: 'Percent-encodes a value so it survives being pasted into a query string.',
+    description:
+        'Percent-encodes a value so it survives being pasted into a query string.',
   );
   final subcategoriesOf = app.customFunction(
     'subcategoriesOf',
@@ -897,29 +891,24 @@ return (rows ?? <TaxonomyRowStruct>[])
     description: 'The subcategories belonging to one category.',
   );
 
-  final addressRow = app.struct(
-    'AddressRow',
-    {
-      'id': int_,
-      'label': string,
-      'recipient_name': string,
-      'phone': string,
-      'address': string,
-      // Strings, not doubles: they are only ever displayed or handed back to
-      // the server, and a JSON double renders as 14.599512000000001 on some
-      // devices. Empty when this address has no pin.
-      'latitude': string,
-      'longitude': string,
-      'is_default': bool_,
-      'map_url': string,
-    },
-    description: 'One saved delivery address.',
-  );
-  final addressList = app.struct(
-    'AddressList',
-    {'count': int_, 'items': listOf(addressRow)},
-    description: 'Every address the signed-in shopper has saved.',
-  );
+  final addressRow = app.struct('AddressRow', {
+    'id': int_,
+    'label': string,
+    'recipient_name': string,
+    'phone': string,
+    'address': string,
+    // Strings, not doubles: they are only ever displayed or handed back to
+    // the server, and a JSON double renders as 14.599512000000001 on some
+    // devices. Empty when this address has no pin.
+    'latitude': string,
+    'longitude': string,
+    'is_default': bool_,
+    'map_url': string,
+  }, description: 'One saved delivery address.');
+  final addressList = app.struct('AddressList', {
+    'count': int_,
+    'items': listOf(addressRow),
+  }, description: 'Every address the signed-in shopper has saved.');
 
   final getAddresses = Endpoint.get(
     'GetAddresses',
@@ -970,6 +959,49 @@ return (rows ?? <TaxonomyRowStruct>[])
     headers: {'Authorization': 'Bearer [token]'},
     body: const {'id': '<id>'},
     response: addressList,
+  );
+
+  // ---------------------------------------------------------------------------
+  // The map pin, Shopee-style
+  // ---------------------------------------------------------------------------
+  // A pin fixed dead centre while the map moves underneath it, and the address
+  // resolved from wherever it lands. Three packages, none of which needs a key
+  // or a card:
+  //
+  //  - flutter_map draws tiles on Flutter's own canvas. google_maps_flutter
+  //    would put an Android platform view inside a modal bottom sheet, which is
+  //    the one place that seam reliably shows — stutter on the open animation,
+  //    z-order artifacts over the confirm card. Raster tiles lose a little
+  //    polish on pinch-zoom against Google's vector ones; a picker is mostly
+  //    panning, so that is the cheap half to give up.
+  //  - latlong2 is flutter_map's coordinate type. Not optional, not ours.
+  //  - geocoding turns the pin back into words through Android's own Geocoder.
+  //    Free, no key, and independent of whose tiles are underneath — so the
+  //    autofill survives changing basemaps later.
+  app.pubDependency('flutter_map', '7.0.2');
+  app.pubDependency('latlong2', '0.9.1');
+  app.pubDependency('geocoding', '3.0.0');
+
+  // How the sheet hands its answer back to whichever screen opened it.
+  //
+  // A custom widget cannot return a value: callbacks on this SDK are
+  // `ActionType` with no arguments, so they can fire but cannot carry a
+  // latitude. App state is the way across that boundary. Two plain strings —
+  // deliberately not a struct, because a list-of-struct app state field sets
+  // its isList flag after creation and then fails every later run on a shape
+  // mismatch, which is why `taxonomy` above is written but never re-declared.
+  //
+  // Not persisted. These are scratch space for one pin-drop; the saved copy
+  // lives on the address row where it belongs.
+  app.state(
+    'draftPin',
+    string.withDefault(''),
+    description: 'Pin picked in the map sheet, "lat,lng". Empty when unset.',
+  );
+  app.state(
+    'draftPinText',
+    string.withDefault(''),
+    description: 'Address the map sheet reverse-geocoded for draftPin.',
   );
 
   // Where the phone is, as "lat,lng" — or empty when it cannot be had. One
@@ -1024,6 +1056,577 @@ return parts[i].trim();
 ''',
     description: 'Latitude (0) or longitude (1) out of a "lat,lng" pin.',
   );
+
+  // The inverse, for loading a saved address back into the form. Empty when
+  // either half is missing, because half a coordinate points at the Gulf of
+  // Guinea rather than at nothing.
+  final joinPin = app.customFunction(
+    'joinPin',
+    args: {'lat': string, 'lng': string},
+    returns: string,
+    code: r'''
+final a = (lat ?? '').trim();
+final b = (lng ?? '').trim();
+if (a.isEmpty || b.isEmpty) return '';
+return '$a,$b';
+''',
+    description: 'Latitude and longitude back into one "lat,lng" pin.',
+  );
+
+  // The map itself. Typechecked against the real generated types in
+  // .ffai_staging before it was pasted here — FFAppState, FlutterFlowTheme and
+  // currentPin() are all resolved there, which the DSL's own validators cannot
+  // see.
+  //
+  // The actions import below is redundant — FlutterFlow's automatic header for
+  // a custom widget already pulls in /custom_code/actions/index.dart, so the
+  // generated file carries it twice. It stays because app.customWidget is
+  // create-if-missing on an exact payload match: deleting the line changes the
+  // payload and every rerun then dies on "found an existing custom widget with
+  // a different payload". Changing this code at all means going through
+  // updateCustomWidget, and that is the day to drop the line too.
+  final pinMap = app.customWidget(
+    'PinMap',
+    parameters: {
+      'startPin': string.withDefault(''),
+      'tileUrl': string.withDefault(''),
+      'attribution': string.withDefault(''),
+    },
+    description:
+        'Map with a pin fixed at centre. Publishes draftPin / draftPinText.',
+    code: r'''
+import '/custom_code/actions/index.dart'; // currentPin()
+
+import 'dart:async';
+
+import 'package:flutter_map/flutter_map.dart';
+import 'package:geocoding/geocoding.dart';
+// Prefixed deliberately. flutter_flow_util re-exports FlutterFlow's own
+// lat_lng.dart, which declares a LatLng of its own; unprefixed, every
+// coordinate in this file would be ambiguous.
+import 'package:latlong2/latlong.dart' as ll;
+
+/// A map with a pin fixed dead centre, the way Shopee does it.
+///
+/// The pin never moves — the map moves underneath it. That is not a stylistic
+/// choice: a draggable marker has to be hit-tested, kept in sync with the
+/// camera, and fought with when it lands under your thumb. A centred icon
+/// painted over the map has none of those problems and reads as more precise,
+/// because the target is always the exact middle of the screen.
+///
+/// Publishes to app state rather than returning a value: a FlutterFlow custom
+/// widget's callbacks take no arguments, so there is no way to hand a
+/// coordinate back up. `draftPin` carries "lat,lng"; `draftPinText` carries the
+/// reverse-geocoded line, or empty while it is being looked up.
+class PinMap extends StatefulWidget {
+  const PinMap({
+    super.key,
+    this.width,
+    this.height,
+    this.startPin,
+    this.tileUrl,
+    this.attribution,
+  });
+
+  final double? width;
+  final double? height;
+
+  /// Where to open, as "lat,lng". Empty or unparseable falls back to Manila.
+  final String? startPin;
+
+  /// Tile template. Passed in rather than baked so the basemap can be swapped
+  /// without touching this file.
+  final String? tileUrl;
+
+  /// Credit line for the tile source. Every free tile provider requires one.
+  final String? attribution;
+
+  @override
+  State<PinMap> createState() => _PinMapState();
+}
+
+class _PinMapState extends State<PinMap> {
+  /// Rizal Park. Only ever seen by someone whose location is off *and* who has
+  /// no saved pin — somewhere in the country beats the middle of the ocean,
+  /// which is where a (0,0) fallback would put them.
+  static const _manila = ll.LatLng(14.5995, 120.9842);
+
+  static const _defaultZoom = 17.0;
+
+  final _map = MapController();
+
+  late ll.LatLng _centre;
+
+  /// Cancelled and restarted on every camera frame; only the pause at the end
+  /// of a drag survives it.
+  Timer? _settle;
+
+  bool _dragging = false;
+
+  /// Guards against an out-of-order geocode: drag, pause, drag again quickly
+  /// and the first lookup can land after the second, labelling the new pin
+  /// with the old address.
+  int _lookup = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _centre = _parsePin(widget.startPin) ?? _manila;
+    // Confirming without touching the map has to work, so publish the opening
+    // position now rather than waiting for a gesture that may never come.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _publish(_centre));
+  }
+
+  @override
+  void dispose() {
+    _settle?.cancel();
+    _map.dispose();
+    super.dispose();
+  }
+
+  /// "14.5995,120.9842" -> a point, or null if it is anything else.
+  static ll.LatLng? _parsePin(String? pin) {
+    final parts = (pin ?? '').split(',');
+    if (parts.length != 2) return null;
+    final lat = double.tryParse(parts[0].trim());
+    final lng = double.tryParse(parts[1].trim());
+    if (lat == null || lng == null) return null;
+    // Out of range means a bad parse, not a bad address. Opening the map on an
+    // impossible coordinate throws inside flutter_map.
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+    return ll.LatLng(lat, lng);
+  }
+
+  /// Six decimals is about 11cm — past the point any phone GPS can tell apart,
+  /// and short enough to read in the admin order view.
+  static String _format(ll.LatLng at) =>
+      '${at.latitude.toStringAsFixed(6)},${at.longitude.toStringAsFixed(6)}';
+
+  /// Philippine reading order: house/street, barangay, city, province.
+  static String _composeAddress(Placemark p) {
+    final seen = <String>{};
+    final kept = <String>[];
+    for (final raw in [
+      p.street,
+      p.subLocality,
+      p.locality,
+      p.administrativeArea,
+    ]) {
+      final value = (raw ?? '').trim();
+      // The platform geocoder repeats itself constantly — `street` often
+      // already carries the barangay, and for a chartered city `locality` and
+      // `administrativeArea` are the same word. Duplicates read as broken.
+      if (value.isEmpty || !seen.add(value.toLowerCase())) continue;
+      kept.add(value);
+    }
+    return kept.join(', ');
+  }
+
+  /// Writes the pin immediately and the address when it arrives.
+  Future<void> _publish(ll.LatLng at) async {
+    final token = ++_lookup;
+
+    FFAppState().update(() {
+      FFAppState().draftPin = _format(at);
+      // Cleared on purpose. Leaving the previous line up would attribute one
+      // place's address to another place's pin for as long as the lookup takes
+      // — a brief "Finding address..." is the honest version.
+      FFAppState().draftPinText = '';
+    });
+
+    var line = '';
+    try {
+      final places = await placemarkFromCoordinates(at.latitude, at.longitude);
+      if (places.isNotEmpty) line = _composeAddress(places.first);
+    } catch (_) {
+      // No Play Services, no network, or nothing named within range. The pin
+      // is still perfectly good and the rider only ever needed that — the
+      // customer types the rest, exactly as they do today.
+    }
+
+    if (!mounted || token != _lookup) return;
+    FFAppState().update(() => FFAppState().draftPinText = line);
+  }
+
+  void _onPositionChanged(MapCamera camera, bool hasGesture) {
+    _centre = camera.center;
+    // Programmatic moves publish themselves; only a finger starts the timer.
+    if (!hasGesture) return;
+
+    if (!_dragging) setState(() => _dragging = true);
+    _settle?.cancel();
+    // Geocoding every camera frame would hammer the platform channel and make
+    // the label strobe. The pause at the end of a drag is the only moment that
+    // carries any intent.
+    _settle = Timer(const Duration(milliseconds: 400), () {
+      if (!mounted) return;
+      setState(() => _dragging = false);
+      _publish(_centre);
+    });
+  }
+
+  Future<void> _recentre() async {
+    // Reuses the existing custom action rather than calling Geolocator again
+    // here — the permission handling and the fifteen-second timeout already
+    // live there, and two copies would drift.
+    final at = _parsePin(await currentPin());
+    if (!mounted) return;
+    if (at == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not get your location. Drag the map instead.'),
+        ),
+      );
+      return;
+    }
+    _map.move(at, _defaultZoom);
+    _centre = at;
+    await _publish(at);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+
+    return SizedBox(
+      width: widget.width,
+      height: widget.height,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          FlutterMap(
+            mapController: _map,
+            options: MapOptions(
+              initialCenter: _centre,
+              initialZoom: _defaultZoom,
+              minZoom: 4,
+              maxZoom: 18,
+              interactionOptions: const InteractionOptions(
+                // Rotation means nothing to a delivery pin, and one stray
+                // two-finger twist leaves the map crooked with no way back.
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              ),
+              onPositionChanged: _onPositionChanged,
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: widget.tileUrl ?? '',
+                // Tile servers block unidentified clients, and OSM's policy
+                // requires this specifically.
+                userAgentPackageName: 'com.solecraftph.app',
+                maxNativeZoom: 19,
+              ),
+            ],
+          ),
+
+          // The exact target, so the tip of the pin is not the only clue.
+          IgnorePointer(
+            child: Container(
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(
+                color: theme.primaryText.withValues(alpha: 0.35),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+
+          // The pin itself. IgnorePointer so drags pass straight through to
+          // the map — without it the middle of the screen, which is exactly
+          // where a thumb lands, would be dead to touch.
+          IgnorePointer(
+            child: AnimatedSlide(
+              // -0.5 lifts the glyph by half its height, putting its point on
+              // the centre of the map instead of its middle. The extra lift
+              // while dragging is the small "picked up" tell.
+              offset: Offset(0, _dragging ? -0.62 : -0.5),
+              duration: const Duration(milliseconds: 140),
+              curve: Curves.easeOut,
+              child: Icon(
+                Icons.location_on,
+                size: 44,
+                color: theme.secondary,
+                shadows: const [
+                  Shadow(blurRadius: 6, color: Color(0x33000000)),
+                ],
+              ),
+            ),
+          ),
+
+          // Recentre. Bottom-right, clear of the confirm card the sheet floats
+          // over the bottom edge.
+          Positioned(
+            right: 12,
+            bottom: 12,
+            child: Material(
+              color: theme.secondaryBackground,
+              shape: const CircleBorder(),
+              elevation: 2,
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: _recentre,
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Icon(
+                    Icons.my_location,
+                    size: 22,
+                    color: theme.primaryText,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Not decoration: attribution is a licence condition of every free
+          // tile source worth using, OSM's included.
+          Positioned(
+            left: 6,
+            bottom: 6,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: theme.secondaryBackground.withValues(alpha: 0.75),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                child: Text(
+                  widget.attribution ?? '',
+                  style: TextStyle(fontSize: 9, color: theme.secondaryText),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+''',
+  );
+
+  // OpenStreetMap's own tile servers, which are donation-funded and whose
+  // usage policy rules out shipping apps pointing at them. Fine while this is
+  // being tested on one phone; swap both strings for a MapTiler (or Stadia,
+  // or Protomaps) template and credit before this reaches customers. That is
+  // the only change needed — the widget takes the template as a parameter
+  // precisely so the basemap is a one-line decision.
+  //
+  // ponytail: OSM public tiles, move to a keyed provider's free tier before
+  // release.
+  const tileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+  const tileAttribution = '© OpenStreetMap contributors';
+
+  // Whether the sheet was confirmed or abandoned.
+  //
+  // Needed because the map publishes draftPin continuously as it moves — so
+  // without this, backing out of the sheet would still drop whatever happened
+  // to be under the pin into the customer's address. Cancel and the Android
+  // back button both leave this false, and the caller checks it before
+  // touching the form.
+  app.state(
+    'pinConfirmed',
+    bool_.withDefault(false),
+    description:
+        'True only when the map sheet was closed with "Use this location".',
+  );
+
+  const pinSheetName = 'PinSheet';
+  const pinSheetDescription =
+      'Bottom sheet: full-bleed map with a centred pin and the address it '
+      'resolves to.';
+
+  final pinSheetParams = <String, DslType>{
+    'startPin': string.withDefault(''),
+    // Vestigial, and deliberately kept. See the note above the editComponent
+    // block below: removing it is a bigger fight than leaving it, and it costs
+    // one dead `() async {}` in the generated caller.
+    'onDone': action.withCallbackKind(ActionCallbackKind.onTap),
+  };
+
+  final pinSheetBody = Container(
+    // Fixed pixels because Container has no percentage height on this
+    // surface. 520 leaves the sheet short of full-screen on the smallest
+    // phones still in use while giving the map most of the room.
+    // ponytail: fixed height, revisit if it crowds a small screen.
+    height: 520,
+    color: Colors.primaryBackground,
+    child: Column(
+      children: [
+        Container(
+          padding: 14,
+          child: Row(
+            mainAxis: MainAxis.spaceBetween,
+            crossAxis: CrossAxis.center,
+            children: [
+              Text(
+                'Pin your location',
+                name: 'pinSheetTitle',
+                style: Styles.titleMedium,
+              ),
+              Container(
+                name: 'pinCancel',
+                padding: 8,
+                child: Text(
+                  'Cancel',
+                  style: Styles.bodyMedium,
+                  color: Colors.secondaryText,
+                ),
+                onTap: [
+                  UpdateAppState.set(ff.AppState.pinConfirmed, false),
+                  const NavigateBack(),
+                  const ParamAction('onDone'),
+                ],
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          pinMap(
+            name: 'pinSheetMap',
+            startPin: Param('startPin'),
+            tileUrl: tileUrl,
+            attribution: tileAttribution,
+          ),
+        ),
+        Container(
+          padding: 16,
+          color: Colors.secondaryBackground,
+          child: Column(
+            crossAxis: CrossAxis.start,
+            spacing: 8,
+            children: [
+              Text(
+                'Drag the map to move the pin',
+                name: 'pinSheetHint',
+                style: Styles.bodySmall,
+                color: Colors.secondaryText,
+              ),
+              // One of these two is always showing. The placeholder is not
+              // decoration: the address field is deliberately blanked while
+              // a lookup is in flight, and an empty gap there reads as a
+              // failure rather than as work in progress.
+              Text(
+                'Finding address...',
+                name: 'pinSheetSearching',
+                style: Styles.titleSmall,
+                color: Colors.secondaryText,
+                visible: Equals(AppState(ff.AppState.draftPinText), ''),
+              ),
+              Text(
+                AppState(ff.AppState.draftPinText),
+                name: 'pinSheetAddress',
+                style: Styles.titleSmall,
+                maxLines: 2,
+                visible: Not(Equals(AppState(ff.AppState.draftPinText), '')),
+              ),
+              Text(
+                AppState(ff.AppState.draftPin),
+                name: 'pinSheetCoords',
+                style: Styles.bodySmall,
+                color: Colors.secondaryText,
+              ),
+              Button(
+                'Use this location',
+                name: 'pinConfirm',
+                width: double.infinity,
+                height: 52,
+                borderRadius: 12,
+                onTap: [
+                  UpdateAppState.set(ff.AppState.pinConfirmed, true),
+                  const NavigateBack(),
+                  const ParamAction('onDone'),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+
+  // app.component is strict-create on purpose — an upsert would silently
+  // overwrite a component body edited in the FlutterFlow IDE — so a second run
+  // of this file dies on "a page or component named PinSheet already exists".
+  // Once it is in the project, hand ShowBottomSheet a handle built from the
+  // same declaration instead: the compiler only reads the name and the param
+  // types off it, and looks the real component up in the project by name.
+  //
+  // The consequence to know about: after the first run, edits to
+  // `pinSheetBody` above stop reaching the project. Changing the sheet's
+  // appearance later means `app.editComponent(...)`, not editing that tree —
+  // which is exactly what the block after this one does.
+  final pinSheet =
+      ff.Components.all.any((c) => c.name == pinSheetName)
+          ? ComponentHandle(
+            ComponentDeclaration(
+              name: pinSheetName,
+              description: pinSheetDescription,
+              params: pinSheetParams,
+              body: pinSheetBody,
+            ),
+          )
+          : app.component(
+                pinSheetName,
+                description: pinSheetDescription,
+                params: pinSheetParams,
+                body: pinSheetBody,
+              )
+              as ComponentHandle;
+
+  // Closing the sheet, take three.
+  //
+  // 1. DismissDialog inside the component: rejected outright — "Dismiss Dialog
+  //    action is used, but there is no action to open a custom dialog". A
+  //    bottom sheet does not count as one.
+  // 2. Routed out to the caller as an `onDone` callback param, so the dismiss
+  //    sat beside the ShowBottomSheet that opened it. That validated, pushed,
+  //    and generated `onDone: () async {}` — an empty body. The chain does not
+  //    survive into a component parameter placed by a bottom sheet, with or
+  //    without a callback kind on the parameter. Two buttons that did nothing,
+  //    and nothing anywhere said so.
+  // 3. This: pop the route from inside the sheet. A modal sheet *is* a route,
+  //    Navigate Back pops the top one, and there is no validator rule about
+  //    it. Fewest moving parts of the three.
+  //
+  // Applied through editComponent because the declared body above stopped
+  // reaching the project the moment the component existed.
+  // `onDone` stays declared, passed, and called, even though its body is empty
+  // and the pop no longer goes through it. Deleting it costs two more fights,
+  // both of which were had:
+  //
+  //  - The wiring review rejects a component parameter the widget tree does
+  //    not reference, so the param has to go at the same time as the last
+  //    ParamAction that mentions it.
+  //  - ensureActions skips a chain it considers semantically equal, and that
+  //    comparison does not look at component parameter values. Dropping
+  //    `onDone` from the ShowBottomSheet call is invisible to it, so the old
+  //    chain stays put and then fails validation for passing a parameter that
+  //    no longer exists. Removing it needs a chain that differs some *other*
+  //    way, in the same run, at both call sites.
+  //
+  // One dead `() async {}` per call site is the cheaper end of that trade.
+  if (ff.Components.all.any((c) => c.name == pinSheetName)) {
+    app.editComponent(ff.Components.pinSheet, (sheet) {
+      sheet.ensureActions(
+        ff.Components.pinSheet.widgets.byKey('Container_5msrfwjs').single,
+        triggerType: FFActionTriggerType.ON_TAP,
+        actions: [
+          UpdateAppState.set(ff.AppState.pinConfirmed, false),
+          const NavigateBack(),
+          const ParamAction('onDone'),
+        ],
+      );
+      sheet.ensureActions(
+        ff.Components.pinSheet.widgets.byKey('Button_6vpby2te').single,
+        triggerType: FFActionTriggerType.ON_TAP,
+        actions: [
+          UpdateAppState.set(ff.AppState.pinConfirmed, true),
+          const NavigateBack(),
+          const ParamAction('onDone'),
+        ],
+      );
+    });
+  }
 
   // `Equals(State('saved'), [])` is not expressible — a Dart list literal is
   // not a DSL expression — so the empty state asks a function instead.
@@ -1416,14 +2019,15 @@ return '';
     // The six size tiles. Each one set selectedSize unconditionally, so the
     // picker happily offered a US 12 the shop has none of; available_sizes
     // decides now, and a sold-out tap says so rather than doing nothing.
-    for (final tile in const <String, String>{
-      'Container_dnejwlbx': '7',
-      'Container_nutazx4c': '8',
-      'Container_zr4v91kl': '9',
-      'Container_p5rm8umn': '10',
-      'Container_582gr6n9': '11',
-      'Container_xoentfqj': '12',
-    }.entries) {
+    for (final tile
+        in const <String, String>{
+          'Container_dnejwlbx': '7',
+          'Container_nutazx4c': '8',
+          'Container_zr4v91kl': '9',
+          'Container_p5rm8umn': '10',
+          'Container_582gr6n9': '11',
+          'Container_xoentfqj': '12',
+        }.entries) {
       page.ensureActions(
         ff.Pages.shoeDetails.widgets.byKey(tile.key).single,
         triggerType: FFActionTriggerType.ON_TAP,
@@ -2317,7 +2921,10 @@ return next;
     'Reviews',
     route: '/reviews',
     description: 'Customer reviews for one shoe, and the form to add one.',
-    params: {'productId': int_.withDefault(0), 'shoeName': string.withDefault('')},
+    params: {
+      'productId': int_.withDefault(0),
+      'shoeName': string.withDefault(''),
+    },
     state: {'feed': reviewFeed},
     onLoad: loadReviews(''),
     body: Scaffold(
@@ -2339,7 +2946,10 @@ return next;
             spacing: 8,
             children: [
               Icon('star', size: 18, color: Colors.secondary),
-              Text(State(ff.Pages.reviews.state.feed)['average'], style: Styles.titleSmall),
+              Text(
+                State(ff.Pages.reviews.state.feed)['average'],
+                style: Styles.titleSmall,
+              ),
               Text(
                 State(ff.Pages.reviews.state.feed)['count'],
                 style: Styles.bodySmall,
@@ -2384,18 +2994,25 @@ return next;
                         'token': AppState(ff.AppState.authToken),
                         'product_id': PageParam('productId'),
                         'rating': WidgetState(
-                            'reviewRating', WidgetStateProperty.value),
+                          'reviewRating',
+                          WidgetStateProperty.value,
+                        ),
                         'comment': WidgetState(
-                            'reviewComment', WidgetStateProperty.text),
+                          'reviewComment',
+                          WidgetStateProperty.text,
+                        ),
                       },
                       // The response is the whole feed again, so the list and
                       // the summary update without a second round trip.
-                      onSuccess: (res) => [
-                        SetState(ff.Pages.reviews.state.feed, res),
-                        Snackbar('Thanks — your review is up.'),
-                      ],
+                      onSuccess:
+                          (res) => [
+                            SetState(ff.Pages.reviews.state.feed, res),
+                            Snackbar('Thanks — your review is up.'),
+                          ],
                       onFailure: [
-                        Snackbar('Could not post your review. Pick a rating and try again.'),
+                        Snackbar(
+                          'Could not post your review. Pick a rating and try again.',
+                        ),
                       ],
                     ),
                   ],
@@ -2433,43 +3050,47 @@ return next;
             shrinkWrap: true,
             scrollPhysics: ScrollPhysics.never,
             spacing: 12,
-            itemBuilder: (item) => Container(
-              padding: 14,
-              borderRadius: 12,
-              color: Colors.secondaryBackground,
-              child: Column(
-                crossAxis: CrossAxis.start,
-                spacing: 4,
-                children: [
-                  Row(
-                    mainAxis: MainAxis.spaceBetween,
-                    crossAxis: CrossAxis.center,
-                    spacing: 10,
+            itemBuilder:
+                (item) => Container(
+                  padding: 14,
+                  borderRadius: 12,
+                  color: Colors.secondaryBackground,
+                  child: Column(
+                    crossAxis: CrossAxis.start,
+                    spacing: 4,
                     children: [
-                      Text(ItemRef()['username'], style: Styles.bodyMedium),
                       Row(
+                        mainAxis: MainAxis.spaceBetween,
                         crossAxis: CrossAxis.center,
-                        spacing: 4,
+                        spacing: 10,
                         children: [
-                          Icon('star', size: 14, color: Colors.secondary),
-                          Text(ItemRef()['rating'], style: Styles.bodySmall),
+                          Text(ItemRef()['username'], style: Styles.bodyMedium),
+                          Row(
+                            crossAxis: CrossAxis.center,
+                            spacing: 4,
+                            children: [
+                              Icon('star', size: 14, color: Colors.secondary),
+                              Text(
+                                ItemRef()['rating'],
+                                style: Styles.bodySmall,
+                              ),
+                            ],
+                          ),
                         ],
+                      ),
+                      Text(
+                        ItemRef()['comment'],
+                        style: Styles.bodySmall,
+                        maxLines: 6,
+                      ),
+                      Text(
+                        ItemRef()['created_at'],
+                        style: Styles.bodySmall,
+                        color: Colors.secondaryText,
                       ),
                     ],
                   ),
-                  Text(
-                    ItemRef()['comment'],
-                    style: Styles.bodySmall,
-                    maxLines: 6,
-                  ),
-                  Text(
-                    ItemRef()['created_at'],
-                    style: Styles.bodySmall,
-                    color: Colors.secondaryText,
-                  ),
-                ],
-              ),
-            ),
+                ),
           ),
         ],
       ),
@@ -2528,7 +3149,13 @@ return next;
             'token': AppState(ff.AppState.authToken),
             'product_id': PageParam('id'),
           },
-          onSuccess: (res) => [SetState(ff.Pages.shoeDetails.state.wishlisted, res['wishlisted'])],
+          onSuccess:
+              (res) => [
+                SetState(
+                  ff.Pages.shoeDetails.state.wishlisted,
+                  res['wishlisted'],
+                ),
+              ],
         ),
       ],
     ),
@@ -2576,12 +3203,15 @@ return next;
   // insert is compiled before it joins the tree, so bindings and taps have to
   // wait until it is actually there. Both halves are guarded, so the first run
   // inserts and the next one wires.
-  final stripNode =
-      ff.Pages.shoeDetails.widgets.all.where((w) => w.name == 'reviewsStrip');
-  final avgNode =
-      ff.Pages.shoeDetails.widgets.all.where((w) => w.name == 'reviewsAverage');
-  final countNode =
-      ff.Pages.shoeDetails.widgets.all.where((w) => w.name == 'reviewsCount');
+  final stripNode = ff.Pages.shoeDetails.widgets.all.where(
+    (w) => w.name == 'reviewsStrip',
+  );
+  final avgNode = ff.Pages.shoeDetails.widgets.all.where(
+    (w) => w.name == 'reviewsAverage',
+  );
+  final countNode = ff.Pages.shoeDetails.widgets.all.where(
+    (w) => w.name == 'reviewsCount',
+  );
   if (stripNode.isNotEmpty && avgNode.isNotEmpty && countNode.isNotEmpty) {
     app.editPage(ff.Pages.shoeDetails, (page) {
       page.bindText(
@@ -2596,10 +3226,13 @@ return next;
         ff.Pages.shoeDetails.widgets.byKey(stripNode.first.key).single,
         triggerType: FFActionTriggerType.ON_TAP,
         actions: [
-          Navigate.to(reviewsPage, params: {
-            'productId': PageParam('id'),
-            'shoeName': State(ff.Pages.shoeDetails.state.shoe)['name'],
-          }),
+          Navigate.to(
+            reviewsPage,
+            params: {
+              'productId': PageParam('id'),
+              'shoeName': State(ff.Pages.shoeDetails.state.shoe)['name'],
+            },
+          ),
         ],
       );
     });
@@ -2669,8 +3302,14 @@ return next;
         spacing: 14,
         padding: 16,
         children: [
-          Text(State(ff.Pages.infoPage.state.page)['title'], style: Styles.titleMedium),
-          Text(State(ff.Pages.infoPage.state.page)['content'], style: Styles.bodyMedium),
+          Text(
+            State(ff.Pages.infoPage.state.page)['title'],
+            style: Styles.titleMedium,
+          ),
+          Text(
+            State(ff.Pages.infoPage.state.page)['content'],
+            style: Styles.bodyMedium,
+          ),
         ],
       ),
     ),
@@ -2679,7 +3318,8 @@ return next;
   final helpPage = app.ensurePage(
     'Help',
     route: '/help',
-    description: 'Contact support, and links to About, FAQs and the privacy policy.',
+    description:
+        'Contact support, and links to About, FAQs and the privacy policy.',
     state: {'pages': infoMenu},
     onLoad: [
       ApiCall(
@@ -2703,11 +3343,7 @@ return next;
             color: Colors.secondaryText,
           ),
           TextField(label: 'Your name', name: 'hpName'),
-          TextField(
-            label: 'Email',
-            name: 'hpEmail',
-            keyboard: Keyboard.email,
-          ),
+          TextField(label: 'Email', name: 'hpEmail', keyboard: Keyboard.email),
           TextField(label: 'Subject', name: 'hpSubject'),
           TextField(label: 'Message', name: 'hpMessage', maxLines: 5),
           Button(
@@ -2729,7 +3365,9 @@ return next;
                 },
                 onSuccess: (res) => [Snackbar(res['message'])],
                 onFailure: [
-                  Snackbar('Could not send that. Check your email and message.'),
+                  Snackbar(
+                    'Could not send that. Check your email and message.',
+                  ),
                 ],
               ),
             ],
@@ -2741,15 +3379,17 @@ return next;
             shrinkWrap: true,
             scrollPhysics: ScrollPhysics.never,
             spacing: 2,
-            itemBuilder: (item) => ListTile(
-              title: ItemRef()['title'],
-              trailingIcon: 'chevron_right',
-              onTap: [
-                Navigate.to(infoReaderPage, params: {
-                  'slug': ItemRef()['slug'],
-                }),
-              ],
-            ),
+            itemBuilder:
+                (item) => ListTile(
+                  title: ItemRef()['title'],
+                  trailingIcon: 'chevron_right',
+                  onTap: [
+                    Navigate.to(
+                      infoReaderPage,
+                      params: {'slug': ItemRef()['slug']},
+                    ),
+                  ],
+                ),
           ),
         ],
       ),
@@ -2790,15 +3430,15 @@ return next;
     (page: 'Wishlist', column: 'Column_tb8lpkjw', list: 'ListView_hmc891ud'),
   ]) {
     final pageHandle =
-        fix.page == 'Notifications' ? ff.Pages.notifications : ff.Pages.wishlist;
+        fix.page == 'Notifications'
+            ? ff.Pages.notifications
+            : ff.Pages.wishlist;
     app.editPage(pageHandle, (page) {
       page.mutateNode(pageHandle.widgets.byKey(fix.column).single, (node) {
         node.props.column.scrollable = true;
       });
       page.mutateNode(pageHandle.widgets.byKey(fix.list).single, (node) {
-        node.props.listView.shrinkWrapValue = FFBooleanValue(
-          inputValue: true,
-        );
+        node.props.listView.shrinkWrapValue = FFBooleanValue(inputValue: true);
         node.props.listView.scrollPhysics =
             FFScrollPhysics.FF_SCROLL_PHYSICS_NEVER;
       });
@@ -3148,16 +3788,16 @@ return live.contains(value ?? '');
                             If(
                               AppState(ff.AppState.signedIn),
                               then: [
-                            // Android 13+ will not display a notification
-                            // unless POST_NOTIFICATIONS is both declared in
-                            // the manifest and granted at runtime. FlutterFlow
-                            // emits the declaration from this action; the
-                            // custom action below asks again through
-                            // firebase_messaging, which is harmless — the
-                            // system only ever shows one dialog.
-                            const RequestPermissions(
-                              permission: PermissionKind.notifications,
-                            ),
+                                // Android 13+ will not display a notification
+                                // unless POST_NOTIFICATIONS is both declared in
+                                // the manifest and granted at runtime. FlutterFlow
+                                // emits the declaration from this action; the
+                                // custom action below asks again through
+                                // firebase_messaging, which is harmless — the
+                                // system only ever shows one dialog.
+                                const RequestPermissions(
+                                  permission: PermissionKind.notifications,
+                                ),
                                 CallCustomAction(
                                   deviceToken,
                                   outputAs: 'fcmToken$tag',
@@ -3208,16 +3848,20 @@ return live.contains(value ?? '');
   // a filter that can only come back with nothing. settings.php lists only
   // categories with something active in them.
   app.editPage(ff.Pages.shop, (page) {
-    for (final chip in const <String, String>{
-      'Container_k7rad63w': 'Athletic & Performance Footwear',
-      'Container_nkjt8umr': 'Casual & Lifestyle Footwear',
-      'Container_tppnzt06': 'Formal & Dress Footwear',
-    }.entries) {
+    for (final chip
+        in const <String, String>{
+          'Container_k7rad63w': 'Athletic & Performance Footwear',
+          'Container_nkjt8umr': 'Casual & Lifestyle Footwear',
+          'Container_tppnzt06': 'Formal & Dress Footwear',
+        }.entries) {
       page.bindVisible(
         ff.Pages.shop.widgets.byKey(chip.key).single,
         CustomFunction(
           listStillHas,
-          args: {'values': AppState(ff.AppState.shopCategories), 'value': chip.value},
+          args: {
+            'values': AppState(ff.AppState.shopCategories),
+            'value': chip.value,
+          },
         ),
       );
     }
@@ -3311,11 +3955,12 @@ return live.contains(value ?? '');
   // Checkout offered all three methods whatever admin said, so a shopper could
   // pick one the shop had switched off and only find out when the order failed.
   app.editPage(ff.Pages.checkout, (page) {
-    for (final method in <String, ProjectAppStateFieldHandle>{
-      'Container_iuz96ohv': ff.AppState.payCod,
-      'Container_ebi2q81v': ff.AppState.payGcash,
-      'Container_43akn8dy': ff.AppState.payCard,
-    }.entries) {
+    for (final method
+        in <String, ProjectAppStateFieldHandle>{
+          'Container_iuz96ohv': ff.AppState.payCod,
+          'Container_ebi2q81v': ff.AppState.payGcash,
+          'Container_43akn8dy': ff.AppState.payCard,
+        }.entries) {
       page.bindVisible(
         ff.Pages.checkout.widgets.byKey(method.key).single,
         AppState(method.value),
@@ -3371,7 +4016,9 @@ return live.contains(value ?? '');
         );
       });
     }
-    final node = spinner.$1.widgets.all.where((w) => w.name == 'loadingSpinner');
+    final node = spinner.$1.widgets.all.where(
+      (w) => w.name == 'loadingSpinner',
+    );
     if (node.isNotEmpty) {
       app.editPage(spinner.$1, (page) {
         page.bindVisible(
@@ -3387,10 +4034,7 @@ return live.contains(value ?? '');
   // one is a different app, with no shared reviews, installs or update path —
   // so this is the last moment it costs nothing. The label is what sits under
   // the icon on a customer's home screen; "FINAL" is a filename habit.
-  app.appNames(
-    packageName: 'ph.solecraft.app',
-    displayName: 'SoleCraftPH',
-  );
+  app.appNames(packageName: 'ph.solecraft.app', displayName: 'SoleCraftPH');
 
   // ---------------------------------------------------------------------------
   // 16. Telling a paid order from an unpaid one
@@ -3460,7 +4104,9 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
   // Was 'Done — view my order', which navigated and verified nothing: tapping
   // it without paying produced a thank-you screen. It now asks the server.
   app.editPage(ff.Pages.payment, (page) {
-    page.update(ff.Pages.payment.widgets.byKey('Button_fm0z5l15').single, (patch) {
+    page.update(ff.Pages.payment.widgets.byKey('Button_fm0z5l15').single, (
+      patch,
+    ) {
       patch.text('I have paid — check my order');
     });
     page.ensureActions(
@@ -3565,7 +4211,10 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
             'q': CustomFunction(
               urlSafe,
               args: {
-                'value': WidgetState('shopSearchField', WidgetStateProperty.text),
+                'value': WidgetState(
+                  'shopSearchField',
+                  WidgetStateProperty.text,
+                ),
               },
             ),
           },
@@ -3630,12 +4279,16 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
   // otherwise picking Formal while Road Running was selected asks the server
   // for dress boots that are also road running shoes, and gets nothing.
   app.editPage(ff.Pages.shop, (page) {
-    for (final chip in const <String, List<String>>{
-      'Container_xfqqjoas': ['all', ''],
-      'Container_k7rad63w': ['performance', 'Athletic & Performance Footwear'],
-      'Container_nkjt8umr': ['casual', 'Casual & Lifestyle Footwear'],
-      'Container_tppnzt06': ['formal', 'Formal & Dress Footwear'],
-    }.entries) {
+    for (final chip
+        in const <String, List<String>>{
+          'Container_xfqqjoas': ['all', ''],
+          'Container_k7rad63w': [
+            'performance',
+            'Athletic & Performance Footwear',
+          ],
+          'Container_nkjt8umr': ['casual', 'Casual & Lifestyle Footwear'],
+          'Container_tppnzt06': ['formal', 'Formal & Dress Footwear'],
+        }.entries) {
       page.ensureActions(
         ff.Pages.shop.widgets.byKey(chip.key).single,
         triggerType: FFActionTriggerType.ON_TAP,
@@ -3673,13 +4326,14 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
       ),
       // The Container carries the tap and the name the wiring pass looks for;
       // the component carries the look.
-      itemBuilder: (item) => Container(
-        name: 'subcategoryChip',
-        child: ff.Components.catChip(
-          active: Equals(State('activeSubcategory'), item),
-          label: item,
-        ),
-      ),
+      itemBuilder:
+          (item) => Container(
+            name: 'subcategoryChip',
+            child: ff.Components.catChip(
+              active: Equals(State('activeSubcategory'), item),
+              label: item,
+            ),
+          ),
     ),
   );
 
@@ -3710,8 +4364,9 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
 
   // Bound on the pass after the insert: a widget handed to an insert is
   // compiled before it joins the tree.
-  final subChip =
-      ff.Pages.shop.widgets.all.where((w) => w.name == 'subcategoryChip');
+  final subChip = ff.Pages.shop.widgets.all.where(
+    (w) => w.name == 'subcategoryChip',
+  );
   if (subChip.isNotEmpty) {
     app.editPage(ff.Pages.shop, (page) {
       page.ensureActions(
@@ -3763,7 +4418,8 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
       getAddresses,
       outputAs: 'addressLoad$tag',
       params: {'token': AppState(ff.AppState.authToken)},
-      onSuccess: (res) => [SetState(ff.Pages.addresses.state.saved, res['items'])],
+      onSuccess:
+          (res) => [SetState(ff.Pages.addresses.state.saved, res['items'])],
       onFailure: authFailure(
         'addressLoad$tag',
         'Could not load your addresses.',
@@ -3874,7 +4530,12 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
                                   'id': item['id'],
                                 },
                                 onSuccess:
-                                    (res) => [SetState(ff.Pages.addresses.state.saved, res['items'])],
+                                    (res) => [
+                                      SetState(
+                                        ff.Pages.addresses.state.saved,
+                                        res['items'],
+                                      ),
+                                    ],
                                 onFailure: [
                                   Snackbar('Could not change your default.'),
                                 ],
@@ -3899,7 +4560,10 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
                                 },
                                 onSuccess:
                                     (res) => [
-                                      SetState(ff.Pages.addresses.state.saved, res['items']),
+                                      SetState(
+                                        ff.Pages.addresses.state.saved,
+                                        res['items'],
+                                      ),
                                       Snackbar('Address removed.'),
                                     ],
                                 onFailure: [
@@ -3920,10 +4584,17 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
             name: 'addressesEmpty',
             style: Styles.bodySmall,
             color: Colors.secondaryText,
-            visible: CustomFunction(hasNoAddresses, args: {'rows': State(ff.Pages.addresses.state.saved)}),
+            visible: CustomFunction(
+              hasNoAddresses,
+              args: {'rows': State(ff.Pages.addresses.state.saved)},
+            ),
           ),
           Divider(),
-          Text('Add an address', name: 'addFormHeading', style: Styles.titleMedium),
+          Text(
+            'Add an address',
+            name: 'addFormHeading',
+            style: Styles.titleMedium,
+          ),
           TextField(name: 'addrLabel', hint: 'Label — Home, Work, Mum\'s'),
           TextField(name: 'addrRecipient', hint: 'Who receives it'),
           TextField(
@@ -3931,21 +4602,30 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
             hint: 'Contact number',
             keyboard: Keyboard.number,
           ),
-          TextField(
-            name: 'addrLine',
-            hint: 'House / street / barangay / city',
-          ),
-          // Pin-only, deliberately. A Philippine delivery address is rarely
-          // something a geocoder can produce — "blk 12 lot 4, corner of the
-          // sari-sari store" — so the coordinates ride alongside what the
-          // customer types rather than trying to replace it. What the rider
-          // actually needs is the pin, and a pin costs nothing.
+          TextField(name: 'addrLine', hint: 'House / street / barangay / city'),
+          // The map replaces what used to be a blind "use my current location":
+          // it took the phone's first fix on trust, showed nothing, and offered
+          // no way to correct it. Indoors that fix is routinely a street or two
+          // out, and nobody found out until a rider was lost.
+          //
+          // The pin still rides *alongside* the typed line rather than
+          // replacing it. A Philippine delivery address is often something no
+          // geocoder can produce — "blk 12 lot 4, corner of the sari-sari
+          // store" — so the reverse-geocoded text is a starting point the
+          // customer edits, and the coordinates are what the rider actually
+          // navigates by.
           Button(
-            'Use my current location',
+            'Pin on map',
             name: 'useMyLocation',
             width: double.infinity,
             height: 52,
             borderRadius: 12,
+            // Outlined, not filled. Two full-width black buttons stacked on
+            // top of each other gave equal weight to picking a location and to
+            // saving the address; only one of those finishes the job.
+            variant: ButtonVariant.outlined,
+            color: Colors.secondaryBackground,
+            textColor: Colors.primaryText,
             onTap: [
               // Android returns "denied" from Geolocator.requestPermission()
               // without ever showing a dialog unless ACCESS_FINE_LOCATION is
@@ -3953,27 +4633,58 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
               // even with location switched on at the OS level. FlutterFlow
               // emits that declaration from this action.
               const RequestPermissions(permission: PermissionKind.location),
+              // Only decides where the map opens. Unlike before, an empty
+              // result is no longer a dead end — the sheet opens on Manila and
+              // the customer drags from there.
               CallCustomAction(currentPin, outputAs: 'pinResult'),
+              UpdateAppState.set(ff.AppState.pinConfirmed, false),
+              ShowBottomSheet(
+                pinSheet,
+                params: {
+                  'startPin': ActionOutput('pinResult'),
+                  'onDone': const [NavigateBack()],
+                },
+                // Both off so the only ways out are Confirm and Cancel. The
+                // map swallows vertical drags, and a sheet that also responds
+                // to them fights the gesture that moves the pin.
+                enableDrag: false,
+                nonDismissible: true,
+              ),
+              // Everything below runs when the sheet closes, which is the
+              // whole reason this is a sheet and not a page: ShowBottomSheet
+              // is awaited, and Navigate.to has no way to return an answer.
               If(
-                Equals(ActionOutput('pinResult'), ''),
+                AppState(ff.AppState.pinConfirmed),
                 then: [
-                  Snackbar(
-                    'Could not get your location. Check that location is on '
-                    'and try again — you can still type the address.',
+                  SetState(
+                    ff.Pages.addresses.state.pin,
+                    AppState(ff.AppState.draftPin),
                   ),
-                ],
-                orElse: [
-                  SetState(ff.Pages.addresses.state.pin, ActionOutput('pinResult')),
-                  Snackbar('Location pinned. It will be saved with this address.'),
+                  // Only overwrite the typed line when the geocoder actually
+                  // found something. Blanking a carefully typed address
+                  // because the lookup came back empty would be worse than
+                  // not offering the autofill at all.
+                  If(
+                    Not(Equals(AppState(ff.AppState.draftPinText), '')),
+                    then: [
+                      SetFormField(
+                        'addrLine',
+                        AppState(ff.AppState.draftPinText),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ],
           ),
           Text(
-            'Location pinned',
+            // Shows the address the pin resolved to rather than the word
+            // "pinned", so there is something to check before saving.
+            AppState(ff.AppState.draftPinText),
             name: 'pinnedNotice',
             style: Styles.bodySmall,
             color: Colors.secondary,
+            maxLines: 2,
             visible: Not(Equals(State(ff.Pages.addresses.state.pin), '')),
           ),
           Button(
@@ -3998,11 +4709,17 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
                   'address': WidgetState('addrLine', WidgetStateProperty.text),
                   'latitude': CustomFunction(
                     pinPart,
-                    args: {'pin': State(ff.Pages.addresses.state.pin), 'index': 0},
+                    args: {
+                      'pin': State(ff.Pages.addresses.state.pin),
+                      'index': 0,
+                    },
                   ),
                   'longitude': CustomFunction(
                     pinPart,
-                    args: {'pin': State(ff.Pages.addresses.state.pin), 'index': 1},
+                    args: {
+                      'pin': State(ff.Pages.addresses.state.pin),
+                      'index': 1,
+                    },
                   ),
                 },
                 onSuccess:
@@ -4025,6 +4742,168 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
       ),
     ),
   );
+
+  // ---------------------------------------------------------------------------
+  // The addresses page body above is dead code, and has been for a while
+  // ---------------------------------------------------------------------------
+  // `app.ensurePage` skips an existing page entirely — creation, state fields
+  // and body — so every edit made to that tree since the run that first created
+  // the page has been compiled, validated, and thrown away. It is not
+  // harmless-looking: the push succeeds and reports no problem.
+  //
+  // That is what happened to the location permission last time. The manifest
+  // gained ACCESS_FINE_LOCATION, because permissions are collected from
+  // declared actions across the whole app, so the fix looked verified. The
+  // RequestPermissions call itself never reached addresses_widget.dart, because
+  // it lives in this skipped body.
+  //
+  // The declaration stays because it is still what a fresh project should get.
+  // Anything that has to reach *this* project goes through editPage below.
+  app.editPage(ff.Pages.addresses, (page) {
+    final pinButton =
+        ff.Pages.addresses.widgets.byKey('Button_zss3llaf').single;
+
+    page.update(pinButton, (patch) {
+      patch.text('Pin on map');
+      // Outlined, so it stops competing with Save address — two full-width
+      // filled buttons stacked gave equal weight to choosing a location and to
+      // finishing the job.
+      patch.buttonVariant(ButtonVariant.outlined);
+      patch.color(Colors.secondaryBackground);
+    });
+
+    // Replaces the ON_TAP chain outright, which is what makes this rerunnable:
+    // an identical chain is left alone, a changed one swaps in.
+    page.ensureActions(
+      pinButton,
+      triggerType: FFActionTriggerType.ON_TAP,
+      actions: [
+        const RequestPermissions(permission: PermissionKind.location),
+        CallCustomAction(currentPin, outputAs: 'pinResult'),
+        UpdateAppState.set(ff.AppState.pinConfirmed, false),
+        ShowBottomSheet(
+          pinSheet,
+          params: {
+            'startPin': ActionOutput('pinResult'),
+            'onDone': const [NavigateBack()],
+          },
+          enableDrag: false,
+          nonDismissible: true,
+        ),
+        If(
+          AppState(ff.AppState.pinConfirmed),
+          then: [
+            SetState(
+              ff.Pages.addresses.state.pin,
+              AppState(ff.AppState.draftPin),
+            ),
+            If(
+              Not(Equals(AppState(ff.AppState.draftPinText), '')),
+              then: [
+                SetFormField(
+                  ff.Pages.addresses.widgets.byKey('TextField_bnm5k1u4').single,
+                  AppState(ff.AppState.draftPinText),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+
+    // Was the literal words "Location pinned", which told the customer nothing
+    // they could check. Now it shows the address the pin resolved to.
+    page.bindText(
+      ff.Pages.addresses.widgets.byKey('Text_eqfczwlu').single,
+      AppState(ff.AppState.draftPinText),
+    );
+
+    // The four boxes were bare: no fill, no radius, so they read as gaps in
+    // the page rather than as fields. Fill plus a 12 radius matches the cards
+    // above them.
+    //
+    // No border: `patch.border` throws for a TextField ("Border patches are
+    // not supported"), and the input decoration is the only way in from here.
+    // The white-on-paper contrast carries the shape on its own.
+    for (final field in const [
+      'TextField_ya1qalx9', // addrLabel
+      'TextField_5gketlsz', // addrRecipient
+      'TextField_ga4c02y7', // addrPhone
+      'TextField_bnm5k1u4', // addrLine
+    ]) {
+      page.update(ff.Pages.addresses.widgets.byKey(field).single, (patch) {
+        patch.color(Colors.secondaryBackground);
+        patch.borderRadius(12);
+      });
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // Editing a saved address
+  // ---------------------------------------------------------------------------
+  // `editingId` has been read by the save call and reset to zero afterwards
+  // since the day this page was built, and nothing ever set it to a real id —
+  // so the update path it was written for was unreachable. A typo in a saved
+  // address meant deleting it and typing the whole thing again.
+  if (!ff.Pages.addresses.widgets.all.any((w) => w.name == 'editAddress')) {
+    app.editPage(ff.Pages.addresses, (page) {
+      page.ensureInsertedBefore(
+        ff.Pages.addresses.widgets.byKey('Container_k6s1ay3a').single,
+        Container(
+          name: 'editAddress',
+          padding: 8,
+          child: Text('Edit', style: Styles.bodySmall, color: Colors.primary),
+        ),
+      );
+    });
+  }
+
+  // Second pass, as always for an inserted widget.
+  final editAddress = ff.Pages.addresses.widgets.all.where(
+    (w) => w.name == 'editAddress',
+  );
+  if (editAddress.isNotEmpty) {
+    app.editPage(ff.Pages.addresses, (page) {
+      page.ensureActions(
+        ff.Pages.addresses.widgets.byKey(editAddress.first.key).single,
+        triggerType: FFActionTriggerType.ON_TAP,
+        actions: [
+          // The non-zero id is the whole point: SaveAddress treats it as an
+          // update rather than an eleventh new address.
+          SetState(ff.Pages.addresses.state.editingId, ItemRef()['id']),
+          SetFormField(
+            ff.Pages.addresses.widgets.byKey('TextField_ya1qalx9').single,
+            ItemRef()['label'],
+          ),
+          SetFormField(
+            ff.Pages.addresses.widgets.byKey('TextField_5gketlsz').single,
+            ItemRef()['recipient_name'],
+          ),
+          SetFormField(
+            ff.Pages.addresses.widgets.byKey('TextField_ga4c02y7').single,
+            ItemRef()['phone'],
+          ),
+          SetFormField(
+            ff.Pages.addresses.widgets.byKey('TextField_bnm5k1u4').single,
+            ItemRef()['address'],
+          ),
+          // Carries the existing pin through, so re-saving an address that was
+          // pinned does not quietly drop the coordinates the rider uses.
+          SetState(
+            ff.Pages.addresses.state.pin,
+            CustomFunction(
+              joinPin,
+              args: {
+                'lat': ItemRef()['latitude'],
+                'lng': ItemRef()['longitude'],
+              },
+            ),
+          ),
+          Snackbar('Editing this address. Save when you are done.'),
+        ],
+      );
+    });
+  }
 
   // A way in from Account, guarded because ensureInsertedBefore duplicates on
   // a rerun — which is how the Account screen grew two Notifications tiles the
@@ -4052,18 +4931,30 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
   // The saved default address wins over the profile's single address field,
   // and falls back to it when there is nothing saved yet.
   app.editPageOnLoad(ff.Pages.checkout, [
-    SetFormField(ff.Pages.checkout.widgets.byKey('TextField_34iw5du7').single, AppState(ff.AppState.userFullName)),
-    SetFormField(ff.Pages.checkout.widgets.byKey('TextField_zxgfjsxb').single, AppState(ff.AppState.userEmail)),
-    SetFormField(ff.Pages.checkout.widgets.byKey('TextField_9li215mu').single, AppState(ff.AppState.userPhone)),
-    SetFormField(ff.Pages.checkout.widgets.byKey('TextField_bng08kxc').single, AppState(ff.AppState.userAddress)),
+    SetFormField(
+      ff.Pages.checkout.widgets.byKey('TextField_34iw5du7').single,
+      AppState(ff.AppState.userFullName),
+    ),
+    SetFormField(
+      ff.Pages.checkout.widgets.byKey('TextField_zxgfjsxb').single,
+      AppState(ff.AppState.userEmail),
+    ),
+    SetFormField(
+      ff.Pages.checkout.widgets.byKey('TextField_9li215mu').single,
+      AppState(ff.AppState.userPhone),
+    ),
+    SetFormField(
+      ff.Pages.checkout.widgets.byKey('TextField_bng08kxc').single,
+      AppState(ff.AppState.userAddress),
+    ),
     ApiCall(
       getAddresses,
       outputAs: 'checkoutAddresses',
       params: {'token': AppState(ff.AppState.authToken)},
-      onSuccess: (res) => [SetState(ff.Pages.checkout.state.saved, res['items'])],
+      onSuccess:
+          (res) => [SetState(ff.Pages.checkout.state.saved, res['items'])],
     ),
   ]);
-
 
   // A row of saved addresses above the form. Tapping one fills the boxes,
   // which is the whole point of having saved it. Empty for a customer with
@@ -4098,21 +4989,182 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
     });
   }
 
+  // Remembers which chip is the chosen one. Zero is "none", which is also what
+  // a customer who typed their address by hand should see.
+  app.editPageState(ff.Pages.checkout, (state) {
+    state.ensureField('pickedAddressId', int_.withDefault(0));
+  });
+
+  // The chip's selected state comes from CatChip rather than a hand-rolled
+  // pair of Containers, because that component already carries the look the
+  // category row uses — and a second copy of it would drift the first time
+  // either was touched.
+  //
+  // Must run before the actions below: ensureReplaced swaps the subtree and
+  // takes any triggers on it with it, so attaching the tap first would just
+  // throw it away. The key survives the replace, which is why the block below
+  // can still find the node.
+  final pickerChipNode = ff.Pages.checkout.widgets.all.where(
+    (w) => w.name == 'addressPickerChip',
+  );
+  // Placed with constant arguments, because a replacement widget is compiled
+  // before it joins the tree and `ItemRef()` outside a ListView builder is a
+  // hard error there ("Item field access \"id\" used outside a ListView
+  // builder"). The row's bindings go on in the pass below, once the instance
+  // is really inside the builder.
+  // Matched on componentName, not type: a placed component instance is a
+  // Container in the tree whose componentName names the component. Matching on
+  // type left this empty, the binding pass below never ran, and the row shipped
+  // with `label: ''` — a line of blank chips.
+  final chipIsComponent = ff.Pages.checkout.widgets.all.any(
+    (w) => w.componentName == 'CatChip',
+  );
+  if (pickerChipNode.isNotEmpty && !chipIsComponent) {
+    app.editPage(ff.Pages.checkout, (page) {
+      page.ensureReplaced(
+        ff.Pages.checkout.widgets.byKey(pickerChipNode.first.key).single,
+        Container(
+          name: 'addressPickerChip',
+          child: ff.Components.catChip(active: false, label: ''),
+        ),
+      );
+    });
+  }
+
+  final pickerChipInstance = ff.Pages.checkout.widgets.all.where(
+    (w) => w.componentName == 'CatChip',
+  );
+  if (pickerChipInstance.isNotEmpty) {
+    app.editPage(ff.Pages.checkout, (page) {
+      final instance =
+          ff.Pages.checkout.widgets.byKey(pickerChipInstance.first.key).single;
+      page.setComponentParam(instance, 'label', ItemRef()['label']);
+      page.setComponentParam(
+        instance,
+        'active',
+        Equals(ItemRef()['id'], State('pickedAddressId')),
+      );
+    });
+  }
+
   // Bound on the pass after the insert, like every other inserted widget here.
-  final pickerChip =
-      ff.Pages.checkout.widgets.all.where((w) => w.name == 'addressPickerChip');
+  final pickerChip = ff.Pages.checkout.widgets.all.where(
+    (w) => w.name == 'addressPickerChip',
+  );
   if (pickerChip.isNotEmpty) {
     app.editPage(ff.Pages.checkout, (page) {
       page.ensureActions(
         ff.Pages.checkout.widgets.byKey(pickerChip.first.key).single,
         triggerType: FFActionTriggerType.ON_TAP,
         actions: [
-          SetFormField(ff.Pages.checkout.widgets.byKey('TextField_34iw5du7').single, ItemRef()['recipient_name']),
-          SetFormField(ff.Pages.checkout.widgets.byKey('TextField_9li215mu').single, ItemRef()['phone']),
-          SetFormField(ff.Pages.checkout.widgets.byKey('TextField_bng08kxc').single, ItemRef()['address']),
+          SetFormField(
+            ff.Pages.checkout.widgets.byKey('TextField_34iw5du7').single,
+            ItemRef()['recipient_name'],
+          ),
+          SetFormField(
+            ff.Pages.checkout.widgets.byKey('TextField_9li215mu').single,
+            ItemRef()['phone'],
+          ),
+          SetFormField(
+            ff.Pages.checkout.widgets.byKey('TextField_bng08kxc').single,
+            ItemRef()['address'],
+          ),
           SetState('pickedLat', ItemRef()['latitude']),
           SetState('pickedLng', ItemRef()['longitude']),
+          // What makes the chip light up. Without it the row gave no sign of
+          // which address the form had just been filled from — the same gap
+          // the category chips and size tiles had.
+          SetState('pickedAddressId', ItemRef()['id']),
           Snackbar('Delivering to your saved address.'),
+        ],
+      );
+    });
+  }
+
+  // The same map, on checkout. Sits directly above the address box it fills,
+  // so the relationship between the two is obvious without a label saying so.
+  //
+  // Worth having here as well as on the addresses page: a guest ordering to
+  // somewhere they will never use again has no reason to save an address, and
+  // was the one customer with no way to give a pin at all.
+  if (!ff.Pages.checkout.widgets.all.any(
+    (w) => w.name == 'checkoutPinButton',
+  )) {
+    app.editPage(ff.Pages.checkout, (page) {
+      page.ensureInsertedBefore(
+        ff.Pages.checkout.widgets.byKey('TextField_bng08kxc').single,
+        Button(
+          'Pin on map',
+          name: 'checkoutPinButton',
+          width: double.infinity,
+          height: 48,
+          borderRadius: 12,
+          variant: ButtonVariant.outlined,
+          color: Colors.secondaryBackground,
+          textColor: Colors.primaryText,
+        ),
+      );
+    });
+  }
+
+  // Second pass, same as the picker chip above: a widget handed to
+  // ensureInsertedBefore is compiled before it joins the tree, so its actions
+  // cannot be attached until the run after the insert.
+  final checkoutPin = ff.Pages.checkout.widgets.all.where(
+    (w) => w.name == 'checkoutPinButton',
+  );
+  if (checkoutPin.isNotEmpty) {
+    app.editPage(ff.Pages.checkout, (page) {
+      page.ensureActions(
+        ff.Pages.checkout.widgets.byKey(checkoutPin.first.key).single,
+        triggerType: FFActionTriggerType.ON_TAP,
+        actions: [
+          const RequestPermissions(permission: PermissionKind.location),
+          CallCustomAction(currentPin, outputAs: 'checkoutPinStart'),
+          UpdateAppState.set(ff.AppState.pinConfirmed, false),
+          ShowBottomSheet(
+            pinSheet,
+            params: {
+              'startPin': ActionOutput('checkoutPinStart'),
+              'onDone': const [NavigateBack()],
+            },
+            enableDrag: false,
+            nonDismissible: true,
+          ),
+          If(
+            AppState(ff.AppState.pinConfirmed),
+            then: [
+              // pickedLat / pickedLng are what CreateOrderPinned already
+              // sends, so the pin reaches orders.latitude/longitude and the
+              // admin order view's map link without any server change.
+              SetState(
+                'pickedLat',
+                CustomFunction(
+                  pinPart,
+                  args: {'pin': AppState(ff.AppState.draftPin), 'index': 0},
+                ),
+              ),
+              SetState(
+                'pickedLng',
+                CustomFunction(
+                  pinPart,
+                  args: {'pin': AppState(ff.AppState.draftPin), 'index': 1},
+                ),
+              ),
+              If(
+                Not(Equals(AppState(ff.AppState.draftPinText), '')),
+                then: [
+                  SetFormField(
+                    ff.Pages.checkout.widgets
+                        .byKey('TextField_bng08kxc')
+                        .single,
+                    AppState(ff.AppState.draftPinText),
+                  ),
+                ],
+              ),
+              Snackbar('Location pinned for this delivery.'),
+            ],
+          ),
         ],
       );
     });
@@ -4130,12 +5182,11 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
   //
   // One line, which is what a search box is.
   app.editPage(ff.Pages.shop, (page) {
-    page.mutateNode(
-      ff.Pages.shop.widgets.byKey('TextField_tqobar4t').single,
-      (node) {
-        node.props.textField.maxLinesValue = FFIntegerValue(inputValue: 1);
-      },
-    );
+    page.mutateNode(ff.Pages.shop.widgets.byKey('TextField_tqobar4t').single, (
+      node,
+    ) {
+      node.props.textField.maxLinesValue = FFIntegerValue(inputValue: 1);
+    });
   });
 
   // ---------------------------------------------------------------------------

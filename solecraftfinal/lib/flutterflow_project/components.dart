@@ -4,13 +4,16 @@ library;
 
 import 'package:flutterflow_ai/flutterflow_ai.dart' as ffai;
 import 'components/cat_chip.dart' show CatChipComponentHandle;
+import 'components/pin_sheet.dart' show PinSheetComponentHandle;
 import 'components/shoe_card.dart' show ShoeCardComponentHandle;
 
 abstract final class Components {
   static final catChip = CatChipComponentHandle();
+  static final pinSheet = PinSheetComponentHandle();
   static final shoeCard = ShoeCardComponentHandle();
   static final all = <ffai.ProjectComponentHandle>[
     catChip,
+    pinSheet,
     shoeCard,
   ];
 }

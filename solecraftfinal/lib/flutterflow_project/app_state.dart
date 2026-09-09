@@ -17,6 +17,18 @@ abstract final class AppState {
     typeName: "List<DataStruct<BagItem>>",
     persisted: true,
   );
+  static const draftPin = ffai.ProjectAppStateFieldHandle(
+    name: "draftPin",
+    key: "9bnavqsb",
+    typeName: "String",
+    persisted: false,
+  );
+  static const draftPinText = ffai.ProjectAppStateFieldHandle(
+    name: "draftPinText",
+    key: "ub7ppndk",
+    typeName: "String",
+    persisted: false,
+  );
   static const isAdmin = ffai.ProjectAppStateFieldHandle(
     name: "isAdmin",
     key: "goe4ps2x",
@@ -44,6 +56,12 @@ abstract final class AppState {
   static const payGcash = ffai.ProjectAppStateFieldHandle(
     name: "payGcash",
     key: "mjqorqnd",
+    typeName: "Boolean",
+    persisted: false,
+  );
+  static const pinConfirmed = ffai.ProjectAppStateFieldHandle(
+    name: "pinConfirmed",
+    key: "vc3cpf2b",
     typeName: "Boolean",
     persisted: false,
   );
@@ -110,11 +128,14 @@ abstract final class AppState {
   static const all = <ffai.ProjectAppStateFieldHandle>[
     authToken,
     bag,
+    draftPin,
+    draftPinText,
     isAdmin,
     lastOrderId,
     payCard,
     payCod,
     payGcash,
+    pinConfirmed,
     shopCategories,
     signedIn,
     taxonomy,
