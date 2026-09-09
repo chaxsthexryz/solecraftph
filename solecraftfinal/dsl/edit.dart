@@ -2931,6 +2931,16 @@ return live.contains(value ?? '');
                             If(
                               AppState(ff.AppState.signedIn),
                               then: [
+                            // Android 13+ will not display a notification
+                            // unless POST_NOTIFICATIONS is both declared in
+                            // the manifest and granted at runtime. FlutterFlow
+                            // emits the declaration from this action; the
+                            // custom action below asks again through
+                            // firebase_messaging, which is harmless — the
+                            // system only ever shows one dialog.
+                            const RequestPermissions(
+                              permission: PermissionKind.notifications,
+                            ),
                                 CallCustomAction(
                                   deviceToken,
                                   outputAs: 'fcmToken$tag',
@@ -3465,4 +3475,31 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
       );
     });
   }
+
+  // ---------------------------------------------------------------------------
+  // 19. Sign in before checking out
+  // ---------------------------------------------------------------------------
+  // Nothing stopped a signed-out shopper checking out. The server accepts the
+  // order — user_id is nullable, same as the website — but Confirmed then reads
+  // it back with an empty token and gets a 401, so a guest paid for a real
+  // order and landed on a screen with no number, no amount and no status, and
+  // could never find it again because My Orders needs an account.
+  app.editPage(ff.Pages.bag, (page) {
+    page.ensureActions(
+      ff.Pages.bag.widgets.byKey('Button_vtxoiopm').single,
+      triggerType: FFActionTriggerType.ON_TAP,
+      actions: [
+        If(
+          AppState(ff.AppState.signedIn),
+          then: [Navigate.to(ff.Pages.checkout)],
+          orElse: [
+            Snackbar('Please sign in so we can keep track of your order.'),
+            // The bag survives the trip: it is app state for a guest and gets
+            // merged into the account on sign-in, so nothing is lost.
+            Navigate.to(ff.Pages.signIn),
+          ],
+        ),
+      ],
+    );
+  });
 }
