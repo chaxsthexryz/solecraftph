@@ -924,6 +924,49 @@ return '';
     ),
   ];
 
+  // The account-area loads, lifted out of their ensurePage blocks so a
+  // pull-to-refresh can run the same chain the page load runs. [tag] keeps the
+  // two copies' output variables apart — FlutterFlow rejects a page where two
+  // widgets produce the same output name.
+  List<DslAction> loadNotifications(String tag) => [
+    ApiCall(
+      getNotifications,
+      outputAs: 'notificationsLoad$tag',
+      params: {'token': AppState(ff.AppState.authToken)},
+      onSuccess: (res) => [SetState(ff.Pages.notifications.state.feed, res)],
+      onFailure: authFailure(
+        'notificationsLoad$tag',
+        'Could not load your notifications.',
+      ),
+    ),
+  ];
+
+  List<DslAction> loadWishlist(String tag) => [
+    ApiCall(
+      getWishlist,
+      outputAs: 'wishlistLoad$tag',
+      params: {'token': AppState(ff.AppState.authToken)},
+      onSuccess: (res) => [SetState(ff.Pages.wishlist.state.saved, res)],
+      onFailure: authFailure(
+        'wishlistLoad$tag',
+        'Could not load your wishlist.',
+      ),
+    ),
+  ];
+
+  List<DslAction> loadReviews(String tag) => [
+    ApiCall(
+      getReviews,
+      outputAs: 'reviewsLoad$tag',
+      params: {
+        'token': AppState(ff.AppState.authToken),
+        'product_id': PageParam('productId'),
+      },
+      onSuccess: (res) => [SetState(ff.Pages.reviews.state.feed, res)],
+      onFailure: [Snackbar('Could not load reviews.')],
+    ),
+  ];
+
   // ---------------------------------------------------------------------------
   // 4. The two sync halves, reused by every wiring point below
   // ---------------------------------------------------------------------------
@@ -1701,18 +1744,7 @@ return next;
     route: '/notifications',
     description: 'Order updates and announcements for the signed-in shopper.',
     state: {'feed': notificationList},
-    onLoad: [
-      ApiCall(
-        getNotifications,
-        outputAs: 'notificationsLoad',
-        params: {'token': AppState(ff.AppState.authToken)},
-        onSuccess: (res) => [SetState(ff.Pages.notifications.state.feed, res)],
-        onFailure: authFailure(
-          'notificationsLoad',
-          'Could not load your notifications.',
-        ),
-      ),
-    ],
+    onLoad: loadNotifications(''),
     body: Scaffold(
       appBar: AppBar(title: 'Notifications'),
       body: Column(
@@ -1844,15 +1876,7 @@ return next;
     route: '/wishlist',
     description: 'Products saved for later, shared with the website.',
     state: {'saved': wishlist},
-    onLoad: [
-      ApiCall(
-        getWishlist,
-        outputAs: 'wishlistLoad',
-        params: {'token': AppState(ff.AppState.authToken)},
-        onSuccess: (res) => [SetState(ff.Pages.wishlist.state.saved, res)],
-        onFailure: authFailure('wishlistLoad', 'Could not load your wishlist.'),
-      ),
-    ],
+    onLoad: loadWishlist(''),
     body: Scaffold(
       appBar: AppBar(title: 'Wishlist'),
       body: Column(
@@ -1970,18 +1994,7 @@ return next;
     description: 'Customer reviews for one shoe, and the form to add one.',
     params: {'productId': int_.withDefault(0), 'shoeName': string.withDefault('')},
     state: {'feed': reviewFeed},
-    onLoad: [
-      ApiCall(
-        getReviews,
-        outputAs: 'reviewsLoad',
-        params: {
-          'token': AppState(ff.AppState.authToken),
-          'product_id': PageParam('productId'),
-        },
-        onSuccess: (res) => [SetState(ff.Pages.reviews.state.feed, res)],
-        onFailure: [Snackbar('Could not load reviews.')],
-      ),
-    ],
+    onLoad: loadReviews(''),
     body: Scaffold(
       appBar: AppBar(title: 'Reviews'),
       body: Column(
@@ -2826,6 +2839,7 @@ return live.contains(value ?? '');
   // helper sit on pages with no loadFailed field to set.
   List<DslAction> loadBag(String tag) => [
     SetState(ff.Pages.bag.state.loadFailed, false),
+    SetState(ff.Pages.bag.state.isLoading, true),
     If(
       AppState(ff.AppState.signedIn),
       then: [
@@ -2834,13 +2848,20 @@ return live.contains(value ?? '');
           outputAs: 'bagLoadSyncRes$tag',
           params: {'token': AppState(ff.AppState.authToken)},
           onSuccess:
-              (res) => [UpdateAppState.set(ff.AppState.bag, res['items'])],
+              (res) => [
+                UpdateAppState.set(ff.AppState.bag, res['items']),
+                SetState(ff.Pages.bag.state.isLoading, false),
+              ],
           onFailure: [
+            SetState(ff.Pages.bag.state.isLoading, false),
             SetState(ff.Pages.bag.state.loadFailed, true),
             ...authFailure('bagLoadSyncRes$tag', 'Could not load your bag.'),
           ],
         ),
       ],
+      // A guest bag lives on the device. There is nothing to wait for, and
+      // without this the spinner would never stop.
+      orElse: [SetState(ff.Pages.bag.state.isLoading, false)],
     ),
   ];
 
@@ -2908,4 +2929,73 @@ return live.contains(value ?? '');
       );
     }
   });
+
+  // ---------------------------------------------------------------------------
+  // 14. Pull to refresh, the two missing spinners, and the app's own name
+  // ---------------------------------------------------------------------------
+  // Every list in the app could only be refreshed by leaving the screen and
+  // coming back, which is a strange thing to ask of someone checking whether
+  // their order shipped. Each list now runs its page's own load chain on a
+  // pull — the same actions, under a tag that keeps the output names apart.
+  for (final list in <(ProjectPageHandle, String, List<DslAction>)>[
+    (ff.Pages.shop, 'GridView_ilvt3kls', loadShop('Refresh')),
+    (ff.Pages.bag, 'ListView_cbzgvh4e', loadBag('Refresh')),
+    (ff.Pages.myOrders, 'ListView_ko415scl', loadMyOrders('Refresh')),
+    (ff.Pages.notifications, 'ListView_399slaet', loadNotifications('Refresh')),
+    (ff.Pages.wishlist, 'ListView_hmc891ud', loadWishlist('Refresh')),
+    (ff.Pages.reviews, 'ListView_guswn7fv', loadReviews('Refresh')),
+  ]) {
+    app.editPage(list.$1, (page) {
+      page.ensureActions(
+        list.$1.widgets.byKey(list.$2).single,
+        triggerType: FFActionTriggerType.ON_PULL_TO_REFRESH,
+        actions: list.$3,
+      );
+    });
+  }
+
+  // Shop, MyOrders and Checkout showed a spinner while loading. ShoeDetails
+  // and Bag showed nothing at all, so the wait read as "there is nothing here"
+  // rather than "one moment". ShoeDetails already tracked isLoading and simply
+  // never displayed it.
+  app.editPageState(ff.Pages.bag, (state) {
+    state.ensureField(ff.Pages.bag.state.isLoading, bool_.withDefault(false));
+  });
+
+  for (final spinner in <(ProjectPageHandle, String, DslExpression)>[
+    (
+      ff.Pages.shoeDetails,
+      'Container_vrmuiokl',
+      State(ff.Pages.shoeDetails.state.isLoading),
+    ),
+    (ff.Pages.bag, 'ListView_cbzgvh4e', State(ff.Pages.bag.state.isLoading)),
+  ]) {
+    if (!spinner.$1.widgets.all.any((w) => w.name == 'loadingSpinner')) {
+      app.editPage(spinner.$1, (page) {
+        page.ensureInsertedBefore(
+          spinner.$1.widgets.byKey(spinner.$2).single,
+          ProgressBar.circular(name: 'loadingSpinner', size: 36),
+        );
+      });
+    }
+    final node = spinner.$1.widgets.all.where((w) => w.name == 'loadingSpinner');
+    if (node.isNotEmpty) {
+      app.editPage(spinner.$1, (page) {
+        page.bindVisible(
+          spinner.$1.widgets.byKey(node.first.key).single,
+          spinner.$3,
+        );
+      });
+    }
+  }
+
+  // The placeholder FlutterFlow stamped on the project at creation. A Play
+  // Store listing's package name can never be changed afterwards — a different
+  // one is a different app, with no shared reviews, installs or update path —
+  // so this is the last moment it costs nothing. The label is what sits under
+  // the icon on a customer's home screen; "FINAL" is a filename habit.
+  app.appNames(
+    packageName: 'ph.solecraft.app',
+    displayName: 'SoleCraftPH',
+  );
 }

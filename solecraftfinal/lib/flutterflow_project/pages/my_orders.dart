@@ -158,6 +158,9 @@ abstract final class MyOrdersWidgets {
                 type: "ListView",
                 path: "MyOrders.body[0].children[3]",
                 name: "ListView",
+                triggers: const <String>[
+                  "ON_PULL_TO_REFRESH",
+                ],
                 children: <ffai.ProjectWidgetHandle>[
                   ffai.ProjectWidgetHandle(
                     key: "Container_x3gjkj3t",
