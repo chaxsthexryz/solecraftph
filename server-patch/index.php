@@ -42,18 +42,15 @@ $subcategoriesForCategory = $category !== '' ? ($subcategoryMap[$category] ?? []
 $pageTitle = 'SoleCraftPH — Footwear, Done Right';
 require __DIR__ . '/includes/header.php';
 
-// --- Hero media, checked in order of priority:
-//  1) assets/media/hero.mp4            -> looping promo video
-//  2) assets/media/hero/*.jpg|png|...  -> your own promo photos (independent of products)
-//  3) newest product photos            -> automatic fallback slideshow
-//  4) nothing found                    -> plain text banner, no media
-$heroVideoExists = is_file(__DIR__ . '/assets/media/hero.mp4');
-
-$customHeroFiles = [];
-if (!$heroVideoExists) {
-    $customHeroFiles = glob(__DIR__ . '/assets/media/hero/*.{jpg,jpeg,png,webp,gif}', GLOB_BRACE) ?: [];
-    natsort($customHeroFiles);
-}
+// --- What can appear above the catalog, in priority order:
+//  1) active banners carrying an image  -> promo band, managed in admin
+//  2) assets/media/hero/*.jpg|png|...   -> promo band, no database needed
+//  3) nothing                           -> the type hero alone
+//
+// The looping hero.mp4 branch is gone. There was never a video, and a branch
+// that has never once been true is a branch nobody has ever tested.
+$customHeroFiles = glob(__DIR__ . '/assets/media/hero/*.{jpg,jpeg,png,webp,gif}', GLOB_BRACE) ?: [];
+natsort($customHeroFiles);
 
 // Promo banners get their own band above the page header rather than being
 // used as wallpaper behind it.
@@ -80,7 +77,7 @@ foreach ($promoBanners as $b) {
 // no ordering beyond the filename, but it needs no database and no admin
 // login — which is the point of keeping it: it is the way back in when the
 // panel is unreachable.
-if (empty($promoSlides) && !$heroVideoExists && !empty($customHeroFiles)) {
+if (empty($promoSlides) && !empty($customHeroFiles)) {
     $promoSlides = array_map(static function (string $path): array {
         $file = basename($path);
         return [
@@ -94,25 +91,18 @@ if (empty($promoSlides) && !$heroVideoExists && !empty($customHeroFiles)) {
     }, array_values($customHeroFiles));
 }
 
-// The split hero's product: one photo, the most recently added, shown whole on
-// the shop's own paper *beside* the copy instead of behind it.
+// The hero is type alone now: no product beside the copy, no photo behind it.
 //
-// This replaces the slideshow of six product photos that used to sit behind the
-// header under a 72% black scrim. That scrim only ever existed to keep a
-// headline readable on top of a photograph; once the two stop overlapping it
-// has no job — and neither does the question of whether this week's newest shoe
-// happens to be light enough to print text over. The catalog already contains
-// an all-black Nike that loses that argument.
-$heroProduct = null;
-if (!$heroVideoExists) {
-    $newest = product_hero_images(1);
-    $heroProduct = $newest ? $newest[0] : null;
-}
+// Both earlier attempts are gone for the same reason. The slideshow-behind-text
+// needed a 72% black scrim to stay legible and still turned on which shoe
+// happened to be newest. The product-on-paper zone fixed the legibility but
+// filled the most valuable space on the site with a catalog photo the visitor
+// is about to scroll past anyway.
+//
+// Type holds this on its own until there is a real image worth the space. The
+// promo band above takes any campaign artwork; this stays the permanent voice.
 
-// Only the video hero still wants the old behind-the-text media treatment.
-$heroHasMedia = $heroVideoExists;
-
-// Fade timing now serves the promo band alone.
+// Fade timing serves the promo band alone.
 $fadeCount   = count($promoSlides);
 $heroSegment = 5;   // seconds each photo stays fully visible (incl. its own fade)
 $heroFade    = 1.1; // seconds of crossfade
@@ -196,39 +186,39 @@ if ($fadeCount > 1) {
   </section>
 <?php endif; ?>
 
-<?php if (!$heroVideoExists): ?>
 <style>
-  /* THE SPLIT HERO
-     One vertical cut. Copy left on ink, product right on paper, and nothing
-     crosses the line — so the headline's contrast no longer depends on which
-     shoe happens to be newest.
+  /* THE TYPE HERO
+     One ink field, the headline carrying it alone. No photograph behind the
+     words and no product beside them.
 
      Inline here rather than in style.css because .pagehead is shared with the
-     cart and checkout headers, and only this page splits. Same reasoning as
-     the promo band above.
+     cart and checkout headers, and only this page gets the treatment. Same
+     reasoning as the promo band above.
 
-     These selectors all outrank their .pagehead counterparts by source order,
-     not by weight: the stylesheet is linked in <head>, this block comes after. */
+     These selectors outrank their .pagehead counterparts by source order, not
+     by weight: the stylesheet is linked in <head>, this block comes after. */
   .splithero{
-    display:grid;
-    grid-template-columns:45% 55%;
     background:var(--ink);
     padding:0;                 /* .pagehead sets 50px 0 40px */
     overflow:hidden;
   }
-  .splithero--nopic{grid-template-columns:1fr;}
-
   .splithero__copy{
     display:flex;
     flex-direction:column;
     justify-content:center;
     /* Height comes from a min, not an aspect-ratio: the chip rows grow when a
        category is open, and a fixed ratio would clip them. */
-    min-height:clamp(260px,25vw,380px);
-    padding:clamp(26px,3.2vw,48px) clamp(20px,4vw,64px);
+    min-height:clamp(260px,24vw,360px);
+    /* Matches .wrap's 1280 + 40 so the headline starts on the same line as the
+       catalog heading below it, while the ink field still runs edge to edge. */
+    max-width:1280px;
+    margin:0 auto;
+    padding:clamp(30px,3.4vw,54px) 40px;
   }
-  .splithero__copy h1{color:#fff;font-size:clamp(30px,3.5vw,54px);}
-  .splithero__copy p{color:#B9B2A8;max-width:38ch;}
+  /* With nothing beside it the headline has the whole measure, so it can carry
+     the weight the split hero borrowed from the photograph. */
+  .splithero__copy h1{color:#fff;font-size:clamp(38px,6.4vw,88px);max-width:16ch;}
+  .splithero__copy p{color:#B9B2A8;max-width:52ch;font-size:15px;}
   .splithero .searchbar{margin-top:18px;max-width:420px;border-color:#fff;}
   .splithero .searchbar input{color:#fff;}
   .splithero .searchbar input::placeholder{color:rgba(255,255,255,.65);}
@@ -241,54 +231,17 @@ if ($fadeCount > 1) {
   .splithero .filters--sub a{border-color:rgba(255,255,255,.7);color:#fff;}
   .splithero .filters--sub a.active,.splithero .filters--sub a:hover{background:#fff;color:var(--ink);}
 
-  .splithero__product{
-    position:relative;
-    background:var(--paper);
-    min-height:clamp(260px,25vw,380px);
-  }
-  /* The red survives as the accent it already is, not as a field. */
-  .splithero__product::before{
-    content:"";
-    position:absolute;
-    top:0;bottom:0;left:0;
-    width:3px;
-    background:var(--blaze);
-    z-index:2;
-  }
-  .splithero__product img{
-    position:absolute;
-    top:50%;left:50%;
-    transform:translate(-50%,-50%);
-    width:86%;
-    height:auto;
-    /* Product shots are studio images on white, not cutouts. Multiply drops
-       that background into the paper so the photo's rectangle edge goes with
-       it — which is the whole reason this zone is paper and not red. */
-    mix-blend-mode:multiply;
-  }
+  /* The red the product zone carried now sits under the whole field, holding
+     the accent without needing a picture to sit beside. */
+  .splithero{border-bottom:3px solid var(--blaze);}
 
   @media (max-width:860px){
-    /* The split rotates rather than squeezing: product on top, copy under. A
-       narrowed desktop crop would put the shoe through the headline. */
-    .splithero{grid-template-columns:1fr;}
-    .splithero__copy{order:2;min-height:0;padding:24px 20px 28px;}
-    .splithero__product{order:1;min-height:0;aspect-ratio:4/3;}
-    .splithero__product::before{top:auto;left:0;right:0;bottom:0;width:auto;height:3px;}
+    .splithero__copy{min-height:0;padding:26px 20px 30px;}
   }
 </style>
-<?php endif; ?>
 
-<header class="pagehead<?= $heroHasMedia ? ' pagehead--media' : '' ?><?= $heroVideoExists ? '' : ' splithero' . ($heroProduct ? '' : ' splithero--nopic') ?>">
-  <?php if ($heroVideoExists): ?>
-    <div class="hero-media">
-      <video autoplay muted loop playsinline>
-        <source src="<?= BASE_PATH ?>/assets/media/hero.mp4" type="video/mp4">
-      </video>
-    </div>
-    <div class="hero-overlay"></div>
-  <?php endif; ?>
-
-  <div class="<?= $heroVideoExists ? 'wrap' : 'splithero__copy' ?>">
+<header class="pagehead splithero">
+  <div class="splithero__copy">
     <span class="mono" style="color:var(--blaze)">SS26 Collection</span>
     <h1 class="display" style="margin-top:14px;">Built for every step you take.</h1>
     <p>Authentic footwear, sourced right and priced fair — browse the full catalog below.</p>
@@ -315,13 +268,6 @@ if ($fadeCount > 1) {
     <?php endif; ?>
   </div>
 
-  <?php if (!$heroVideoExists && $heroProduct): ?>
-    <div class="splithero__product">
-      <img src="<?= htmlspecialchars(product_image_url($heroProduct)) ?>"
-           alt="<?= htmlspecialchars($heroProduct['name']) ?>"
-           width="900" height="900">
-    </div>
-  <?php endif; ?>
 </header>
 
 <section class="section">
