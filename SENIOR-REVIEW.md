@@ -127,9 +127,40 @@ Order #000054's history also reads: **Pending → Processing → Completed → C
 
 *Map sheet.* Good — clean header, honest attribution, a clear "Drag the map to move the pin" instruction. Undone by the primary button being clipped by the navigation bar, and by printing raw coordinates (`14.671416,121.107482`) to a customer who has no use for them.
 
+*Checkout.* Works, and prefills name, email, address and mobile. Three things to fix. **"Pin on map" is a full-width filled black button, identical in weight to "Place Order"** — so a secondary action looks exactly as important as paying, and on the Delivery Addresses screen that same action is an *outlined* button. One action, two styles, and here the louder of the two is the one that does not complete the purchase. **The order summary is "Items 1" and a total** — no product name, no size, no image, at the exact moment a customer commits money. **The saved-address chips (Home / work) both render unselected**, and the address shown is "montalban", which matches neither saved address, so nothing on screen explains where the value came from. Smaller: the payment tiles are uneven because "Cash on Delivery" wraps to two lines, leaving its radio at the top while GCash's and Card's sit centred; and "Place Order" carries a padlock icon while Cash on Delivery is selected, promising a secure payment that is not happening.
+
+*Bag, with an item in it.* Works — correct line, size, subtotal, total, and a disabled minus at quantity 1. The loading spinner stays visible above content that has already rendered. The product name truncates to "Nike Pegasus …" with room to spare. The size shows as a bare **"9"** with no label, directly under a quantity stepper also showing a number — two unlabelled digits in one row. Shipping reads "Free over ₱2,000" against a ₱8200 subtotal, so it *is* free, but the row never says so; the customer has to work it out. And `₱8200` sits directly above `₱2,000` — the two formats, touching.
+
+*Wishlist.* Works, two items. No way to remove an item and no way to add one to the bag, so the screen is a dead end that can only be escaped backwards.
+
+*Profile.* **No app bar background** — the title sits on the page ground and the back arrow is pale grey on cream, close to invisible. Every other screen has the black bar. The update form's instruction, "Leave a box empty to keep what you have now", is at least honest about an unusual pattern, but the fields are placeholder-labelled, so the label vanishes the moment someone types. No password change.
+
+*Search.* Works correctly — "hoka" returns exactly the two Hoka products. No result count, and no clear button in the field.
+
+### Buttons and touch targets
+
+Measured off the device screenshots at 450 dpi (1 dp ≈ 2.81 px), so these are close rather than exact. **Android's minimum touch target is 48 dp.**
+
+| Control | Approx. size | Verdict |
+| --- | --- | --- |
+| Quantity − / + | 39 × **34 dp** | well under |
+| Size tiles (7–12) | 50 × **44 dp** | under |
+| "Buy Now" | full width × **42 dp** | under |
+| "Place Order" | full width × **44 dp** | under |
+| "Add to Bag" | full width × **48 dp** | at minimum |
+| Bag row delete (trash) | ~**14 dp** visually | far under |
+
+The quantity steppers are the smallest and among the most-tapped controls in the app, and the delete icon in the bag is a red trash glyph roughly a third of the minimum size with no confirmation step — a mis-tap silently removes the line.
+
+**Selected states are weak.** The chosen size renders as a small black pill *inside* the outlined tile rather than filling it, so the tile looks like it contains a button. The chosen payment method is indicated only by a filled radio dot — no border, no fill, no weight change. On checkout, neither address chip appears selected at all.
+
+**Button hierarchy is inconsistent across screens.** "Pin on map" is outlined-secondary on Delivery Addresses and filled-primary on Checkout. "Add to Bag" is filled while "Buy Now" — which commits to a purchase — is outlined. "Proceed to Checkout" is fully enabled on an empty bag at ₱0.
+
 **The cross-cutting one: three price formats in one app.** `₱8200` on the catalog, `₱2,000` in the bag, `₱73800` in order history — and `₱8,200.00` on the website. Pick one and put it behind a single formatter.
 
 **Bottom navigation is four unlabelled icons.** A storefront, a bag, a receipt and a person. Bag and receipt are the same silhouette at a glance, and there is no text to disambiguate. Labels are the standard fix and cost one line.
+
+**Two earlier notes retracted after further testing.** The product image does render — what I first captured was the page mid-load. And the filled red heart on the product page is correct: it reflects genuine wishlist state, confirmed against the Wishlist screen holding that exact product.
 
 ### The APK itself
 
