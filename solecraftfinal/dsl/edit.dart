@@ -5513,6 +5513,39 @@ return 'https://snow-jellyfish-553645.hostingersite.com/assets/icons/icon-512.pn
       (patch) => patch.buttonVariant(ButtonVariant.outlined),
     );
   });
+
+  // Touch targets, measured off screenshots on a 450dpi phone against
+  // Android's 48dp minimum.
+  //
+  // The quantity steppers came out around 39 x 34dp and the bag's delete icon
+  // around 14dp. Those are the most-tapped controls in the app and the one
+  // with no confirmation behind it: a mis-tap on a 14dp target silently
+  // removes a line from the bag, and the smaller the target the more often
+  // that happens. 48 square is the floor, not a preference.
+  const tapTarget = 48;
+
+  app.editPage(ff.Pages.shoeDetails, (page) {
+    for (final key in ['IconButton_7galbigs', 'IconButton_45ad3drt']) {
+      page.update(
+        ff.Pages.shoeDetails.widgets.byKey(key).single,
+        (patch) => patch.size(width: tapTarget, height: tapTarget),
+      );
+    }
+  });
+
+  app.editPage(ff.Pages.bag, (page) {
+    // qtyDown, qtyUp, and the unnamed delete beside them.
+    for (final key in [
+      'IconButton_68d3z5ax',
+      'IconButton_vi892kbi',
+      'IconButton_vtj0lvjt',
+    ]) {
+      page.update(
+        ff.Pages.bag.widgets.byKey(key).single,
+        (patch) => patch.size(width: tapTarget, height: tapTarget),
+      );
+    }
+  });
 }
 
 /// The trailing `children[N]` index out of a generated widget path, or null
