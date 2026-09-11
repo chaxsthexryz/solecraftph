@@ -41,34 +41,40 @@ require __DIR__ . '/includes/header.php';
      the homepage hero makes. Nothing else on the site uses a monogram tile. */
   .devs{
     display:grid;
-    /* Five across on a wide screen, and it reflows on its own down to one.
-       No breakpoint list: the column count is whatever fits at 200px. */
-    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-    gap:18px;
+    /* Still five across on a wide screen, and it reflows on its own down to
+       one. 210px is the floor that keeps all five in a single row inside the
+       1280 wrap — push it higher and a group of five breaks as four plus a
+       stray. Everything inside the card scales with the viewport instead. */
+    grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+    gap:20px;
   }
   .dev{
     border:1.5px solid var(--stone);
     background:#fff;
-    padding:26px 18px;
+    padding:clamp(28px,3vw,44px) 18px clamp(26px,2.6vw,38px);
     text-align:center;
   }
   .dev__mark{
-    width:78px;height:78px;margin:0 auto 18px;
+    /* Sized off the viewport so the tile fills the card it is in rather than
+       sitting as a token in the middle of it. */
+    width:clamp(96px,10vw,148px);height:clamp(96px,10vw,148px);
+    margin:0 auto clamp(20px,1.8vw,26px);
     border-radius:50%;
     background:var(--ink);color:#fff;
     display:flex;align-items:center;justify-content:center;
-    font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:1.5px;
+    font-family:'Bebas Neue',sans-serif;
+    font-size:clamp(34px,3.6vw,54px);letter-spacing:2px;
   }
   .dev__name{
     font-family:'Bebas Neue',sans-serif;
-    font-size:21px;line-height:1.15;letter-spacing:.5px;
+    font-size:clamp(21px,1.8vw,27px);line-height:1.12;letter-spacing:.5px;
     /* Long names wrap to two lines; without this the cards in a row end up
        different heights and the monograms stop lining up. */
-    min-height:2.3em;
+    min-height:2.24em;
     display:flex;align-items:center;justify-content:center;
   }
   .dev__rule{
-    width:28px;height:3px;margin:14px auto 0;
+    width:36px;height:3px;margin:clamp(14px,1.3vw,18px) auto 0;
     background:var(--blaze);
   }
 </style>
