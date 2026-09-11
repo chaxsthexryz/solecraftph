@@ -53,15 +53,16 @@ require __DIR__ . '/includes/header.php';
 // Banners is the one way in now. Nothing on the server was deleted: the files
 // are still in assets/media/hero/ and can be uploaded there.
 
-// A looping background video for the type hero, if there is one: any .mp4 or
-// .webm in assets/media/hero-video/ plays behind the headline, first by
-// filename. With the folder empty the markup is not emitted at all, so this is
-// never an empty <video> waiting on a file that does not exist.
+// Background footage for the type hero. Every .mp4 and .webm in
+// assets/media/hero-video/ is played, in filename order, one after the next and
+// then round again — so the order is set by naming the files 1-, 2-, 3-.
+// With the folder empty no markup is emitted at all, so this is never an empty
+// <video> waiting on a file that does not exist.
 $heroVideoFiles = glob(__DIR__ . '/assets/media/hero-video/*.{mp4,webm}', GLOB_BRACE) ?: [];
 natsort($heroVideoFiles);
-$heroVideo = $heroVideoFiles
-    ? BASE_PATH . '/assets/media/hero-video/' . rawurlencode(basename(reset($heroVideoFiles)))
-    : '';
+$heroVideos = array_map(static function (string $path): string {
+    return BASE_PATH . '/assets/media/hero-video/' . rawurlencode(basename($path));
+}, array_values($heroVideoFiles));
 
 // Promo banners get their own band above the page header rather than being
 // used as wallpaper behind it.
@@ -246,7 +247,12 @@ if ($fadeCount > 1) {
   .splithero__video{
     position:absolute;inset:0;width:100%;height:100%;
     object-fit:cover;z-index:0;
+    /* Only the clip holding is-on is visible; the other element is downloading
+       the next file behind it. The fade is what stops the cut between two
+       unrelated pieces of footage reading as a glitch. */
+    opacity:0;transition:opacity .6s linear;
   }
+  .splithero__video.is-on{opacity:1;}
   .splithero__scrim{
     position:absolute;inset:0;z-index:1;
     background:linear-gradient(90deg,rgba(17,17,17,.92) 0%,rgba(17,17,17,.78) 45%,rgba(17,17,17,.45) 100%);
@@ -266,15 +272,64 @@ if ($fadeCount > 1) {
 </style>
 
 <header class="pagehead splithero">
-  <?php if ($heroVideo !== ''): ?>
+  <?php if (!empty($heroVideos)): ?>
     <?php /* muted + playsinline are what make autoplay legal on iOS and in
              Chrome; without both the browser refuses to start and the hero is
-             a frozen first frame. aria-hidden because it says nothing — the
-             headline over it carries the message. */ ?>
-    <video class="splithero__video" src="<?= htmlspecialchars($heroVideo) ?>"
-           autoplay muted loop playsinline preload="metadata"
-           aria-hidden="true" tabindex="-1"></video>
+             a frozen first frame. aria-hidden because the footage says nothing
+             the headline over it does not already say. */ ?>
+    <video class="splithero__video is-on" src="<?= htmlspecialchars($heroVideos[0]) ?>"
+           autoplay muted<?= count($heroVideos) === 1 ? ' loop' : '' ?> playsinline preload="auto"
+           aria-hidden="true" tabindex="-1"
+           <?php if (count($heroVideos) > 1): ?>data-playlist="<?= htmlspecialchars(json_encode($heroVideos), ENT_QUOTES) ?>"<?php endif; ?>></video>
+    <?php if (count($heroVideos) > 1): ?>
+      <?php /* The second element is the one loading the next clip. It starts
+               empty and without autoplay: the script gives it a source once
+               the first clip is actually playing, so the page does not open by
+               downloading every video at once. */ ?>
+      <video class="splithero__video" muted playsinline preload="auto"
+             aria-hidden="true" tabindex="-1"></video>
+    <?php endif; ?>
     <div class="splithero__scrim"></div>
+    <?php if (count($heroVideos) > 1): ?>
+      <script>
+        /* Play the clips end to end, then round again.
+           Two <video> elements rather than one: swapping .src on a single
+           element means the next clip only starts downloading at the moment the
+           previous one ends, and at these file sizes that is a hole in the hero
+           for as long as the download takes. The idle element fetches the next
+           clip while the visible one is still playing, and the two cross-fade.
+           A single clip needs none of this and gets the loop attribute instead,
+           so this script is not emitted at all. */
+        (function () {
+          var vids = document.querySelectorAll('.splithero__video');
+          var list = JSON.parse(vids[0].dataset.playlist);
+          var at = 0, showing = 0;
+
+          function loadNext() {
+            var idle = vids[1 - showing];
+            idle.src = list[(at + 1) % list.length];
+            idle.load();
+          }
+
+          function advance() {
+            var idle = vids[1 - showing];
+            at = (at + 1) % list.length;
+            idle.classList.add('is-on');
+            vids[showing].classList.remove('is-on');
+            idle.play();
+            showing = 1 - showing;
+            /* Held back past the fade: giving the outgoing element a new source
+               while it is still fading out swaps its last half second for the
+               first frame of a clip that has not started yet. */
+            setTimeout(loadNext, 900);
+          }
+
+          vids[0].addEventListener('ended', advance);
+          vids[1].addEventListener('ended', advance);
+          loadNext();
+        })();
+      </script>
+    <?php endif; ?>
   <?php endif; ?>
   <div class="splithero__copy">
     <span class="mono" style="color:var(--blaze)">SS26 Collection</span>
