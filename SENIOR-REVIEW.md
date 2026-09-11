@@ -1,8 +1,8 @@
 # SoleCraftPH — Senior Review
 
-**Website: 78/100, launchable with caveats. Android app: 42/100, blocked.**
+**Website: 78/100, launchable with caveats. Android app: 62/100, risky.**
 
-The site is in decent shape and got better today. The app cannot sell anything: the product detail page throws on every product I could open, and renders a blank grey screen with no error, no message and no way back.
+Both surfaces work. The app's weak points are a slow, unexplained first paint on the product page, delivery addresses being saved as undeliverable Plus Codes, and 36 MB of dead weight in every download.
 
 Second pass, 11 Sep 2026. The first pass was code-reading only. This one adds a real device — a Samsung Galaxy A15 5G on Android 16, attached over wireless ADB — and that device overturned two of my earlier conclusions and found a blocker no amount of code reading would have.
 
@@ -24,9 +24,15 @@ The third — the 26 MB hero video of Nike and Adidas footage — **stays by you
 
 ---
 
-## Blocker: the product detail page is broken
+## The product detail page: slow, and throwing on the way
 
-Tap any product in the app and you get a **blank grey screen**. No title, no error, no back button — only the system back gesture, which on the first press leaves the app entirely.
+**I called this a blocker in the first draft of this document. That was wrong**, and the correction matters more than the finding.
+
+I tapped a product, waited about five seconds, screenshotted a blank grey screen, saw an exception in the log, and concluded the page was dead. It is not. Waiting fourteen seconds instead shows the page fully working: image, price, stock count, size selector, quantity stepper, Add to Bag, Buy Now, rating. **The app can take an order.** I had photographed the loading state and read it as the result — the reviewer's version of the bug I was describing.
+
+What is real, and still worth fixing:
+
+**An unhandled exception fires on the way in.** Three times across separate cold starts:
 
 ```
 I/flutter: Null check operator used on a null value
@@ -34,13 +40,11 @@ I/flutter: #0  _ShoeDetailsWidgetState.build
            (package:solecraft_final/pages/shoe_details/shoe_details_widget.dart:280)
 ```
 
-**Scope, stated precisely:** I opened two products — Nike Pegasus 41 and Brooks Ghost 16 — each from a cold app start, and both threw the identical exception at the identical line. I did not test all 45. But the API payloads for those two are structurally identical to each other and to the rest (same fields, same nulls in `sale_price` and `badge`, same `available_sizes`), so there is no evident reason the other 43 would differ.
+It is transient — a `!` on something not yet populated during the first build, which resolves when the data arrives and the widget rebuilds. It does not stop the page. It does mean every product open throws, and an exception that is normally harmless is exactly the one that hides a real failure later, because nobody looks twice at a log line they see every time.
 
-**Why nobody noticed:** in a release build Flutter renders a blank container instead of the red error box. There is no crash, no ANR, no dialog. The app looks like it is loading something that never arrives. In a debug build this would have been unmissable.
+**The blank window is long and says nothing.** Roughly five to fourteen seconds of empty screen — no spinner, no skeleton, no product name, nothing carried through from the tile that was just tapped. The user has no way to tell loading from broken, which is precisely the mistake I made with the log in front of me.
 
-**What it costs:** the product page is where size is chosen and Add to Cart lives. With it down, the app cannot take an order at all. Everything else — catalog, search, bag, orders, addresses, the map pin — works, which makes the failure easy to miss and total in effect.
-
-**Where to look:** line 280 of `shoe_details_widget.dart`, for a `!` on something that is null at first build. The usual cause in FlutterFlow is a page parameter or an API result dereferenced before it has arrived, rather than guarded behind the loading state.
+**Fixes:** guard line 280 behind the loading state rather than dereferencing with `!`, and paint the page immediately with what the catalog tile already knows — name, price, image — so the wait fills in rather than starting blank.
 
 ---
 
@@ -215,12 +219,13 @@ Short on purpose; the useful half of this document is above.
 
 ## What I would do, in order
 
-1. **Fix `shoe_details_widget.dart:280`.** The app cannot sell anything until this is done.
-2. **Commit the 46 production files.** Until then there is no rollback for anything else on this list.
-3. **Strip Plus Codes from saved addresses.** You are storing undeliverable addresses right now.
-4. **Bottom inset on the pin sheet**, so the primary action is not under the nav bar.
-5. **Ship an App Bundle** and drop 36 MB from the download.
-6. **Hash the API tokens** and revoke them on password change.
-7. **Remove `loremflickr.com`** before a customer sees a stranger's shoe as your product.
+1. **Commit the 46 production files.** Nothing else on this list is safe to attempt while "restore from git" would delete the checkout page.
+2. **Strip Plus Codes from saved addresses.** You are storing undeliverable addresses right now — this one is already costing you.
+3. **Give the product page a loading state**, and paint name, price and image straight from the tile so the wait fills in instead of starting blank.
+4. **Guard `shoe_details_widget.dart:280`** so every product open stops throwing.
+5. **Bottom inset on the pin sheet**, so the primary action is not under the nav bar.
+6. **Ship an App Bundle** and drop 36 MB from the download.
+7. **Hash the API tokens** and revoke them on password change.
+8. **Remove `loremflickr.com`** before a customer sees a stranger's shoe as your product.
 
-One through four are a day. Number two is the one that makes the rest safe to attempt.
+Two through five are a day between them. Number one is the one that makes the rest safe.
