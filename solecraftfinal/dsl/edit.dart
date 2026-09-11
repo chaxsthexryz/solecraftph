@@ -5498,6 +5498,21 @@ return 'https://snow-jellyfish-553645.hostingersite.com/assets/icons/icon-512.pn
 ''',
     );
   });
+
+  // Checkout carried two full-width filled black buttons: "Pin on map" and
+  // "Place Order". Identical weight, so the loudest control on the page was
+  // not the one that completes the purchase — and the same action is an
+  // outlined button over on Delivery Addresses, so one action wore two styles
+  // depending on where you met it.
+  //
+  // Outlined here matches that screen and leaves exactly one filled button on
+  // checkout: the one that buys the shoes.
+  app.editPage(ff.Pages.checkout, (page) {
+    page.update(
+      ff.Pages.checkout.widgets.byKey('Button_2jbywvqg').single,
+      (patch) => patch.buttonVariant(ButtonVariant.outlined),
+    );
+  });
 }
 
 /// The trailing `children[N]` index out of a generated widget path, or null
