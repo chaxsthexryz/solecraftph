@@ -1080,21 +1080,20 @@ return '$a,$b';
   //
   // The actions import below is redundant — FlutterFlow's automatic header for
   // a custom widget already pulls in /custom_code/actions/index.dart, so the
-  // generated file carries it twice. It stays because app.customWidget is
-  // create-if-missing on an exact payload match: deleting the line changes the
-  // payload and every rerun then dies on "found an existing custom widget with
-  // a different payload". Changing this code at all means going through
-  // updateCustomWidget, and that is the day to drop the line too.
-  final pinMap = app.customWidget(
-    'PinMap',
-    parameters: {
-      'startPin': string.withDefault(''),
-      'tileUrl': string.withDefault(''),
-      'attribution': string.withDefault(''),
-    },
-    description:
-        'Map with a pin fixed at centre. Publishes draftPin / draftPinText.',
-    code: r'''
+  // generated file carries it twice. It was kept because app.customWidget is
+  // create-if-missing on an exact payload match and deleting it would have
+  // broken every rerun. That constraint is gone now the widget goes through
+  // updateCustomWidget below, so the line can be dropped whenever someone is
+  // touching this widget for another reason — not bundled into a fix that has
+  // to land.
+  final pinMapParams = <String, DslType>{
+    'startPin': string.withDefault(''),
+    'tileUrl': string.withDefault(''),
+    'attribution': string.withDefault(''),
+  };
+  const pinMapDescription =
+      'Map with a pin fixed at centre. Publishes draftPin / draftPinText.';
+  final pinMapCode = r'''
 import '/custom_code/actions/index.dart'; // currentPin()
 
 import 'dart:async';
@@ -1421,8 +1420,39 @@ class _PinMapState extends State<PinMap> {
     );
   }
 }
-''',
-  );
+''';
+
+  // The note above has come due: the widget body changed, so app.customWidget
+  // can no longer be used on a project that already has PinMap — it is
+  // create-if-missing on an exact payload match and throws on anything else.
+  //
+  // A fresh project still takes the ordinary create path. An existing one gets
+  // the handle built directly, with the same declaration the create path would
+  // have produced, and the new body pushed through updateCustomWidget. Both
+  // branches read from the same three values above, so they cannot drift.
+  final pinMapExists = ff.CustomCode.widgets.contains('PinMap');
+  final pinMap = pinMapExists
+      ? CustomWidgetHandle(
+          CustomWidgetDeclaration(
+            name: 'PinMap',
+            parameters: pinMapParams,
+            code: pinMapCode,
+            description: pinMapDescription,
+          ),
+        )
+      : app.customWidget(
+          'PinMap',
+          parameters: pinMapParams,
+          description: pinMapDescription,
+          code: pinMapCode,
+        );
+
+  if (pinMapExists) {
+    app.raw(
+      (project) =>
+          updateCustomWidget(project, name: 'PinMap', code: pinMapCode),
+    );
+  }
 
   // OpenStreetMap's own tile servers, which are donation-funded and whose
   // usage policy rules out shipping apps pointing at them. Fine while this is
