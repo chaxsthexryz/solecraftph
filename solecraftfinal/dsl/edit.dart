@@ -5416,6 +5416,61 @@ return value == null ? '' : value.toString();
       CustomFunction(countText, args: {'value': shoe['stock']}),
     );
   });
+
+  // One price format, everywhere.
+  //
+  // peso() is the app's only price formatter, and it rendered 8200 as "₱8200"
+  // — no thousands separator. The same app then printed "₱2,000" in the bag's
+  // shipping line and "₱73800" in order history, and the website printed
+  // "₱8,200.00", so one product could be written three ways depending on which
+  // screen you were looking at. That is the drift two implementations of the
+  // same rule always produce.
+  //
+  // The website's number_format($price, 2) is the one being matched, because
+  // it is the one a customer sees on a receipt. Changing this single function
+  // brings every price in the app into line with it; nothing else needs
+  // touching, which is the point of it having been a function all along.
+  app.raw((project) {
+    updateCustomFunction(
+      project,
+      name: 'peso',
+      description:
+          'Formats a string amount as a peso label, grouped to match the '
+          'website exactly: 8200 renders as ₱8,200.00.',
+      code: r'''
+final n = double.tryParse(value ?? '') ?? 0.0;
+return '₱' + NumberFormat('#,##0.00').format(n);
+''',
+    );
+
+    // A product with no photo was showing a random stranger's shoe.
+    //
+    // The fallback fetched https://loremflickr.com/600/600/sneaker,shoe — a
+    // lorem-ipsum image service — and presented whatever came back as the
+    // product. It is a third-party host in the middle of a shop's catalogue,
+    // the picture changes without warning, and nobody here has any idea what
+    // it will return.
+    //
+    // The shop's own icon instead: self-hosted, stable, and unmistakably "no
+    // photo yet" rather than a photograph of something that is not for sale.
+    // The id argument is kept so every existing call site still compiles.
+    updateCustomFunction(
+      project,
+      name: 'imgUrl',
+      description:
+          'Full product image URL, falling back to the shop icon when a '
+          'product has no photo.',
+      code: r'''
+if (image != null && image.isNotEmpty && image != 'null') {
+  if (image.startsWith('http://') || image.startsWith('https://')) {
+    return image;
+  }
+  return 'https://snow-jellyfish-553645.hostingersite.com/uploads/' + image;
+}
+return 'https://snow-jellyfish-553645.hostingersite.com/assets/icons/icon-512.png';
+''',
+    );
+  });
 }
 
 /// The trailing `children[N]` index out of a generated widget path, or null
