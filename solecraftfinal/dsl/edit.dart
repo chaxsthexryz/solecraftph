@@ -5546,6 +5546,23 @@ return 'https://snow-jellyfish-553645.hostingersite.com/assets/icons/icon-512.pn
       );
     }
   });
+
+  // "Use this location" — the pin sheet's whole purpose — sat partly under the
+  // system navigation bar on the test phone. It was still tappable at its top
+  // edge, but a taller nav bar or a larger system font would swallow it, and a
+  // primary action that looks cut off reads as a broken screen.
+  //
+  // This is targetSdk 36 behaviour: Android 16 hands the app the entire screen
+  // and expects it to respect the bottom inset itself. safeArea on the sheet's
+  // own container is the fix rather than a hardcoded bottom padding, because
+  // the inset differs between three-button and gesture navigation — a fixed
+  // number would be wrong on one of them whichever number was chosen.
+  app.editComponent(ff.Components.pinSheet, (component) {
+    component.update(
+      ff.Components.pinSheet.widgets.byKey('Container_icgnajdp').single,
+      (patch) => patch.safeArea(true),
+    );
+  });
 }
 
 /// The trailing `children[N]` index out of a generated widget path, or null
