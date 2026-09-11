@@ -50,8 +50,15 @@ function auth_api_error(string $message, int $status): void
 }
 
 /**
- * Creates and stores a new token for $userId. Returns the raw token.
- * 64 hex chars, matching the api_tokens.token varchar(64) column.
+ * Creates a new token for $userId and returns the raw value.
+ *
+ * The raw token is handed to the caller here and never stored — only its
+ * SHA-256 digest goes into the table (see auth_api_token_hash). This return is
+ * the one and only time the server can produce it; a lost token is replaced by
+ * signing in again, not recovered.
+ *
+ * The digest is 64 hex chars, the same width the raw token was, so it still
+ * fits api_tokens.token varchar(64) and no migration is needed.
  */
 function auth_api_issue_token(int $userId): string
 {
@@ -59,7 +66,7 @@ function auth_api_issue_token(int $userId): string
     $expires = (new DateTimeImmutable('+' . API_TOKEN_TTL_DAYS . ' days'))->format('Y-m-d H:i:s');
 
     $stmt = db()->prepare('INSERT INTO api_tokens (user_id, token, expires_at) VALUES (?, ?, ?)');
-    $stmt->execute([$userId, $token, $expires]);
+    $stmt->execute([$userId, auth_api_token_hash($token), $expires]);
 
     // Cheap housekeeping so the table doesn't grow without bound.
     db()->prepare('DELETE FROM api_tokens WHERE expires_at < NOW()')->execute();
@@ -251,7 +258,10 @@ if ($action === 'logout' && $method === 'POST') {
     $token = auth_bearer_token_value();
     if ($token !== null) {
         $stmt = db()->prepare('DELETE FROM api_tokens WHERE token = ?');
-        $stmt->execute([$token]);
+        // The row is keyed by the digest, so logging out has to hash first.
+        // Without this the DELETE matches nothing and logout silently leaves
+        // the session alive — the worst possible outcome for this endpoint.
+        $stmt->execute([auth_api_token_hash($token)]);
     }
 
     echo json_encode(['message' => 'Logged out']);

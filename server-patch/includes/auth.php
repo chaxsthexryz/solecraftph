@@ -152,6 +152,34 @@ function auth_change_password(int $userId, string $newPassword): void
     $hash = password_hash($newPassword, PASSWORD_DEFAULT);
     $stmt = db()->prepare('UPDATE users SET password_hash = ? WHERE id = ?');
     $stmt->execute([$hash, $userId]);
+
+    // Every mobile session for this account goes with the old password.
+    // Someone who changes their password because they think they were
+    // compromised expects that to end the intruder's access; without this the
+    // intruder's bearer token keeps working for the rest of its 30 days, and
+    // the one action the customer knows to take does nothing about it.
+    db()->prepare('DELETE FROM api_tokens WHERE user_id = ?')->execute([$userId]);
+}
+
+/**
+ * The stored form of an API bearer token.
+ *
+ * `api_tokens` holds this, never the token itself. A token is a credential
+ * that bypasses the password outright, so storing it in the clear undoes the
+ * bcrypt hashing two functions above: anything that can read one row of that
+ * table owns every mobile account in it, with no cracking to do.
+ *
+ * SHA-256 rather than password_hash(): this value has 256 bits of entropy from
+ * random_bytes(), so there is no dictionary to slow an attacker down with, and
+ * a bcrypt verify cannot be used for the lookup anyway — the query has to find
+ * the row by value, which needs a deterministic hash.
+ *
+ * The hex digest is 64 characters, exactly what the token was, so it still
+ * fits api_tokens.token varchar(64) and no migration is needed.
+ */
+function auth_api_token_hash(string $token): string
+{
+    return hash('sha256', $token);
 }
 
 function auth_verify_password(int $userId, string $password): bool
@@ -276,7 +304,8 @@ function auth_user_id_from_bearer_token(): ?int
             AND COALESCE(u.status, "active") <> "suspended"
           LIMIT 1'
     );
-    $stmt->execute([$token]);
+    // Matched against the stored hash, never the raw token.
+    $stmt->execute([auth_api_token_hash($token)]);
     $userId = $stmt->fetchColumn();
 
     return $userId ? (int) $userId : null;
