@@ -127,9 +127,46 @@ Three formats in one product. This is the drift I predicted from two implementat
 
 **Scroll performance.** `dumpsys gfxinfo` reports `Total frames rendered: 0` because Flutter's Impeller/Vulkan backend bypasses HWUI entirely. That is a limitation of the tool, not a result. Jank cannot be measured objectively on this build; it needs a profile build and Flutter DevTools.
 
-**Push notification delivery.** The plumbing is verified — config baked in, Firebase initialised, permission granted, Play Services present — but no message has been proven to arrive. Testing it means changing a real order's status to fire a notification, which writes to live order data. Not done without your say-so.
+**Push notification delivery — still unproven, and here is exactly where it stops.**
 
-**Token storage.** `run-as` refuses: `package not debuggable`. The plaintext-`shared_preferences` finding stays a code-reading inference, not a device-verified fact.
+Everything checkable is checked and healthy: `google_app_id`, sender ID and project id are real values baked into the APK; `FirebaseApp initialization successful` on every launch; `FLTFireContextHolder` receives the application context; `POST_NOTIFICATIONS` and `com.google.android.c2dm.permission.RECEIVE` are both granted with `USER_SET`; Google Play Services is installed and its GCM scheduler is running.
+
+What is not proven is that a message actually arrives, and there is no read-only way to prove it:
+
+- The FCM token is fetched in Dart by `messaging.getToken()`, which logs nothing. Nothing in logcat reveals whether the app got a token or registered it with `api/devices.php`.
+- `includes/push_service.php` writes every attempt to `../push.log` with `OK`, `SKIP no config/fcm.php yet`, `SKIP user N has no registered device`, `DROP dead token` or `ERROR HTTP nnn`. **That file would answer the question completely** — it is one directory above `public_html`, so it is not reachable over the web, and the hosting file-read API rejects paths containing `..`.
+- Sending a push requires a server-side trigger — an admin order-status change, or placing an order — and I have no admin credentials.
+
+**The single fastest way to close this:** open `push.log` in Hostinger's File Manager (one level above `public_html`, beside `paymongo_webhook.log`) and read the last few lines. `SKIP ... has no registered device` means the app never registered its token. `SKIP no config/fcm.php yet` means the service account was never installed. `OK` means push works and always has.
+
+Failing that, change any order's status in the admin panel while the phone is attached, and the log plus logcat together will show whether it lands.
+
+**Token storage — now confirmed, and worse than first written.** `run-as` refuses on a release build, so the file itself cannot be read without root. The APK settles it anyway.
+
+The Dart snapshot carries these persisted app-state keys:
+
+```
+ff_authToken   ff_userEmail   ff_userPhone   ff_userAddress
+ff_userFullName   ff_userId   ff_username   ff_userRole   ff_isAdmin
+ff_signedIn   ff_bag   ff_lastOrderId
+```
+
+`classes.dex` contains `FlutterSharedPreferences` — the plugin's plaintext XML file, at `/data/user/0/ph.solecraft.app/shared_prefs/`. Searching the whole APK for any encrypted alternative returns nothing at all:
+
+| Library | Hits in APK |
+| --- | --- |
+| `shared_preferences` | 3 dex, 15 snapshot |
+| `flutter_secure_storage` | **0** |
+| `EncryptedSharedPreferences` | **0** |
+| `androidx.security` | **0** |
+
+So the session token has no encrypted store available to it even in principle.
+
+**And it leaves the device.** `dumpsys package` reports `flags=[ HAS_CODE ALLOW_CLEAR_USER_DATA ALLOW_BACKUP KILL_AFTER_RESTORE ]`, and there is no `res/xml/` backup-rules file excluding the prefs. `ALLOW_BACKUP` means that XML — the auth token, the customer's email, phone number and home address together — is eligible for Android's automatic cloud backup to the user's Google Drive. That is a copy of a live session credential and a set of personal data sitting outside your control, in an account you do not administer.
+
+**Fix:** move `ff_authToken` to `flutter_secure_storage` (Android Keystore), and either set `android:allowBackup="false"` or add a `dataExtractionRules` file that excludes `shared_prefs`.
+
+**A second thing worth noticing in that key list:** `ff_isAdmin` and `ff_userRole` are persisted client-side. The server must never trust either — it has its own `role` column and does check it, so this is not a live hole. It is worth a deliberate note, because an app that stores its own admin flag in an editable plaintext file is one careless `if (FFAppState().isAdmin)` away from being one.
 
 ---
 
