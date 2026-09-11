@@ -117,6 +117,10 @@ Nine screens captured on the device: catalog, product detail, bag, orders, accou
 
 *My Orders.* "Order #" sits hard left and "54" hard right, so the label and its value read as two unrelated things. Timestamps are raw SQL: `2026-09-10 02:18:33`. No tap affordance on the cards, so it is unclear whether an order can be opened.
 
+*Notifications.* **68 unread**, every one carrying a red dot, going back days. Nothing marks a notification read on open — only the explicit "Mark all read" button does, so the count only ever grows. A badge that is permanently lit stops being a signal.
+
+Order #000054's history also reads: **Pending → Processing → Completed → Cancelled.** `order_update_status()` validates that the new status is in `ORDER_STATUSES` and nothing else, so any status can follow any other. A completed order can be cancelled, a cancelled one completed, and a delivered one sent back to pending — each firing a customer notification. There is no state machine, and for an order that has been paid for, "Cancelled" arriving after "Completed" is the kind of message that generates a support ticket.
+
 *Account.* The avatar reads **SC** while the signed-in user is `chaxsthexryz` — the initials are the brand's, not the person's, which is the one place on the screen that should feel like theirs. Chevrons appear on "My orders" and "My bag" but not on the five rows above them, so identical-looking rows have different affordances. "Visit the website" prints the raw `snow-jellyfish-553645.hostingersite.com` across two wrapped lines.
 
 *Delivery addresses.* The best-composed screen in the app. Clear cards, a green "Pinned on the map" state, a sensible form. Two flaws: the three actions are undifferentiated text links with Delete in red beside them, so the destructive one sits a thumb's width from "Edit"; and the post-pin confirmation uses that same red for success.
@@ -153,7 +157,24 @@ Nine screens captured on the device: catalog, product detail, bag, orders, accou
 
 **Scroll performance.** `dumpsys gfxinfo` reports `Total frames rendered: 0` because Flutter's Impeller/Vulkan backend bypasses HWUI entirely. That is a limitation of the tool, not a result. Jank cannot be measured objectively on this build; it needs a profile build and Flutter DevTools.
 
-**Push notification delivery — still unproven, and here is exactly where it stops.**
+**Push notification delivery — proven working, 11 Sep 2026.**
+
+An order was moved to Cancelled in the admin panel with the phone attached. Both halves fired:
+
+- **Server side.** The in-app Notifications list shows `Order #000054 — Cancelled / Your order status changed to "Cancelled". / 2026-09-11 14:34:07`, so `order_update_status()` → `notification_notify_customer()` wrote its row.
+- **Push side.** `dumpsys notification` holds `StatusBarNotification(pkg=ph.solecraft.app … tag=FCM-Notification:587927496, channel=fcm_fallback_notification_channel, flags=AUTO_CANCEL)`, sitting at the very top of the device-wide archive — the most recent notification on the phone. It was delivered by FCM and displayed in the status bar, then auto-cancelled.
+
+So the chain works: admin change → `push_send_to_user()` → FCM → device → shade. The service account in `config/fcm.php` is populated, the token registration path in the DSL is wired correctly (auth token in the `Authorization` header, FCM token in the body's `token` field), and the device is registered.
+
+Two things about *how* it arrives are worth fixing:
+
+**It uses `fcm_fallback_notification_channel`.** That is Firebase's own fallback, used because the app never declares a notification channel of its own. In Android's settings the customer sees a generic "Miscellaneous" category rather than something like "Order updates", and you cannot give order notifications their own importance, sound or icon — nor can a customer keep order updates while muting anything else you add later.
+
+**`importance=DEFAULT` and `color=0x00000000`.** No heads-up banner, so an order update lands silently in the shade rather than announcing itself, and the status-bar icon is untinted rather than carrying the blaze accent.
+
+---
+
+**Earlier draft said this was unproven. Superseded — kept below only because it records what could not be reached and why.**
 
 Everything checkable is checked and healthy: `google_app_id`, sender ID and project id are real values baked into the APK; `FirebaseApp initialization successful` on every launch; `FLTFireContextHolder` receives the application context; `POST_NOTIFICATIONS` and `com.google.android.c2dm.permission.RECEIVE` are both granted with `USER_SET`; Google Play Services is installed and its GCM scheduler is running.
 
