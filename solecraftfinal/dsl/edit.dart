@@ -5354,6 +5354,68 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
       });
     }
   });
+
+  // ShoeDetails draws before its page-load API returns, and FlutterFlow's
+  // codegen binds a Text straight to a nullable struct field with a null
+  // assert: `_model.shoe!.name`. On the first frame `shoe` is null, that
+  // throws, and because the throw happens inside the page's own build() the
+  // whole page is replaced by an error widget — in a release build, a blank
+  // grey screen for as long as the request takes. Measured on a real phone:
+  // five to fourteen seconds of nothing.
+  //
+  // The loadingSpinner already sitting at body[0].children[1] never got a
+  // chance to draw, which is why the wait looked like a broken page rather
+  // than a slow one.
+  //
+  // Routing the same value through a custom function changes what codegen
+  // emits. This page already proves it: `functions.badgeOf(_model.shoe?.badge)`
+  // two widgets above is null-safe, because it goes through a function. Only
+  // four bindings take the assert — name, subcategory, description, stock —
+  // and these two functions take them off it. Nothing else changes: the page
+  // now renders its spinner immediately and fills in as the data lands.
+  final textOr = app.customFunction(
+    'textOr',
+    args: {'value': string},
+    returns: string,
+    code: r'''
+return value ?? '';
+''',
+    description:
+        'A string, or empty while it is still loading. Keeps a Text off the '
+        'null assert codegen emits for a nullable struct field.',
+  );
+  final countText = app.customFunction(
+    'countText',
+    args: {'value': int_},
+    returns: string,
+    code: r'''
+return value == null ? '' : value.toString();
+''',
+    description: 'A whole number as text, empty until it has arrived.',
+  );
+
+  app.editPage(ff.Pages.shoeDetails, (page) {
+    final shoe = State(ff.Pages.shoeDetails.state.shoe);
+    const body = 'ShoeDetails.body[0].children[2].children[0]';
+    page.bindText(
+      ff.Pages.shoeDetails.widgets.byPath('$body.children[1]').single,
+      CustomFunction(textOr, args: {'value': shoe['name']}),
+    );
+    page.bindText(
+      ff.Pages.shoeDetails.widgets.byPath('$body.children[2]').single,
+      CustomFunction(textOr, args: {'value': shoe['subcategory']}),
+    );
+    page.bindText(
+      ff.Pages.shoeDetails.widgets.byPath('$body.children[4]').single,
+      CustomFunction(textOr, args: {'value': shoe['description']}),
+    );
+    page.bindText(
+      ff.Pages.shoeDetails.widgets
+          .byPath('$body.children[5].children[1]')
+          .single,
+      CustomFunction(countText, args: {'value': shoe['stock']}),
+    );
+  });
 }
 
 /// The trailing `children[N]` index out of a generated widget path, or null
