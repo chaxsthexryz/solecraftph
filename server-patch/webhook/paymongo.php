@@ -69,9 +69,24 @@ $logLine('RECEIVED type=' . $eventType . ' order=' . $orderId);
 
 if ($eventType === 'checkout_session.payment.paid') {
     if ($orderId > 0 && order_find($orderId)) {
-        order_set_payment_status($orderId, 'paid');
-        order_update_status($orderId, 'processing', 'Payment confirmed via PayMongo.');
-        $logLine('MARKED PAID order=' . $orderId);
+        /*
+         * Redeliveries are normal here, not an error. PayMongo guarantees at
+         * least once, so a timeout, a network blip or their own retry all send
+         * an event that has already been handled.
+         *
+         * Everything that must happen exactly once now hangs off the return of
+         * order_set_payment_status(), which is true only for the call that
+         * actually flipped the row. Without this, every redelivery wrote
+         * another order_status_log entry AND fired another push notification —
+         * so one purchase told the customer "Order #000123 — Processing" three
+         * times, which reads like being charged three times.
+         */
+        if (order_set_payment_status($orderId, 'paid')) {
+            order_update_status($orderId, 'processing', 'Payment confirmed via PayMongo.');
+            $logLine('MARKED PAID order=' . $orderId);
+        } else {
+            $logLine('ALREADY PAID, redelivery ignored order=' . $orderId);
+        }
     } else {
         $logLine('NO MATCHING ORDER for reference_number=' . $orderId . ' body=' . $rawPayload);
     }

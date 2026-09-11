@@ -285,13 +285,29 @@ function order_set_checkout_session(int $orderId, string $sessionId): void
     db()->prepare('UPDATE orders SET checkout_session_id = ? WHERE id = ?')->execute([$sessionId, $orderId]);
 }
 
-/** Marks an order's payment as paid/failed once PayMongo's webhook confirms it. Idempotent-safe: callers should check the current value first if they care about double-processing. */
-function order_set_payment_status(int $orderId, string $paymentStatus): void
+/**
+ * Marks an order's payment as paid/failed once PayMongo's webhook confirms it.
+ *
+ * Returns true only for the call that actually changed the value, so a caller
+ * can tell a real payment from a webhook redelivery of one already handled.
+ * Callers that ignore the return value behave exactly as they did before.
+ *
+ * The guard is in the WHERE clause rather than a read-then-write, because
+ * PayMongo can deliver the same event twice close enough together that both
+ * requests read "unpaid" before either writes. One statement settles it inside
+ * the database: whichever arrives second matches no rows and gets false.
+ */
+function order_set_payment_status(int $orderId, string $paymentStatus): bool
 {
     if (!in_array($paymentStatus, ['unpaid', 'paid', 'failed'], true)) {
-        return;
+        return false;
     }
-    db()->prepare('UPDATE orders SET payment_status = ? WHERE id = ?')->execute([$paymentStatus, $orderId]);
+    $stmt = db()->prepare(
+        'UPDATE orders SET payment_status = ? WHERE id = ? AND payment_status <> ?'
+    );
+    $stmt->execute([$paymentStatus, $orderId, $paymentStatus]);
+
+    return $stmt->rowCount() > 0;
 }
 
 function order_status_history(int $orderId): array

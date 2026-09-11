@@ -36,9 +36,50 @@ function auth_logout(): void
     session_destroy();
 }
 
+/**
+ * Whether the signed-in account has been suspended since it signed in.
+ *
+ * Suspension used to be checked in exactly one place — auth_attempt_login() —
+ * which meant it only ever applied to the next login. A session that already
+ * existed kept working, and sessions here have no fixed lifetime, so suspending
+ * someone for fraud or chargebacks left them shopping until they chose to log
+ * out, which might be never.
+ *
+ * Checked here rather than in each of the 23 files that include this one, and
+ * remembered for the request because auth_is_logged_in() is called several
+ * times on a page and this must not become several queries.
+ *
+ * The session keys are unset rather than the session destroyed on purpose: the
+ * same session carries the guest cart, and destroying it would also empty the
+ * bag of someone who is merely being signed out.
+ */
+function auth_session_suspended(): bool
+{
+    static $suspended = null;
+    if ($suspended !== null) {
+        return $suspended;
+    }
+    if (!isset($_SESSION['user_id'])) {
+        return $suspended = false;
+    }
+
+    $stmt = db()->prepare('SELECT status FROM users WHERE id = ? LIMIT 1');
+    $stmt->execute([$_SESSION['user_id']]);
+    $status = $stmt->fetchColumn();
+
+    // A row that has gone is treated exactly like a suspended one: either way
+    // the session names an account that must not be acting on the site.
+    $suspended = ($status === false) || ($status === 'suspended');
+
+    if ($suspended) {
+        unset($_SESSION['user_id'], $_SESSION['username'], $_SESSION['role']);
+    }
+    return $suspended;
+}
+
 function auth_is_logged_in(): bool
 {
-    return isset($_SESSION['user_id']);
+    return isset($_SESSION['user_id']) && !auth_session_suspended();
 }
 
 function auth_is_admin(): bool
@@ -82,7 +123,13 @@ function auth_require_login(): void
     }
 }
 
-/** A logged-in user's own record is blocked from checking their own status (suspension is enforced at login) */
+/**
+ * The signed-in user's own record, or null.
+ *
+ * Suspension is no longer a login-time check: auth_is_logged_in() consults
+ * auth_session_suspended() on every request, so a suspended account gets null
+ * here on its very next page load rather than at its next sign-in.
+ */
 function auth_current_user(): ?array
 {
     if (!auth_is_logged_in()) {
@@ -214,7 +261,21 @@ function auth_user_id_from_bearer_token(): ?int
         return null;
     }
 
-    $stmt = db()->prepare('SELECT user_id FROM api_tokens WHERE token = ? AND expires_at > NOW() LIMIT 1');
+    // Joined to users so suspension applies to the app as well as the site.
+    // The web session is checked in auth_session_suspended(); this is the other
+    // way in, and a token issued before the suspension would otherwise keep
+    // working for the rest of its life — which is the full token TTL, measured
+    // in days. A suspended account now reads as "no valid token" and every
+    // api/*.php endpoint 401s without needing to know suspension exists.
+    $stmt = db()->prepare(
+        'SELECT t.user_id
+           FROM api_tokens t
+           JOIN users u ON u.id = t.user_id
+          WHERE t.token = ?
+            AND t.expires_at > NOW()
+            AND COALESCE(u.status, "active") <> "suspended"
+          LIMIT 1'
+    );
     $stmt->execute([$token]);
     $userId = $stmt->fetchColumn();
 
