@@ -1202,6 +1202,21 @@ class _PinMapState extends State<PinMap> {
   static String _format(ll.LatLng at) =>
       '${at.latitude.toStringAsFixed(6)},${at.longitude.toStringAsFixed(6)}';
 
+  /// Google Plus Codes, which Android's geocoder hands back as the street when
+  /// there is no named road at the pin — "M4F6+977" on its own, or
+  /// "M4C4+GXR Permaline Homes" when it knows the place but not the road.
+  ///
+  /// A rider cannot deliver to a Plus Code, and two of the addresses already
+  /// saved on this account were exactly that. Stripping it leaves either a
+  /// real place name or nothing, and nothing is the honest answer.
+  ///
+  /// Safe against false positives: the alphabet below is Google's own twenty
+  /// characters, chosen so the codes cannot spell words — every vowel is
+  /// excluded. A Philippine street name needs a vowel, and none contains '+'.
+  static final RegExp _plusCode = RegExp(
+    r'^[23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,3}\b[\s,]*',
+  );
+
   /// Philippine reading order: house/street, barangay, city, province.
   static String _composeAddress(Placemark p) {
     final seen = <String>{};
@@ -1212,10 +1227,15 @@ class _PinMapState extends State<PinMap> {
       p.locality,
       p.administrativeArea,
     ]) {
-      final value = (raw ?? '').trim();
+      final value = (raw ?? '').replaceFirst(_plusCode, '').trim();
       // The platform geocoder repeats itself constantly — `street` often
       // already carries the barangay, and for a chartered city `locality` and
       // `administrativeArea` are the same word. Duplicates read as broken.
+      //
+      // A field that held nothing but a Plus Code is empty by now and drops
+      // out here. If every field does, this returns '' — which the caller
+      // already treats as "the lookup found nothing" and leaves whatever the
+      // customer typed alone, rather than overwriting it with a code.
       if (value.isEmpty || !seen.add(value.toLowerCase())) continue;
       kept.add(value);
     }
