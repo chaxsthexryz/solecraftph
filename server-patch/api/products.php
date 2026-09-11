@@ -12,7 +12,8 @@ require_once __DIR__ . '/../includes/product_service.php';
  * CORS + JSON headers. Lets the mobile app and browser-based clients
  * (FlutterFlow web preview, etc.) call this endpoint cross-origin.
  * ------------------------------------------------------------------------- */
-header('Access-Control-Allow-Origin: *');
+require_once __DIR__ . '/../includes/cors.php';
+api_cors_origin();
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Content-Type: application/json');

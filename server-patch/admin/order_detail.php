@@ -21,6 +21,7 @@ if (!$order) {
 }
 
 $success = '';
+$error   = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $formAction = $_POST['form_action'] ?? '';
@@ -33,6 +34,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             audit_log('Order status updated', 'Order #' . $orderId . ' -> ' . $status);
             $success = 'Order status updated.';
             $order = order_find($orderId);
+        } else {
+            // order_update_status refuses a move that would contradict what the
+            // customer has already been told — anything leaving Completed or
+            // Cancelled, or a step backwards. Saying so matters: this branch
+            // used to be empty, so the button appeared to do nothing at all.
+            $error = 'That change was refused. An order that is already '
+                . ($order['status'] ?? 'finished')
+                . ' cannot move to ' . $status
+                . ', because the customer has already been told the outcome.';
         }
     } elseif ($formAction === 'save_notes') {
         order_set_admin_notes($orderId, trim($_POST['admin_notes'] ?? ''));
@@ -61,6 +71,7 @@ require __DIR__ . '/_nav.php';
     </div>
 
     <?php if ($success): ?><div class="alert alert--success"><?= htmlspecialchars($success) ?></div><?php endif; ?>
+    <?php if ($error): ?><div class="alert alert--error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
 
     <div class="form-grid">
       <div class="panel">

@@ -367,7 +367,17 @@ if ($fadeCount > 1) {
         <span class="mono">Catalog</span>
         <h2 class="display"><?= $search !== '' ? 'Results for "' . htmlspecialchars($search) . '"' : htmlspecialchars($subcategory ?: ($category ?: 'All Products')) ?></h2>
       </div>
-      <p style="max-width:340px;font-size:14px;color:var(--gray);"><?= count($products) ?> item(s) found.</p>
+      <p style="max-width:340px;font-size:14px;color:var(--gray);">
+        <?= count($products) ?> item(s) found.
+        <?php if ($search === '' && count($products) >= PRODUCT_LIST_LIMIT): ?>
+          <?php /* The query stops at PRODUCT_LIST_LIMIT, and used to stop
+                   silently — a catalog past the cap looked complete and was
+                   not. This is not paging; it is the admission that the day
+                   this line appears, paging is what is actually needed. */ ?>
+          <br><strong>Showing the first <?= PRODUCT_LIST_LIMIT ?>.</strong>
+          Narrow by category to see the rest.
+        <?php endif; ?>
+      </p>
     </div>
 
     <?php if (empty($products)): ?>
