@@ -101,6 +101,32 @@ Three formats in one product. This is the drift I predicted from two implementat
 
 **The bottom navigation is four unlabelled icons.** Bag and receipt are hard to tell apart.
 
+### The app's design
+
+Nine screens captured on the device: catalog, product detail, bag, orders, account, delivery addresses, the address form, the map sheet, and the empty state.
+
+**The app does not look like the shop.** This is the one structural problem and everything else is detail. The website has a real identity — Bebas Neue display type, the SOLE**CRAFT**PH wordmark with CRAFT in blaze red, ink-on-paper, hard edges, a 3px red rule. The app has none of it. The header is "SoleCraftPH" set in a plain bold sans, there is no wordmark, no Bebas, and the red appears only as an error colour. Put the two side by side and they are two different companies. Whatever else gets fixed, a customer who buys on the site and then installs the app should recognise it.
+
+**Screen by screen:**
+
+*Catalog.* A large empty band sits between the category chips and the first product row — roughly 150px of nothing where the eye expects product. The chip row is sliced by the right screen edge with no fade or arrow, so "Formal" reads as broken rather than scrollable. Product titles wrap to two lines while the subtitle truncates mid-word ("Road Running Sh…"), so cards in a row end up different heights. Product photos sit on inconsistent backgrounds — some white, some pale grey — because they are uploaded as-is with no normalisation. The cart badge reads "0" instead of hiding when empty, and overlaps the bag button rather than sitting clear of it.
+
+*Product detail.* In my capture the area between the app bar and the title is blank white where the product image belongs. I could not re-check before the device dropped, so treat this as needing one look rather than as established. The heart in the app bar is filled solid red — if that is the default rather than a wishlist state, it is telling every customer their item is already saved. The rating row reads "★ 5.0 1", where the trailing 1 means "1 review" but says nothing. Price is `₱8200`.
+
+*Bag.* "Proceed to Checkout" is fully enabled on an empty bag at ₱0. The shipping line reads `₱2,000` — a thousands separator on the same screen where the catalog showed none.
+
+*My Orders.* "Order #" sits hard left and "54" hard right, so the label and its value read as two unrelated things. Timestamps are raw SQL: `2026-09-10 02:18:33`. No tap affordance on the cards, so it is unclear whether an order can be opened.
+
+*Account.* The avatar reads **SC** while the signed-in user is `chaxsthexryz` — the initials are the brand's, not the person's, which is the one place on the screen that should feel like theirs. Chevrons appear on "My orders" and "My bag" but not on the five rows above them, so identical-looking rows have different affordances. "Visit the website" prints the raw `snow-jellyfish-553645.hostingersite.com` across two wrapped lines.
+
+*Delivery addresses.* The best-composed screen in the app. Clear cards, a green "Pinned on the map" state, a sensible form. Two flaws: the three actions are undifferentiated text links with Delete in red beside them, so the destructive one sits a thumb's width from "Edit"; and the post-pin confirmation uses that same red for success.
+
+*Map sheet.* Good — clean header, honest attribution, a clear "Drag the map to move the pin" instruction. Undone by the primary button being clipped by the navigation bar, and by printing raw coordinates (`14.671416,121.107482`) to a customer who has no use for them.
+
+**The cross-cutting one: three price formats in one app.** `₱8200` on the catalog, `₱2,000` in the bag, `₱73800` in order history — and `₱8,200.00` on the website. Pick one and put it behind a single formatter.
+
+**Bottom navigation is four unlabelled icons.** A storefront, a bag, a receipt and a person. Bag and receipt are the same silhouette at a glance, and there is no text to disambiguate. Labels are the standard fix and cost one line.
+
 ### The APK itself
 
 **55.2 MB, of which 53 MB is native libraries for three ABIs:**
