@@ -44,13 +44,24 @@ require __DIR__ . '/includes/header.php';
 
 // --- What can appear above the catalog, in priority order:
 //  1) active banners carrying an image  -> promo band, managed in admin
-//  2) assets/media/hero/*.jpg|png|...   -> promo band, no database needed
-//  3) nothing                           -> the type hero alone
+//  2) nothing                           -> the type hero alone
 //
-// The looping hero.mp4 branch is gone. There was never a video, and a branch
-// that has never once been true is a branch nobody has ever tested.
-$customHeroFiles = glob(__DIR__ . '/assets/media/hero/*.{jpg,jpeg,png,webp,gif}', GLOB_BRACE) ?: [];
-natsort($customHeroFiles);
+// The assets/media/hero/ fallback is gone. Artwork dropped straight into a
+// folder went on the homepage with no link, no ordering beyond the filename and
+// no way to switch it off without a file manager — and a banner that cannot be
+// switched off is the banner still advertising last month's sale. Admin →
+// Banners is the one way in now. Nothing on the server was deleted: the files
+// are still in assets/media/hero/ and can be uploaded there.
+
+// A looping background video for the type hero, if there is one: any .mp4 or
+// .webm in assets/media/hero-video/ plays behind the headline, first by
+// filename. With the folder empty the markup is not emitted at all, so this is
+// never an empty <video> waiting on a file that does not exist.
+$heroVideoFiles = glob(__DIR__ . '/assets/media/hero-video/*.{mp4,webm}', GLOB_BRACE) ?: [];
+natsort($heroVideoFiles);
+$heroVideo = $heroVideoFiles
+    ? BASE_PATH . '/assets/media/hero-video/' . rawurlencode(basename(reset($heroVideoFiles)))
+    : '';
 
 // Promo banners get their own band above the page header rather than being
 // used as wallpaper behind it.
@@ -73,42 +84,19 @@ foreach ($promoBanners as $b) {
     ];
 }
 
-// Failing that, anything dropped straight into assets/media/hero/. No link and
-// no ordering beyond the filename, but it needs no database and no admin
-// login — which is the point of keeping it: it is the way back in when the
-// panel is unreachable.
-if (empty($promoSlides) && !empty($customHeroFiles)) {
-    $promoSlides = array_map(static function (string $path): array {
-        $file = basename($path);
-        return [
-            'url' => BASE_PATH . '/assets/media/hero/' . rawurlencode($file),
-            // Best effort, and better than nothing: a screen reader gets
-            // "Mid Season Sale 50 Off" from 1-mid-season-sale-50-off.jpg. Name
-            // the files in words and the alt text writes itself.
-            //
-            // The leading "1-" is stripped because it orders the slideshow; it
-            // is not part of what the banner says, and read aloud it turned
-            // every banner into a numbered list item.
-            'alt'  => ucwords(str_replace(
-                ['-', '_'],
-                ' ',
-                preg_replace('/^\d+[-_]/', '', pathinfo($file, PATHINFO_FILENAME))
-            )),
-            'link' => '',
-        ];
-    }, array_values($customHeroFiles));
-}
-
-// The hero is type alone now: no product beside the copy, no photo behind it.
+// Behind the hero copy: footage if the folder has any, otherwise nothing.
 //
-// Both earlier attempts are gone for the same reason. The slideshow-behind-text
-// needed a 72% black scrim to stay legible and still turned on which shoe
-// happened to be newest. The product-on-paper zone fixed the legibility but
-// filled the most valuable space on the site with a catalog photo the visitor
-// is about to scroll past anyway.
+// This is the third thing to go behind that headline, and it is not the second
+// one again. The old slideshow-behind-text pulled whichever catalog photo
+// happened to be newest, needed a 72% flat scrim over it to stay legible, and
+// still advertised nothing in particular. The product-on-paper zone fixed the
+// legibility by spending the best space on the site on a photo the visitor is
+// about to scroll past. A video is chosen footage, not a catalog row, and the
+// scrim is a left-heavy gradient rather than a blanket — so the words keep
+// their contrast and the right-hand side of the frame is still visible.
 //
-// Type holds this on its own until there is a real image worth the space. The
-// promo band above takes any campaign artwork; this stays the permanent voice.
+// With no video the hero is exactly the ink field it was: same headline, same
+// type sizes, one unused CSS rule.
 
 // Fade timing serves the promo band alone.
 $fadeCount   = count($promoSlides);
@@ -248,12 +236,46 @@ if ($fadeCount > 1) {
      the accent without needing a picture to sit beside. */
   .splithero{border-bottom:3px solid var(--blaze);}
 
+  /* THE BACKGROUND VIDEO, when the folder has one.
+     The scrim is not decoration. White type over moving footage is legible
+     until the first pale frame comes round, and unlike a still, a video cannot
+     be checked once for contrast — every frame is a new background. Heaviest
+     on the left where the words are, lightest on the right where the footage
+     is actually allowed to show. */
+  .splithero{position:relative;}
+  .splithero__video{
+    position:absolute;inset:0;width:100%;height:100%;
+    object-fit:cover;z-index:0;
+  }
+  .splithero__scrim{
+    position:absolute;inset:0;z-index:1;
+    background:linear-gradient(90deg,rgba(17,17,17,.92) 0%,rgba(17,17,17,.78) 45%,rgba(17,17,17,.45) 100%);
+  }
+  /* Above both — without this the search box and the category chips sit under
+     the scrim and stop taking clicks. */
+  .splithero__copy{position:relative;z-index:2;}
+  @media (prefers-reduced-motion:reduce){
+    /* Footage looping under someone who asked for less motion is the thing that
+       setting exists to stop. They get the ink field. */
+    .splithero__video{display:none;}
+  }
+
   @media (max-width:860px){
     .splithero__copy{min-height:0;padding:26px 20px 30px;}
   }
 </style>
 
 <header class="pagehead splithero">
+  <?php if ($heroVideo !== ''): ?>
+    <?php /* muted + playsinline are what make autoplay legal on iOS and in
+             Chrome; without both the browser refuses to start and the hero is
+             a frozen first frame. aria-hidden because it says nothing — the
+             headline over it carries the message. */ ?>
+    <video class="splithero__video" src="<?= htmlspecialchars($heroVideo) ?>"
+           autoplay muted loop playsinline preload="metadata"
+           aria-hidden="true" tabindex="-1"></video>
+    <div class="splithero__scrim"></div>
+  <?php endif; ?>
   <div class="splithero__copy">
     <span class="mono" style="color:var(--blaze)">SS26 Collection</span>
     <h1 class="display" style="margin-top:14px;">Built for every step you take.</h1>
