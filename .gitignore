@@ -34,3 +34,15 @@ solecraftfinal - Copybackup/
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# ---------------------------------------------------------------------------
+# Server content that is data, not code.
+#
+# Customer- and admin-uploaded product images, and the hero footage — 45 MB of
+# video alone. Git is not an image backup: these come back from the host's own
+# backups, and versioning them would make every clone carry every photo the
+# shop has ever had. The code that serves them is tracked; the bytes are not.
+# ---------------------------------------------------------------------------
+server-patch/uploads/
+server-patch/sql/uploads/
+server-patch/assets/media/hero-video/
