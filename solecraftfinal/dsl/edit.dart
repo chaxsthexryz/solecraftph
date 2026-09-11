@@ -4823,7 +4823,34 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
   // want the four tabs restated, which risks the nav order for a change that
   // is one field. Assignment, so reruns are free.
   app.raw((project) {
-    project.ensureNavBar().navBarType = FFNavBar_NavBarType.FLUTTER_NAV_BAR;
+    final nav = project.ensureNavBar();
+    nav.navBarType = FFNavBar_NavBarType.FLUTTER_NAV_BAR;
+
+    // Four unlabelled icons: a storefront, a bag, a receipt and a person. The
+    // bag and the receipt are near enough the same silhouette at a glance, and
+    // nothing on screen said which was which — the generated bar carried
+    // showSelectedLabels: false and label: '' on every item.
+    nav.showSelectedLabels = true;
+    nav.showUnselectedLabels = true;
+
+    // 'Orders' rather than 'MyOrders': the page name is an identifier, the
+    // label is what a customer reads.
+    const tabLabels = {
+      'Shop': 'Shop',
+      'Bag': 'Bag',
+      'MyOrders': 'Orders',
+      'Account': 'Account',
+    };
+    tabLabels.forEach((pageName, label) {
+      final page = findPage(project, name: pageName);
+      if (page == null) return;
+      // textValue, not legacyText. The deprecated field is invisible to
+      // codegen, so writing it would leave the bar exactly as it is now while
+      // looking from here like it had worked.
+      page.node.props.scaffold.ensureNavBarItem().label = FFText(
+        textValue: FFStringValue(inputValue: label),
+      );
+    });
   });
 
   // ---------------------------------------------------------------------------
