@@ -245,12 +245,71 @@ function order_list_by_user(int $userId, int $limit = 100): array
 
 const ORDER_STATUSES = ['pending', 'processing', 'shipped', 'completed', 'cancelled'];
 
-/** Admin: update order status, write to the tracking history log, and notify the customer */
+/** The happy path, in order. 'cancelled' sits outside it and ends things early. */
+const ORDER_FLOW = ['pending', 'processing', 'shipped', 'completed'];
+
+/** Nothing follows these two. */
+const ORDER_TERMINAL = ['completed', 'cancelled'];
+
+/**
+ * Whether $to is allowed to follow $from.
+ *
+ * Until now any status could follow any other, because the only check was that
+ * the new value appeared in ORDER_STATUSES. A real order on this site reads
+ * pending -> processing -> completed -> cancelled, and every one of those steps
+ * pushed a notification to the customer. Being told an order you have already
+ * received is now cancelled is the kind of message that produces a support
+ * ticket and a refund request for goods already delivered.
+ *
+ * Forward along the flow is fine, and so is standing still — checkout logs its
+ * own 'pending' the moment an order is created, which is a pending -> pending
+ * move. Cancelling is allowed from anywhere that is not already finished.
+ * Nothing at all leaves a terminal state: an order that is completed or
+ * cancelled has told the customer its final word, and the fix for a mis-click
+ * is a deliberate correction, not another push notification.
+ */
+function order_status_may_follow(string $from, string $to): bool
+{
+    if (in_array($from, ORDER_TERMINAL, true)) {
+        return false;
+    }
+    if ($to === 'cancelled') {
+        return true;
+    }
+
+    $at = array_search($from, ORDER_FLOW, true);
+    $to_ = array_search($to, ORDER_FLOW, true);
+    if ($at === false || $to_ === false) {
+        return false;
+    }
+    return $to_ >= $at;
+}
+
+/**
+ * Admin: update order status, write the tracking history log, notify the
+ * customer.
+ *
+ * Returns false and changes nothing when the move is not allowed — see
+ * order_status_may_follow. Callers that show the result to a human should say
+ * so rather than swallowing it; a button that silently does nothing is worse
+ * than one that refuses out loud.
+ */
 function order_update_status(int $orderId, string $status, string $note = '', ?string $trackingNumber = null): bool
 {
     if (!in_array($status, ORDER_STATUSES, true)) {
         return false;
     }
+
+    // Read once and reuse for the notification below, rather than querying the
+    // same row twice.
+    $order = order_find($orderId);
+    if ($order === null) {
+        return false;
+    }
+    if (!order_status_may_follow((string) ($order['status'] ?? ''), $status)) {
+        return false;
+    }
+
     $db = db();
     $sql = 'UPDATE orders SET status = ?';
     $params = [$status];
@@ -265,8 +324,7 @@ function order_update_status(int $orderId, string $status, string $note = '', ?s
     $db->prepare('INSERT INTO order_status_log (order_id, status, note) VALUES (?, ?, ?)')
        ->execute([$orderId, $status, $note ?: null]);
 
-    $order = order_find($orderId);
-    if ($order && !empty($order['user_id'])) {
+    if (!empty($order['user_id'])) {
         require_once __DIR__ . '/notification_service.php';
         $label = ucfirst($status);
         notification_notify_customer(

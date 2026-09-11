@@ -30,7 +30,20 @@ const PRODUCT_TAXONOMY = [
     ],
 ];
 
-function product_list(?string $category = null, ?string $subcategory = null, int $limit = 100): array
+/**
+ * How many products a catalog query returns at most.
+ *
+ * This was an unnamed 100 sitting in a default argument, with no offset, no
+ * page parameter and nothing in the UI admitting a limit existed. Product 101
+ * simply did not appear: the admin saw it saved, the shop did not show it, and
+ * nothing anywhere reported a problem. The number was never the bug — the
+ * silence was. Naming it lets a caller tell when it has been hit, and it is
+ * raised to match product_list_all() and the dashboard, which already ask for
+ * 500. Past that, this needs real paging rather than a bigger number.
+ */
+const PRODUCT_LIST_LIMIT = 500;
+
+function product_list(?string $category = null, ?string $subcategory = null, int $limit = PRODUCT_LIST_LIMIT): array
 {
     $db = db();
     $where = ['is_active = 1'];

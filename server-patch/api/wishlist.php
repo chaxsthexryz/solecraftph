@@ -16,7 +16,8 @@ require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/wishlist_service.php';
 require_once __DIR__ . '/../includes/product_service.php'; // product_find()
 
-header('Access-Control-Allow-Origin: *');
+require_once __DIR__ . '/../includes/cors.php';
+api_cors_origin();
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Content-Type: application/json');
