@@ -83,9 +83,17 @@ if (empty($promoSlides) && !empty($customHeroFiles)) {
         return [
             'url' => BASE_PATH . '/assets/media/hero/' . rawurlencode($file),
             // Best effort, and better than nothing: a screen reader gets
-            // "Mid Season Sale 50 Off" from mid-season-sale-50-off.jpg. Name
+            // "Mid Season Sale 50 Off" from 1-mid-season-sale-50-off.jpg. Name
             // the files in words and the alt text writes itself.
-            'alt'  => ucwords(str_replace(['-', '_'], ' ', pathinfo($file, PATHINFO_FILENAME))),
+            //
+            // The leading "1-" is stripped because it orders the slideshow; it
+            // is not part of what the banner says, and read aloud it turned
+            // every banner into a numbered list item.
+            'alt'  => ucwords(str_replace(
+                ['-', '_'],
+                ' ',
+                preg_replace('/^\d+[-_]/', '', pathinfo($file, PATHINFO_FILENAME))
+            )),
             'link' => '',
         ];
     }, array_values($customHeroFiles));
@@ -133,7 +141,12 @@ if ($fadeCount > 1) {
   <style>
     /* Only the homepage has this band, so it lives here rather than in
        style.css — one fewer file to keep in step. */
-    .promo{background:var(--ink);border-bottom:1.5px solid var(--ink);}
+    /* The band and the type hero below it are both ink, and an ink border
+       between two ink fields is invisible — the two ran together as one slab
+       of black with no telling where the advert stopped and the shop started.
+       A hairline in white at 14% separates them without spending the red,
+       which the hero's own bottom rule already uses. */
+    .promo{background:var(--ink);border-bottom:1.5px solid rgba(255,255,255,.14);}
     /* The first image sits in normal flow and sets the band's height; the rest
        are stacked over it. That is what makes this responsive without picking
        an aspect ratio: the band is exactly as tall as the artwork at whatever
