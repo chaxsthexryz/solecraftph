@@ -188,13 +188,6 @@ abstract final class MyOrdersWidgets {
                                 type: "Text",
                                 path: "MyOrders.body[0].children[3].children[0].children[0].children[0].children[0]",
                                 name: "Text",
-                                text: "Order #",
-                              ),
-                              ffai.ProjectWidgetHandle(
-                                key: "Text_0cm12rss",
-                                type: "Text",
-                                path: "MyOrders.body[0].children[3].children[0].children[0].children[0].children[1]",
-                                name: "Text",
                               ),
                             ],
                           ),

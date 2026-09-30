@@ -8,6 +8,10 @@ import 'package:flutterflow_ai/flutterflow_ai.dart';
 // ignore: implementation_imports
 import 'package:flutterflow_ai/src/helpers/data_schema_helpers.dart'
     show addDataStructField, findDataStructField;
+// A ListTile's trailing icon is not on the patch surface; this is the SDK's
+// own converter for the proto value.
+// ignore: implementation_imports
+import 'package:flutterflow_ai/src/ui/_converters.dart' show iconValue;
 import 'package:fixnum/fixnum.dart' show Int64;
 import 'package:solecraftfinal/flutterflow_project.dart' as ff;
 
@@ -196,16 +200,26 @@ void buildStarterEditFlow(App app) {
   app.themeColor('tertiary', 0xFF8A8578); // gray
   app.themeColor('alternate', 0xFFEDEAE3); // stone — rules and dividers
   app.themeColor('primaryText', 0xFF111111);
-  app.themeColor('secondaryText', 0xFF8A8578);
-  app.themeColor('primaryBackground', 0xFFFAF9F6); // paper
+  // The site's gray #8A8578 is 3.7:1 on white — too faint for small text. Same
+  // hue, darker: 5.4:1. The old gray lives on as tertiary/accent3 for icons
+  // and rules, where it was never a readability problem.
+  app.themeColor('secondaryText', 0xFF6E6A60);
+  // Mist: grouped screens (Bag, Checkout, forms) sit on it with white groups
+  // on top, the way iOS Settings does. Paper #FAF9F6 was too close to white
+  // for a white card to read against it.
+  app.themeColor('primaryBackground', 0xFFF3F1EC);
   app.themeColor('secondaryBackground', 0xFFFFFFFF);
-  app.themeColor('accent1', 0xFFE2412A);
-  app.themeColor('accent2', 0xFFEDEAE3);
+  // accent1 is the red for small text (links, sale prices, "Remove"). The
+  // brand red #E2412A is 4.2:1 under white-on-red and red-on-white; this
+  // deeper shade is 5.3:1 and still reads as the same red. Buttons keep the
+  // brand red via `secondary`.
+  app.themeColor('accent1', 0xFFC8341F);
+  // accent2 is mist again, for product tiles and quiet buttons on white pages.
+  app.themeColor('accent2', 0xFFF3F1EC);
   app.themeColor('accent3', 0xFF8A8578);
   app.themeColor('accent4', 0xFFFFFFFF);
-  // The storefront has exactly one red and uses it for both accent and
-  // destructive text, so error matches rather than inventing a second red.
-  app.themeColor('error', 0xFFE2412A);
+  // Error messages are small text, so they take the readable red too.
+  app.themeColor('error', 0xFFC8341F);
   // No green/amber/blue exists in the site's CSS. These are muted to sit with
   // the warm neutrals instead of leaving FlutterFlow's bright defaults in place.
   app.themeColor('success', 0xFF2F6B4F);
@@ -220,8 +234,9 @@ void buildStarterEditFlow(App app) {
   // (6/8/10/12), picked per screen. Every Button on every page now gets the
   // same height and radius. IconButtons are left alone — they are a different
   // control and sizing them here would squash the bag's remove icon.
-  const buttonHeight = 52;
-  const buttonRadius = 12;
+  // Capsules, Apple Store style: radius is half the height.
+  const buttonHeight = 50;
+  const buttonRadius = 25;
   for (final pageHandle in <ProjectPageHandle>[
     ff.Pages.account,
     ff.Pages.bag,
@@ -462,6 +477,23 @@ void buildStarterEditFlow(App app) {
     variables: {'id': int_, 'token': string},
     headers: {'Authorization': 'Bearer [token]'},
     response: orderFull,
+  );
+
+  // The customer cancelling a pending order. Always a 200 with {ok, message,
+  // order}: the app only reads successful bodies, and "already being
+  // prepared" is an answer to show, not a failure to swallow.
+  final cancelResult = app.struct('CancelResult', {
+    'ok': bool_,
+    'message': string,
+    'order': orderFull,
+  }, description: 'Answer from POST /orders.php?action=cancel.');
+  final cancelOrder = Endpoint.post(
+    'CancelOrder',
+    '/orders.php?action=cancel',
+    variables: {'token': string, 'id': int_},
+    headers: {'Authorization': 'Bearer [token]'},
+    body: const {'id': '<id>'},
+    response: cancelResult,
   );
 
   // --- Profile ---------------------------------------------------------------
@@ -1705,6 +1737,7 @@ return (rows ?? <AddressRowStruct>[]).isEmpty;
       createOrder,
       getOrder,
       getOrderDetail,
+      cancelOrder,
       getProfile,
       updateProfile,
       changePassword,
@@ -3262,16 +3295,21 @@ return next;
   final countNode = ff.Pages.shoeDetails.widgets.all.where(
     (w) => w.name == 'reviewsCount',
   );
-  if (stripNode.isNotEmpty && avgNode.isNotEmpty && countNode.isNotEmpty) {
+  // The count text was later removed (the label reads "5.0 · 1 review"), so
+  // it is bound only while it still exists; the strip's tap must not depend
+  // on it.
+  if (stripNode.isNotEmpty && avgNode.isNotEmpty) {
     app.editPage(ff.Pages.shoeDetails, (page) {
       page.bindText(
         ff.Pages.shoeDetails.widgets.byKey(avgNode.first.key).single,
         State(ff.Pages.shoeDetails.state.reviews)['average'],
       );
-      page.bindText(
-        ff.Pages.shoeDetails.widgets.byKey(countNode.first.key).single,
-        State(ff.Pages.shoeDetails.state.reviews)['count'],
-      );
+      if (countNode.isNotEmpty) {
+        page.bindText(
+          ff.Pages.shoeDetails.widgets.byKey(countNode.first.key).single,
+          State(ff.Pages.shoeDetails.state.reviews)['count'],
+        );
+      }
       page.ensureActions(
         ff.Pages.shoeDetails.widgets.byKey(stripNode.first.key).single,
         triggerType: FFActionTriggerType.ON_TAP,
@@ -4360,6 +4398,9 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
   // either is touched, and the selected state is the whole point of the row.
   final subcategoryRow = Container(
     name: 'subcategoryRow',
+    // An empty source still left a fixed 44dp strip under "All" — the gap
+    // above the grid seen on the phone. The row only exists with a category.
+    visible: Not(Equals(State(ff.Pages.shop.state.activeCategoryName), '')),
     height: 44,
     padding: 4,
     child: ListView(
@@ -5040,6 +5081,7 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
   //
   // The saved default address wins over the profile's single address field,
   // and falls back to it when there is nothing saved yet.
+  _declareDefaultAddressFunctions(app);
   app.editPageOnLoad(ff.Pages.checkout, [
     SetFormField(
       ff.Pages.checkout.widgets.byKey('TextField_34iw5du7').single,
@@ -5061,8 +5103,35 @@ return 'We have not seen your payment yet. If you have just paid it can take a m
       getAddresses,
       outputAs: 'checkoutAddresses',
       params: {'token': AppState(ff.AppState.authToken)},
-      onSuccess:
-          (res) => [SetState(ff.Pages.checkout.state.saved, res['items'])],
+      onSuccess: (res) => [
+        SetState(ff.Pages.checkout.state.saved, res['items']),
+        // The promise in the comment above was never kept: the form stayed on
+        // the profile's single address field, so order #56 went to
+        // "montalban" instead of the saved default. Now the default fills the
+        // form — each field falls back to what is already there when nothing
+        // is saved as default.
+        SetFormField(
+          ff.Pages.checkout.widgets.byKey('TextField_34iw5du7').single,
+          _defaultAddress(res['items'], 'recipient_name',
+              AppState(ff.AppState.userFullName)),
+        ),
+        SetFormField(
+          ff.Pages.checkout.widgets.byKey('TextField_9li215mu').single,
+          _defaultAddress(
+              res['items'], 'phone', AppState(ff.AppState.userPhone)),
+        ),
+        SetFormField(
+          ff.Pages.checkout.widgets.byKey('TextField_bng08kxc').single,
+          _defaultAddress(
+              res['items'], 'address', AppState(ff.AppState.userAddress)),
+        ),
+        SetState('pickedLat', _defaultAddress(res['items'], 'latitude', '')),
+        SetState('pickedLng', _defaultAddress(res['items'], 'longitude', '')),
+        SetState(
+          'pickedAddressId',
+          CustomFunction(_defaultAddressId, args: {'items': res['items']}),
+        ),
+      ],
     ),
   ]);
 
@@ -5562,6 +5631,1710 @@ return 'https://snow-jellyfish-553645.hostingersite.com/assets/icons/icon-512.pn
       ff.Components.pinSheet.widgets.byKey('Container_icgnajdp').single,
       (patch) => patch.safeArea(true),
     );
+  });
+
+  _appleRedesign(app);
+  _appleRedesignScreens(app, createReview: createReview);
+  _appleRedesignRound3(app);
+  _phoneBugFixes(app);
+  _cancelOrderAndSoldOutSizes(app, cancelOrder: cancelOrder);
+}
+
+// -----------------------------------------------------------------------------
+// Apple Store look, round 1: the app-wide layer
+// -----------------------------------------------------------------------------
+// Approved draft: solecraftfinal/design/apple-draft/index.html. This pass is
+// everything that applies across screens at once — type scale, app bars, the
+// three button roles, form fields. Per-screen layout comes after it.
+//
+// Android behaviour is deliberately kept: the system back arrow, Material nav
+// bar and back gesture are untouched. Only the look moves toward the Apple
+// Store app.
+
+/// Every page the app ships, for the loops below.
+final _allPages = <ProjectPageHandle>[
+  ff.Pages.shop,
+  ff.Pages.shoeDetails,
+  ff.Pages.bag,
+  ff.Pages.checkout,
+  ff.Pages.payment,
+  ff.Pages.confirmed,
+  ff.Pages.myOrders,
+  ff.Pages.orderDetail,
+  ff.Pages.account,
+  ff.Pages.profile,
+  ff.Pages.addresses,
+  ff.Pages.wishlist,
+  ff.Pages.reviews,
+  ff.Pages.notifications,
+  ff.Pages.help,
+  ff.Pages.infoPage,
+  ff.Pages.signIn,
+  ff.Pages.register,
+];
+
+/// The four bottom-nav tabs: large left-aligned title, no back arrow.
+const _tabPages = {'Shop', 'Bag', 'MyOrders', 'Account'};
+
+/// Screens that are mostly product photography sit on white, with mist tiles.
+/// Everything else is a grouped screen: mist ground, white groups on top.
+const _whitePages = {'Shop', 'ShoeDetails', 'Wishlist', 'InfoPage'};
+
+/// Titles that change wording, keyed by the app-bar Text widget.
+const _retitle = {
+  'Text_ustunjwv': 'Shop', // was "SoleCraftPH" — the tab is called Shop
+  'Text_qr41zldz': 'Bag', // was "Your Bag" — matches its tab label
+};
+
+/// The red capsule: the one action a screen exists for.
+const _primaryButtons = {
+  'Button_0lzt4wyi', // Account: Sign in
+  'Button_gyoqya7n', // Bag (empty): Browse shoes
+  'Button_vtxoiopm', // Bag: Check Out
+  'Button_ye04uoud', // Checkout: Place Order
+  'Button_4bxfqn66', // Confirmed: Continue shopping
+  'Button_jen68k44', // Help: Send message
+  'Button_jvxfq2dg', // My Orders (signed out): Sign in
+  'Button_fm0z5l15', // Payment: I have paid
+  'Button_9u3guscu', // Profile: Save changes
+  'Button_epmjm449', // Register: Create account
+  'Button_vkftj6ac', // Reviews: Post review
+  'Button_jfnhj8yy', // Shoe Details: Add to Bag
+  'Button_sv4216kt', // Sign in: Sign in
+  'Button_vu4f5z6e', // Addresses: Save address
+};
+
+/// The quiet capsule: mist fill, ink label. A real second option.
+const _tonalButtons = {
+  'Button_a2p9gfu0', // Account: Create an account
+  'Button_2jbywvqg', // Checkout: Pin on map
+  'Button_7s53ar74', // Profile: Change password
+  'Button_zce571f8', // Shoe Details: Buy Now
+  'Button_zss3llaf', // Addresses: Pin on map
+};
+
+/// Quiet buttons that sit on white (a white page, or inside a white card) and
+/// so keep the mist fill. The rest are on mist grounds and go white.
+const _tonalOnWhite = {
+  'Button_zce571f8', // Shoe Details (white page): Buy Now
+  'Button_a2p9gfu0', // Account, inside the white sign-in card
+};
+
+/// Plain red text: links and small housekeeping actions.
+const _linkButtons = {
+  'Button_e62wmj76', // Account: Sign out
+  'Button_yymk5f27', // Bag: Clear bag
+  'Button_zph5u7sa', // Notifications: Mark all read
+  'Button_styxuh7j', // Register: Already have an account? Sign in
+  'Button_f6bwzfs0', // Sign in: New here? Create an account
+};
+
+FFColorValue _themeColor(FFColor_ThemeColor slot) =>
+    FFColorValue(inputValue: FFColor(themeColor: slot));
+
+FFColorValue _literalColor(int argb) =>
+    FFColorValue(inputValue: FFColor(value: Int64(argb)));
+
+/// Flat Apple-style button: one fill, one label colour, no border, no shadow.
+void _styleButton(FFNode node, FFColorValue fill, FFColorValue label) {
+  final button = node.props.button;
+  button.fillColorValue = fill;
+  button.borderColorValue = _literalColor(0x00000000);
+  button.borderWidthValue = FFDoubleValue(inputValue: 0);
+  button.elevationValue = FFDoubleValue(inputValue: 0);
+  final text = button.hasText() ? button.text : FFText();
+  text.colorValue = label;
+  button.text = text;
+  // An icon on the button (the padlock on Place Order) follows the label.
+  if (button.hasIconValue() && button.iconValue.hasInputValue()) {
+    button.iconValue.inputValue.colorValue = label;
+  }
+}
+
+void _appleRedesign(App app) {
+  // ---------------------------------------------------------------------------
+  // Type scale — Inter standing in for SF Pro, tightened the way Apple sets
+  // large text. Only text without a per-widget override follows these; the
+  // app bars below set their own sizes explicitly for that reason.
+  // ---------------------------------------------------------------------------
+  app.typography('headlineLarge', fontSize: 34, fontWeight: 700, letterSpacing: -0.6);
+  app.typography('headlineMedium', fontSize: 28, fontWeight: 700, letterSpacing: -0.5);
+  app.typography('headlineSmall', fontSize: 22, fontWeight: 700, letterSpacing: -0.3);
+  app.typography('titleLarge', fontSize: 20, fontWeight: 600, letterSpacing: -0.2);
+  app.typography('titleMedium', fontSize: 17, fontWeight: 600, letterSpacing: -0.2);
+  app.typography('titleSmall', fontSize: 15, fontWeight: 600);
+  app.typography('bodyLarge', fontSize: 17, fontWeight: 400);
+  app.typography('bodyMedium', fontSize: 15, fontWeight: 400);
+  app.typography('bodySmall', fontSize: 13, fontWeight: 400);
+  app.typography('labelLarge', fontSize: 15, fontWeight: 500);
+  app.typography('labelMedium', fontSize: 13, fontWeight: 500);
+  app.typography('labelSmall', fontSize: 12, fontWeight: 500);
+
+  for (final pageHandle in _allPages) {
+    final isTab = _tabPages.contains(pageHandle.name);
+    final ground = _whitePages.contains(pageHandle.name)
+        ? FFColor_ThemeColor.SECONDARY_BACKGROUND
+        : FFColor_ThemeColor.PRIMARY_BACKGROUND;
+    final widgets = pageHandle.widgets.all;
+    final scaffold = widgets.firstWhere((w) => w.type == 'Scaffold');
+    final appBar = widgets.where((w) => w.type == 'AppBar').firstOrNull;
+    final title = widgets
+        .where((w) => w.type == 'Text' && w.path.contains('.appBar['))
+        .firstOrNull;
+
+    app.editPage(pageHandle, (page) {
+      page.mutateNode(page.findByKey(scaffold.key), (node) {
+        node.props.scaffold.backgroundColorValue = _themeColor(ground);
+      });
+
+      // -------------------------------------------------------------------------
+      // App bars: the black bar with a white centred title becomes part of the
+      // page — same ground, ink text. Tabs get the large left-aligned title;
+      // pushed screens get the small centred one above their back arrow.
+      // -------------------------------------------------------------------------
+      if (appBar != null) {
+        page.mutateNode(page.findByKey(appBar.key), (node) {
+          final bar = node.props.appBar;
+          bar.backgroundColorValue = _themeColor(ground);
+          bar.backButtonColorValue =
+              _themeColor(FFColor_ThemeColor.PRIMARY_TEXT);
+          bar.elevationValue = FFDoubleValue(inputValue: 0);
+          bar.centerTitleValue = FFBooleanValue(inputValue: !isTab);
+          // A tab reached by a push (the Shop bag button, Account → My orders,
+          // landing on Account after sign-in) showed a back arrow next to
+          // its large title. Tabs are top level; they never get one.
+          if (isTab) {
+            bar.defaultBackButtonValue = FFBooleanValue(inputValue: false);
+          }
+        });
+      }
+      if (title != null) {
+        page.update(page.findByKey(title.key), (patch) {
+          patch.color(Colors.primaryText);
+          patch.fontSize(isTab ? 34 : 17);
+          patch.fontWeight(isTab ? 700 : 600);
+          patch.letterSpacing(isTab ? -0.6 : -0.2);
+          if (_retitle[title.key] case final text?) patch.text(text);
+        });
+      }
+
+      // -------------------------------------------------------------------------
+      // Buttons: three roles, decided per button above. Labels 16/600.
+      // -------------------------------------------------------------------------
+      for (final button in widgets.where((w) => w.type == 'Button')) {
+        final selection = page.findByKey(button.key);
+        final FFColorValue fill;
+        final FFColorValue label;
+        if (_primaryButtons.contains(button.key)) {
+          fill = _themeColor(FFColor_ThemeColor.SECONDARY);
+          label = _literalColor(0xFFFFFFFF);
+        } else if (_tonalButtons.contains(button.key)) {
+          // Mist on white; white on mist. A mist button on a mist page read as
+          // plain text — "Pin on map" on Checkout looked like a label.
+          fill = _themeColor(
+            _tonalOnWhite.contains(button.key)
+                ? FFColor_ThemeColor.ACCENT_2
+                : FFColor_ThemeColor.SECONDARY_BACKGROUND,
+          );
+          label = _themeColor(FFColor_ThemeColor.PRIMARY_TEXT);
+        } else if (_linkButtons.contains(button.key)) {
+          fill = _literalColor(0x00000000);
+          label = _themeColor(FFColor_ThemeColor.ACCENT_1);
+        } else {
+          continue;
+        }
+        page.mutateNode(selection, (node) => _styleButton(node, fill, label));
+        page.update(selection, (patch) {
+          patch.fontSize(16);
+          patch.fontWeight(600);
+          if (button.key == 'Button_vtxoiopm') patch.text('Check Out');
+        });
+      }
+
+      // -------------------------------------------------------------------------
+      // Form fields: white rounded fields on the mist ground, no outline — the
+      // iOS inset-grouped look. The Shop search sits on white, so it takes the
+      // mist fill instead.
+      // -------------------------------------------------------------------------
+      for (final field in widgets.where((w) => w.type == 'TextField')) {
+        final isSearch = field.key == 'TextField_tqobar4t';
+        page.update(page.findByKey(field.key), (patch) {
+          patch.textFieldFilled(true);
+          patch.textFieldFillColor(
+            isSearch ? Colors.accent2 : Colors.secondaryBackground,
+          );
+          patch.borderRadius(isSearch ? 12 : 14);
+          patch.textFieldLabelColor(Colors.secondaryText);
+          patch.textFieldHintColor(Colors.secondaryText);
+        });
+      }
+    });
+  }
+
+  // The pin sheet's one button is the same red capsule.
+  app.editComponent(ff.Components.pinSheet, (component) {
+    final selection =
+        ff.Components.pinSheet.widgets.byKey('Button_6vpby2te').single;
+    component.mutateNode(
+      selection,
+      (node) => _styleButton(
+        node,
+        _themeColor(FFColor_ThemeColor.SECONDARY),
+        _literalColor(0xFFFFFFFF),
+      ),
+    );
+    component.update(selection, (patch) {
+      patch.size(width: double.infinity, height: 50);
+      patch.borderRadius(25);
+      patch.fontSize(16);
+      patch.fontWeight(600);
+    });
+  });
+}
+
+// -----------------------------------------------------------------------------
+// Apple Store look, round 2: per-screen changes
+// -----------------------------------------------------------------------------
+
+const _tileImageDescription =
+    'Product photo on a mist tile; the photo\'s white background becomes the '
+    'tile.';
+const _tileImageCode = r'''
+import 'package:cached_network_image/cached_network_image.dart';
+
+/// A product photo on a mist tile, the way the Apple Store shows products.
+///
+/// Every catalog photo is shot on white. Multiplying the photo by the tile
+/// colour turns that white into the tile itself, so the shoe sits on the tile
+/// instead of inside a white box. The rest of the photo darkens by the tile's
+/// ~5%, which is not visible. Transparent PNGs come out the same way: where the
+/// photo has no pixels, multiply leaves the tile colour.
+class TileImage extends StatelessWidget {
+  const TileImage({
+    super.key,
+    this.width,
+    this.height,
+    this.imageUrl,
+    this.tileHeight,
+    this.radius,
+    this.inset,
+  });
+
+  final double? width;
+  final double? height;
+  final String? imageUrl;
+  final double? tileHeight;
+  final double? radius;
+  final double? inset;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    final tile = theme.accent2;
+    final url = imageUrl ?? '';
+    return Container(
+      width: width ?? double.infinity,
+      height: tileHeight ?? height ?? 160,
+      padding: EdgeInsets.all(inset ?? 12),
+      decoration: BoxDecoration(
+        color: tile,
+        borderRadius: BorderRadius.circular(radius ?? 18),
+      ),
+      child: url.isEmpty
+          ? null
+          : CachedNetworkImage(
+              imageUrl: url,
+              fit: BoxFit.contain,
+              color: tile,
+              colorBlendMode: BlendMode.multiply,
+              fadeInDuration: Duration.zero,
+              errorWidget: (context, _, __) => Icon(
+                Icons.image_not_supported_outlined,
+                color: theme.tertiary,
+              ),
+            ),
+    );
+  }
+}
+''';
+
+const _devAvatarDescription =
+    'Round team photo; shows initials until the photo exists on the server.';
+const _devAvatarCode = r'''
+import 'package:cached_network_image/cached_network_image.dart';
+
+/// A team member's photo in a circle, or their initials until it exists.
+///
+/// The photos are uploaded to the website separately, so any of them can be
+/// missing at any time. A missing one answers 404 and the initials take over —
+/// the same monogram the website's Developers page shows.
+class DevAvatar extends StatelessWidget {
+  const DevAvatar({
+    super.key,
+    this.width,
+    this.height,
+    this.photoUrl,
+    this.initials,
+    this.diameter,
+  });
+
+  final double? width;
+  final double? height;
+  final String? photoUrl;
+  final String? initials;
+  final double? diameter;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    final d = diameter ?? 56;
+    final monogram = Container(
+      width: d,
+      height: d,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(color: theme.primary, shape: BoxShape.circle),
+      child: Text(
+        initials ?? '',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: d * 0.34,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+    final url = photoUrl ?? '';
+    if (url.isEmpty) return monogram;
+    return ClipOval(
+      child: CachedNetworkImage(
+        imageUrl: url,
+        width: d,
+        height: d,
+        fit: BoxFit.cover,
+        placeholder: (context, _) => monogram,
+        errorWidget: (context, _, __) => monogram,
+      ),
+    );
+  }
+}
+''';
+
+/// Create-or-update for a custom widget: `app.customWidget` is create-only and
+/// throws on an existing name with a different body.
+///
+/// Returns dynamic because the handle is called like a widget constructor
+/// through noSuchMethod; typed as CustomWidgetHandle, that call won't compile.
+dynamic _customWidget(
+  App app,
+  String name, {
+  required Map<String, DslType> parameters,
+  required String code,
+  required String description,
+}) {
+  if (!ff.CustomCode.widgets.contains(name)) {
+    return app.customWidget(
+      name,
+      parameters: parameters,
+      description: description,
+      code: code,
+    );
+  }
+  app.raw((project) => updateCustomWidget(project, name: name, code: code));
+  return CustomWidgetHandle(
+    CustomWidgetDeclaration(
+      name: name,
+      parameters: parameters,
+      code: code,
+      description: description,
+    ),
+  );
+}
+
+/// Group 9. Photos go to public_html/assets/media/developers/<slug>.jpg.
+const _developers = <(String name, String initials, String slug)>[
+  ('Brian Ballano', 'BB', 'brian-ballano'),
+  ('Erika Joan Del Rosario', 'ER', 'erika-del-rosario'),
+  ('John Lawrence Balitos', 'JB', 'john-lawrence-balitos'),
+  ('Keanu Florenz Licup', 'KL', 'keanu-licup'),
+  ('Paul Francis Balboa', 'PB', 'paul-balboa'),
+];
+const _developerPhotoBase =
+    'https://snow-jellyfish-553645.hostingersite.com/assets/media/developers/';
+
+void _appleRedesignScreens(App app, {required Endpoint createReview}) {
+  final tileImage = _customWidget(
+    app,
+    'TileImage',
+    parameters: {
+      'imageUrl': string.withDefault(''),
+      'tileHeight': double_.withDefault(160),
+      'radius': double_.withDefault(18),
+      'inset': double_.withDefault(12),
+    },
+    code: _tileImageCode,
+    description: _tileImageDescription,
+  );
+  final devAvatar = _customWidget(
+    app,
+    'DevAvatar',
+    parameters: {
+      'photoUrl': string.withDefault(''),
+      'initials': string.withDefault(''),
+      'diameter': double_.withDefault(56),
+    },
+    code: _devAvatarCode,
+    description: _devAvatarDescription,
+  );
+  final imgUrl = CustomFunctionHandle(
+    name: 'imgUrl',
+    args: {'image': string, 'id': int_},
+    returnType: string,
+  );
+
+  // ---------------------------------------------------------------------------
+  // ShoeCard (Shop grid): photo on a mist tile, the New/Sale tag on the photo,
+  // and a title box that always holds two lines — so every price in a row of
+  // the grid lands on the same line whether or not a shoe has a tag.
+  // ---------------------------------------------------------------------------
+  // Selected by key throughout, not by the generated handles: those resolve by
+  // path, and the moves below shift the paths of everything after them.
+  // Every run replays this whole script, so the one-time moves are guarded by
+  // whether they have already happened.
+  final cardDone =
+      ff.Components.shoeCard.widgets.all.any((w) => w.name == 'cardMedia');
+  app.editComponent(ff.Components.shoeCard, (c) {
+    // The white card with a drop shadow goes; the tile is the object now. The
+    // decorated box is the root's child — the root itself draws nothing.
+    c.mutateNode(c.findByKey('Container_p17zn052'), (node) {
+      final box = node.props.container.boxDecoration;
+      box.colorValue = _literalColor(0x00000000);
+      box.clearBoxShadow();
+    });
+    if (!cardDone) {
+      c.ensureReplaced(
+        c.findByKey('Image_z9p2xqg7'),
+        Stack(
+          name: 'cardMedia',
+          alignment: Alignment.topLeft,
+          children: [
+            tileImage(
+              name: 'cardTile',
+              imageUrl: Param('imageUrl'),
+              tileHeight: 160.0,
+              radius: 18.0,
+              inset: 14.0,
+            ),
+          ],
+        ),
+      );
+      c.ensureMovedTo(
+        c.findByKey('Container_ucyen0lm'),
+        c.findByName('cardMedia'),
+        index: 1,
+      );
+      // Two lines of 15pt Inter; minSize rather than a fixed height, so a
+      // larger system font grows the box instead of clipping the name.
+      c.ensureInsertedBefore(
+        c.findByKey('Text_g70nwyob'),
+        Container(name: 'cardTitleBox'),
+      );
+      c.ensureMovedTo(
+        c.findByKey('Text_g70nwyob'),
+        c.findByName('cardTitleBox'),
+        index: 0,
+      );
+    }
+    // Once it exists it has a generated key, and the SDK insists on that.
+    final titleBox = ff.Components.shoeCard.widgets.all
+        .where((w) => w.name == 'cardTitleBox')
+        .firstOrNull;
+    c.update(
+        titleBox == null
+            ? c.findByName('cardTitleBox')
+            : c.findByKey(titleBox.key), (patch) {
+      patch.minSize(height: 38);
+      patch.alignment(Alignment.topLeft);
+    });
+    c.update(c.findByKey('Container_ucyen0lm'), (patch) {
+      patch.color(Colors.secondaryBackground);
+      patch.borderRadius(11);
+      patch.margin(const EdgeInsets.all(10));
+    });
+    c.update(c.findByKey('Text_cx9b9zq7'), (patch) {
+      patch.color(Colors.accent1);
+      patch.fontSize(11);
+      patch.fontWeight(600);
+    });
+    c.update(c.findByKey('Container_5rgwxeyu'), (patch) {
+      patch.padding(const EdgeInsets.only(left: 2, top: 10, right: 2));
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Shoe Details: the full-bleed photo becomes an inset mist tile.
+  // ---------------------------------------------------------------------------
+  final shoe = State(ff.Pages.shoeDetails.state.shoe);
+  final heroDone =
+      ff.Pages.shoeDetails.widgets.all.any((w) => w.name == 'heroBox');
+  if (!heroDone) app.editPage(ff.Pages.shoeDetails, (page) {
+    page.ensureReplaced(
+      page.findByKey('Image_q85s0lwn'),
+      Container(
+        name: 'heroBox',
+        padding: const EdgeInsets.only(left: 16, top: 4, right: 16),
+        child: tileImage(
+          name: 'heroTile',
+          imageUrl: CustomFunction(
+            imgUrl,
+            args: {'image': shoe['image'], 'id': shoe['id']},
+          ),
+          tileHeight: 280.0,
+          radius: 24.0,
+          inset: 24.0,
+        ),
+      ),
+    );
+  });
+
+  // ---------------------------------------------------------------------------
+  // Account: "My bag" is already a tab, and "Visit the website" is not needed
+  // to shop. Both go, as agreed.
+  //
+  // By key, and guarded: removing by generated handle once took out the row
+  // *after* the intended one, because the first removal shifted every path
+  // below it. Section 13's guard re-inserts "Help & Info" after
+  // ListTile_dak60bnf earlier in this same run, so dak60bnf must still exist
+  // at that point and is only removed here, afterwards.
+  // ---------------------------------------------------------------------------
+  final accountKeys = ff.Pages.account.widgets.all.map((w) => w.key).toSet();
+  app.editPage(ff.Pages.account, (page) {
+    for (final key in const ['ListTile_vjqn585s', 'ListTile_dak60bnf']) {
+      if (accountKeys.contains(key)) page.ensureRemoved(page.findByKey(key));
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // Register: the password hint said 6; api/auth.php rejects anything under 8.
+  // ---------------------------------------------------------------------------
+  app.editPage(ff.Pages.register, (page) {
+    page.update(
+      ff.Pages.register.widgets.byKey('TextField_ozrv4ee1').single,
+      (patch) => patch.textFieldHint('At least 8 characters'),
+    );
+    page.update(
+      ff.Pages.register.widgets.byKey('TextField_pe6yr839').single,
+      (patch) => patch.textFieldHint('At least 3 characters'),
+    );
+  });
+
+  // ---------------------------------------------------------------------------
+  // Reviews: tap a star instead of picking a number from a dropdown.
+  // ---------------------------------------------------------------------------
+  // Five positions, each a pair of buttons: the filled star shows when the
+  // chosen rating reaches it, the outline star otherwise. There is no >=
+  // expression in the DSL, hence starOn.
+  final starOn = app.customFunction(
+    'starOn',
+    args: {'rating': int_, 'n': int_},
+    returns: bool_,
+    code: 'return (rating ?? 0) >= (n ?? 0);',
+    description: 'True when a rating fills star number n.',
+  );
+  app.editPageState(ff.Pages.reviews, (state) {
+    state.ensureField('rating', int_.withDefault(0));
+  });
+  final stars = <DslWidget>[
+    for (var n = 1; n <= 5; n++) ...[
+      IconButton(
+        'star_rounded',
+        size: 34,
+        color: Colors.secondary,
+        name: 'starOn$n',
+        visible: CustomFunction(starOn, args: {'rating': State('rating'), 'n': n}),
+        onTap: [SetState('rating', n)],
+      ),
+      IconButton(
+        'star_border_rounded',
+        size: 34,
+        color: Colors.tertiary,
+        name: 'starOff$n',
+        visible: Not(
+          CustomFunction(starOn, args: {'rating': State('rating'), 'n': n}),
+        ),
+        onTap: [SetState('rating', n)],
+      ),
+    ],
+  ];
+  final starsDone =
+      ff.Pages.reviews.widgets.all.any((w) => w.name == 'starPicker');
+  app.editPage(ff.Pages.reviews, (page) {
+    if (!starsDone) page.ensureReplaced(
+      page.findByKey('DropDown_e1nwysuj'),
+      Column(
+        name: 'starPicker',
+        crossAxis: CrossAxis.center,
+        spacing: 2,
+        children: [
+          Row(mainAxis: MainAxis.center, children: stars),
+          Text(
+            'Tap a star to rate',
+            style: Styles.bodySmall,
+            color: Colors.secondaryText,
+          ),
+        ],
+      ),
+    );
+    // Same call as before; only the rating's source moved from the dropdown to
+    // the page state the stars set.
+    page.ensureActions(
+      ff.Pages.reviews.widgets.byKey('Button_vkftj6ac').single,
+      triggerType: FFActionTriggerType.ON_TAP,
+      actions: [
+        ApiCall(
+          createReview,
+          outputAs: 'postReviewRes',
+          params: {
+            'token': AppState(ff.AppState.authToken),
+            'product_id': PageParam('productId'),
+            'rating': State('rating'),
+            'comment': WidgetState('reviewComment', WidgetStateProperty.text),
+          },
+          onSuccess: (res) => [
+            SetState(ff.Pages.reviews.state.feed, res),
+            SetState('rating', 0),
+            Snackbar('Thanks — your review is up.'),
+          ],
+          onFailure: [
+            Snackbar('Could not post your review. Pick a rating and try again.'),
+          ],
+        ),
+      ],
+    );
+  });
+
+  // ---------------------------------------------------------------------------
+  // The Developers: Group 9, opened from Help.
+  // ---------------------------------------------------------------------------
+  final developersPage = app.ensurePage(
+    'Developers',
+    route: '/developers',
+    description: 'Group 9 — the five people who built SoleCraftPH.',
+    body: Scaffold(
+      appBar: AppBar(title: 'The Developers'),
+      body: Column(
+        scrollable: true,
+        crossAxis: CrossAxis.stretch,
+        spacing: 16,
+        padding: 16,
+        children: [
+          Text(
+            'Group 9, the five of us who built SoleCraftPH, from the '
+            'storefront and the admin panel to the Android app.',
+            style: Styles.bodyMedium,
+            color: Colors.secondaryText,
+          ),
+          Container(
+            color: Colors.secondaryBackground,
+            borderRadius: 18,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Column(
+              crossAxis: CrossAxis.stretch,
+              children: [
+                for (final (i, dev) in _developers.indexed) ...[
+                  if (i > 0) Divider(),
+                  Row(
+                    crossAxis: CrossAxis.center,
+                    spacing: 14,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    children: [
+                      devAvatar(
+                        name: 'avatar${dev.$2}',
+                        photoUrl: '$_developerPhotoBase${dev.$3}.jpg',
+                        initials: dev.$2,
+                        diameter: 56.0,
+                      ),
+                      Text(dev.$1, style: Styles.titleSmall),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+  // Same app bar and ground as every other pushed screen (round 1 could not
+  // reach it: the page did not exist when that loop's handles were generated).
+  app.editPage(ff.Pages.developers, (page) {
+    page.mutateNode(page.findByType('Scaffold'), (node) {
+      node.props.scaffold.backgroundColorValue =
+          _themeColor(FFColor_ThemeColor.PRIMARY_BACKGROUND);
+    });
+    page.mutateNode(page.findByType('AppBar'), (node) {
+      final bar = node.props.appBar;
+      bar.backgroundColorValue =
+          _themeColor(FFColor_ThemeColor.PRIMARY_BACKGROUND);
+      bar.backButtonColorValue = _themeColor(FFColor_ThemeColor.PRIMARY_TEXT);
+      bar.elevationValue = FFDoubleValue(inputValue: 0);
+      bar.centerTitleValue = FFBooleanValue(inputValue: true);
+    });
+    page.update(page.findByText('The Developers'), (patch) {
+      patch.color(Colors.primaryText);
+      patch.fontSize(17);
+      patch.fontWeight(600);
+    });
+  });
+
+  // Help lists the site's info pages; the Developers row goes right after.
+  final helpDone =
+      ff.Pages.help.widgets.all.any((w) => w.name == 'helpDevelopersTile');
+  if (!helpDone) app.editPage(ff.Pages.help, (page) {
+    page.ensureInsertedAfter(
+      ff.Pages.help.widgets.byKey('ListView_ktnii6z9').single,
+      ListTile(
+        title: 'The Developers',
+        trailingIcon: 'chevron_right',
+        name: 'helpDevelopersTile',
+        onTap: [Navigate.to(developersPage)],
+      ),
+    );
+  });
+}
+
+// -----------------------------------------------------------------------------
+// Apple Store look, round 3: fixes found on the phone, then layouts
+// -----------------------------------------------------------------------------
+// Everything below selects by key (see round 2) and guards one-time structural
+// changes by the name they leave behind.
+
+bool _hasWidget(ProjectPageHandle page, String name) =>
+    page.widgets.all.any((w) => w.name == name);
+
+void _appleRedesignRound3(App app) {
+  final bagCount = CustomFunctionHandle(
+    name: 'bagCount',
+    args: {'items': listOf(ff.Structs.bagItem)},
+    returnType: int_,
+  );
+  final imgUrl = CustomFunctionHandle(
+    name: 'imgUrl',
+    args: {'image': string, 'id': int_},
+    returnType: string,
+  );
+  final tileImage = _customWidget(
+    app,
+    'TileImage',
+    parameters: {
+      'imageUrl': string.withDefault(''),
+      'tileHeight': double_.withDefault(160),
+      'radius': double_.withDefault(18),
+      'inset': double_.withDefault(12),
+    },
+    code: _tileImageCode,
+    description: _tileImageDescription,
+  );
+  final bagHasItems = Not(
+    Equals(CustomFunction(bagCount, args: {'items': AppState(ff.AppState.bag)}), 0),
+  );
+
+  final allTrue = app.customFunction(
+    'allTrue',
+    args: {'a': bool_, 'b': bool_},
+    returns: bool_,
+    code: 'return (a ?? false) && (b ?? false);',
+    description: 'Both true; a null counts as false.',
+  );
+  final ratingLabel = app.customFunction(
+    'ratingLabel',
+    args: {'average': double_, 'count': int_},
+    returns: string,
+    code: r'''
+final n = count ?? 0;
+if (n == 0) return 'No reviews yet';
+final avg = (average ?? 0).toStringAsFixed(1);
+return '$avg · $n ${n == 1 ? 'review' : 'reviews'}';
+''',
+    description: '"4.0 · 2 reviews", or "No reviews yet" when there are none.',
+  );
+  final lineSub = app.customFunction(
+    'lineSub',
+    args: {'size': string, 'qty': int_},
+    returns: string,
+    code: r"return 'Size ${size ?? ''} · Qty ${qty ?? 1}';",
+    description: 'Checkout line: "Size 9 · Qty 1".',
+  );
+  final linePrice = app.customFunction(
+    'linePrice',
+    args: {'price': double_, 'qty': int_},
+    returns: string,
+    code: r'''
+final total = (price ?? 0) * (qty ?? 1);
+return '₱' + NumberFormat('#,##0.00').format(total);
+''',
+    description: 'Checkout line total in pesos.',
+  );
+
+  // ---------------------------------------------------------------------------
+  // Bag: the totals, Check Out and Clear bag showed under "Your bag is empty".
+  // The item list already hid itself at zero; the totals block never did.
+  // ---------------------------------------------------------------------------
+  app.editPage(ff.Pages.bag, (page) {
+    page.bindVisible(page.findByKey('Container_fyhciaab'), bagHasItems);
+  });
+
+  // ---------------------------------------------------------------------------
+  // My Orders signed out showed "Could not load your orders" under the sign-in
+  // prompt. The banner shows on `loadFailed ?? true`, and signed out the load
+  // never runs, so the flag stays null — which read as failed.
+  // ---------------------------------------------------------------------------
+  app.editPage(ff.Pages.myOrders, (page) {
+    page.bindVisible(
+      page.findByKey('Container_7d73oufu'),
+      CustomFunction(
+        allTrue,
+        args: {
+          'a': State(ff.Pages.myOrders.state.loadFailed),
+          'b': AppState(ff.AppState.signedIn),
+        },
+      ),
+    );
+  });
+
+  // ---------------------------------------------------------------------------
+  // Shop: the subcategory strip is a fixed 44dp row that sat empty under "All"
+  // — the gap above the grid. It shows only once a category is picked. The bag
+  // button was a black-outlined 42px square with a tan "0" badge that never
+  // hid; it becomes a round mist button with a red count shown only above 0.
+  // ---------------------------------------------------------------------------
+  // (The strip's visibility lives on its declaration in section 18: that
+  // section replaces the row every run, so a key-based patch here would miss.)
+  app.editPage(ff.Pages.shop, (page) {
+    if (!_hasWidget(ff.Pages.shop, 'bagButton')) {
+      page.ensureReplaced(
+        page.findByKey('Badge_2p67vz3b'),
+        Stack(
+          name: 'bagButton',
+          alignment: Alignment.topRight,
+          children: [
+            IconButton(
+              'shopping_bag',
+              size: 24,
+              color: Colors.primaryText,
+              fillColor: Colors.accent2,
+              borderRadius: 24,
+              name: 'bagButtonIcon',
+              onTap: [Navigate.to(ff.Pages.bag)],
+            ),
+            Container(
+              name: 'bagButtonCount',
+              visible: bagHasItems,
+              color: Colors.secondary,
+              borderRadius: 9,
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              child: Text(
+                CustomFunction(bagCount, args: {'items': AppState(ff.AppState.bag)}),
+                style: Styles.labelSmall,
+                color: Colors.secondaryBackground,
+              ),
+            ),
+          ],
+        ),
+      );
+      page.update(
+        page.findByName('bagButtonIcon'),
+        (patch) => patch.size(width: 48, height: 48),
+      );
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // Account: the monogram was black letters on red; it becomes the ink circle
+  // with white letters from the draft. The menu rows move into one white
+  // group, in the draft's order, each with a chevron.
+  // ---------------------------------------------------------------------------
+  final account = ff.Pages.account;
+  final helpTileKey = account.widgets.all
+      .firstWhere((w) => w.name == 'accountHelpTile')
+      .key;
+  const menuKeys = [
+    'ListTile_81kcu172', // My orders
+    'ListTile_nfw3mvu8', // Wishlist
+    'ListTile_yxcqduiu', // Notifications
+    'ListTile_ra3qqzuv', // Profile
+    'ListTile_pvn5iupa', // Delivery addresses
+  ];
+  app.editPage(account, (page) {
+    page.update(
+      page.findByKey('Container_5j3986vq'),
+      (patch) => patch.color(Colors.primary),
+    );
+    page.update(
+      page.findByKey('Text_46tahf47'),
+      (patch) => patch.color(Colors.secondaryBackground),
+    );
+    for (final key in [...menuKeys, helpTileKey]) {
+      page.mutateNode(page.findByKey(key), (node) {
+        node.props.listTile.trailingValue = iconValue('chevron_right', size: 22);
+      });
+    }
+    if (!_hasWidget(account, 'accountMenu')) {
+      page.ensureInsertedBefore(
+        page.findByKey('ListTile_pvn5iupa'),
+        Container(
+          name: 'accountMenu',
+          color: Colors.secondaryBackground,
+          borderRadius: 18,
+          child: Column(name: 'accountMenuList'),
+        ),
+      );
+      final ordered = [...menuKeys, helpTileKey];
+      for (var i = 0; i < ordered.length; i++) {
+        page.ensureMovedTo(
+          page.findByKey(ordered[i]),
+          page.findByName('accountMenuList'),
+          index: i,
+        );
+      }
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // Reviews read "★ 0.0 0" with nothing written yet. One label now carries
+  // both numbers — "4.0 · 2 reviews" — or says there are none.
+  // ---------------------------------------------------------------------------
+  app.editPage(ff.Pages.reviews, (page) {
+    final feed = State(ff.Pages.reviews.state.feed);
+    page.bindText(
+      page.findByKey('Text_h7a4kt04'),
+      CustomFunction(
+        ratingLabel,
+        args: {'average': feed['average'], 'count': feed['count']},
+      ),
+    );
+    // Removed outright by the bug-fix pass; only touched while it exists.
+    if (ff.Pages.reviews.widgets.all.any((w) => w.key == 'Text_s1a7hxic')) {
+      page.update(
+        page.findByKey('Text_s1a7hxic'),
+        (patch) => patch.visible(false),
+      );
+    }
+    // It said "once you have ordered it" right under the line that already
+    // says so.
+    page.update(
+      page.findByKey('Text_uk2y7i34'),
+      (patch) => patch.text('No reviews yet.'),
+    );
+  });
+  final details = ff.Pages.shoeDetails;
+  final avgKey =
+      details.widgets.all.firstWhere((w) => w.name == 'reviewsAverage').key;
+  // Gone since the bug-fix pass removed it; the label carries the count now.
+  final countNode = details.widgets.all.where((w) => w.name == 'reviewsCount');
+  app.editPage(details, (page) {
+    final reviews = State(details.state.reviews);
+    page.bindText(
+      page.findByKey(avgKey),
+      CustomFunction(
+        ratingLabel,
+        args: {'average': reviews['average'], 'count': reviews['count']},
+      ),
+    );
+    if (countNode.isNotEmpty) {
+      page.update(
+        page.findByKey(countNode.first.key),
+        (patch) => patch.visible(false),
+      );
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // Checkout: what you are buying, above the total. It only ever said
+  // "Items 2" at the moment someone commits money.
+  // ---------------------------------------------------------------------------
+  if (!_hasWidget(ff.Pages.checkout, 'checkoutLines')) {
+    app.editPage(ff.Pages.checkout, (page) {
+      page.ensureInsertedBefore(
+        page.findByKey('Row_mbzwpgog'),
+        Container(
+          name: 'checkoutLines',
+          color: Colors.secondaryBackground,
+          borderRadius: 18,
+          padding: 12,
+          child: ListView(
+            source: AppState(ff.AppState.bag),
+            shrinkWrap: true,
+            scrollPhysics: ScrollPhysics.never,
+            spacing: 12,
+            itemBuilder: (item) => Row(
+              crossAxis: CrossAxis.center,
+              spacing: 12,
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  child: tileImage(
+                    name: 'checkoutLineTile',
+                    imageUrl: CustomFunction(
+                      imgUrl,
+                      args: {'image': ItemRef()['image'], 'id': ItemRef()['id']},
+                    ),
+                    tileHeight: 52.0,
+                    radius: 12.0,
+                    inset: 6.0,
+                  ),
+                ),
+                Expanded(
+                  Column(
+                    crossAxis: CrossAxis.start,
+                    spacing: 2,
+                    children: [
+                      Text(
+                        ItemRef()['name'],
+                        style: Styles.titleSmall,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        CustomFunction(
+                          lineSub,
+                          args: {'size': ItemRef()['size'], 'qty': ItemRef()['qty']},
+                        ),
+                        style: Styles.bodySmall,
+                        color: Colors.secondaryText,
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  CustomFunction(
+                    linePrice,
+                    args: {'price': ItemRef()['price'], 'qty': ItemRef()['qty']},
+                  ),
+                  style: Styles.titleSmall,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Order Placed: the check is green, like the draft.
+  // ---------------------------------------------------------------------------
+  app.editPage(ff.Pages.confirmed, (page) {
+    page.update(
+      page.findByKey('Icon_d5h5pmd8'),
+      (patch) => patch.color(Colors.success),
+    );
+  });
+}
+
+// -----------------------------------------------------------------------------
+// Bugs found testing build 10 on the phone, with a real COD order (#56)
+// -----------------------------------------------------------------------------
+
+final _defaultAddressField = CustomFunctionHandle(
+  name: 'defaultAddressField',
+  args: {
+    'items': listOf(ff.Structs.addressRow),
+    'field': string,
+    'fallback': string,
+  },
+  returnType: string,
+);
+final _defaultAddressId = CustomFunctionHandle(
+  name: 'defaultAddressId',
+  args: {'items': listOf(ff.Structs.addressRow)},
+  returnType: int_,
+);
+
+/// One field of the saved default address, or [fallback] when none is default.
+DslExpression _defaultAddress(Object items, String field, Object fallback) =>
+    CustomFunction(
+      _defaultAddressField,
+      args: {'items': items, 'field': field, 'fallback': fallback},
+    );
+
+void _declareDefaultAddressFunctions(App app) {
+  app.customFunction(
+    'defaultAddressField',
+    args: {
+      'items': listOf(ff.Structs.addressRow),
+      'field': string,
+      'fallback': string,
+    },
+    returns: string,
+    code: r'''
+for (final a in (items ?? <AddressRowStruct>[])) {
+  if (!a.isDefault) continue;
+  switch (field) {
+    case 'recipient_name':
+      return a.recipientName;
+    case 'phone':
+      return a.phone;
+    case 'address':
+      return a.address;
+    case 'latitude':
+      return a.latitude;
+    case 'longitude':
+      return a.longitude;
+  }
+}
+return fallback ?? '';
+''',
+    description: 'A field of the saved default address, else the fallback.',
+  );
+  app.customFunction(
+    'defaultAddressId',
+    args: {'items': listOf(ff.Structs.addressRow)},
+    returns: int_,
+    code: r'''
+for (final a in (items ?? <AddressRowStruct>[])) {
+  if (a.isDefault) return a.id;
+}
+return 0;
+''',
+    description: 'Id of the saved default address, 0 when none.',
+  );
+}
+
+void _phoneBugFixes(App app) {
+  final titleCase = CustomFunctionHandle(
+    name: 'titleCase',
+    args: {'value': string},
+    returnType: string,
+  );
+  DslExpression title(Object v) =>
+      CustomFunction(titleCase, args: {'value': v});
+
+  // ---------------------------------------------------------------------------
+  // Money: "₱8200" on Bag and Checkout next to "₱8,200.00" everywhere else.
+  // pesoN rounded to whole pesos with no separators. Fixed once, where every
+  // caller routes through.
+  // ---------------------------------------------------------------------------
+  app.raw((project) {
+    updateCustomFunction(
+      project,
+      name: 'pesoN',
+      description: 'Pesos from a number: ₱8,200.00.',
+      code: r'''
+return '₱' + NumberFormat('#,##0.00').format(amount ?? 0);
+''',
+    );
+  });
+
+  final niceDate = app.customFunction(
+    'niceDate',
+    args: {'value': string},
+    returns: string,
+    code: r'''
+final d = DateTime.tryParse((value ?? '').replaceFirst(' ', 'T'));
+if (d == null) return value ?? '';
+return DateFormat('MMM d, y · h:mm a').format(d);
+''',
+    description: '"2026-09-29 15:02:02" as "Sep 29, 2026 · 3:02 PM".',
+  );
+  DslExpression date(Object v) => CustomFunction(niceDate, args: {'value': v});
+  final orderTitle = app.customFunction(
+    'orderTitle',
+    args: {'id': int_},
+    returns: string,
+    code: r"return 'Order #${id ?? ''}';",
+    description: '"Order #56".',
+  );
+  final orderNo = app.customFunction(
+    'orderNo',
+    args: {'id': int_},
+    returns: string,
+    code: r"return '#${id ?? ''}';",
+    description: '"#56".',
+  );
+  final payLabel = app.customFunction(
+    'payMethodLabel',
+    args: {'method': string},
+    returns: string,
+    code: r'''
+switch ((method ?? '').toUpperCase()) {
+  case 'COD':
+    return 'Cash on Delivery';
+  case 'GCASH':
+    return 'GCash';
+  case 'CARD':
+    return 'Card';
+}
+return method ?? '';
+''',
+    description: 'COD → Cash on Delivery, GCASH → GCash, CARD → Card.',
+  );
+  final sizeLabel = app.customFunction(
+    'sizeLabel',
+    args: {'size': string},
+    returns: string,
+    code: r"return (size ?? '').isEmpty ? '' : 'Size $size';",
+    description: '"9" → "Size 9".',
+  );
+  final shippingLabel = app.customFunction(
+    'shippingLabel',
+    args: {'items': listOf(ff.Structs.bagItem)},
+    returns: string,
+    // Same rule as bagTotal: free from ₱2,000, otherwise ₱120.
+    code: r'''
+double sub = 0;
+for (final line in (items ?? <BagItemStruct>[])) {
+  sub += (line.price ?? 0) * (line.qty ?? 0);
+}
+return sub >= 2000 ? 'Free' : '₱120.00';
+''',
+    description: 'Shipping line for the bag: "Free" from ₱2,000, else ₱120.00.',
+  );
+  final unreadLabel = app.customFunction(
+    'unreadLabel',
+    args: {'count': int_},
+    returns: string,
+    code: r'''
+final n = count ?? 0;
+return n == 0 ? 'All caught up' : '$n unread';
+''',
+    description: '"68 unread", or "All caught up".',
+  );
+  final initialsOf = app.customFunction(
+    'initialsOf',
+    args: {'name': string, 'fallback': string},
+    returns: string,
+    code: r'''
+String pick(String s) {
+  final parts = s.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+  if (parts.isEmpty) return '';
+  final first = parts.first[0];
+  final last = parts.length > 1 ? parts.last[0] : '';
+  return (first + last).toUpperCase();
+}
+final a = pick(name ?? '');
+if (a.isNotEmpty) return a;
+final b = (fallback ?? '').trim();
+return b.isEmpty ? 'SC' : b.substring(0, b.length < 2 ? b.length : 2).toUpperCase();
+''',
+    description: 'Initials from the full name, else the username; "SC" signed out.',
+  );
+  final cleanAddress = app.customFunction(
+    'cleanAddress',
+    args: {'address': string},
+    returns: string,
+    // Same pattern as the map sheet's _composeAddress, applied on display so
+    // addresses saved before that fix read cleanly too.
+    code: r'''
+return (address ?? '')
+    .replaceFirst(RegExp(r'^[23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,3}\b[\s,]*'), '')
+    .trim();
+''',
+    description: 'Address with a leading Google Plus Code removed.',
+  );
+
+  // ---------------------------------------------------------------------------
+  // Size tiles: the chosen size was a small ink box padded 8px inside its own
+  // outlined tile, which also made that tile 16px taller — the row jumped on
+  // every tap. The tile loses its padding; both variants carry the same
+  // padding, so the chosen one fills the tile exactly and nothing moves.
+  // ---------------------------------------------------------------------------
+  const sizeTiles = <String, (String, String)>{
+    'Container_dnejwlbx': ('Container_b9zgmtae', 'Container_iqtdx7jj'), // 7
+    'Container_nutazx4c': ('Container_xbzzmorq', 'Container_on8i8mes'), // 8
+    'Container_zr4v91kl': ('Container_8ap8umo2', 'Container_s0bkwoor'), // 9
+    'Container_p5rm8umn': ('Container_0gxv45bd', 'Container_7khwgabg'), // 10
+    'Container_582gr6n9': ('Container_tkfz20fj', 'Container_odgztyiz'), // 11
+    'Container_xoentfqj': ('Container_r2y30mp6', 'Container_smh9gsbu'), // 12
+  };
+  app.editPage(ff.Pages.shoeDetails, (page) {
+    sizeTiles.forEach((tile, variants) {
+      page.update(page.findByKey(tile), (patch) {
+        patch.padding(0);
+        patch.borderRadius(12);
+      });
+      for (final v in [variants.$1, variants.$2]) {
+        page.update(page.findByKey(v), (patch) {
+          patch.margin(0);
+          patch.padding(const EdgeInsets.symmetric(vertical: 13));
+          patch.borderRadius(12);
+        });
+      }
+    });
+    // "5.0 · 1 review 1": the label carries the count now. A literal
+    // visible:false is ignored by codegen, so the old count goes.
+    final count =
+        ff.Pages.shoeDetails.widgets.all.where((w) => w.name == 'reviewsCount');
+    if (count.isNotEmpty) page.ensureRemoved(page.findByKey(count.first.key));
+  });
+  if (ff.Pages.reviews.widgets.all.any((w) => w.key == 'Text_s1a7hxic')) {
+    app.editPage(ff.Pages.reviews, (page) {
+      page.ensureRemoved(page.findByKey('Text_s1a7hxic'));
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Payment tiles: "Cash on Delivery" wraps to two lines, so its tile stood
+  // taller than GCash and Card and the centred row set it out of line. All
+  // three get one height.
+  // ---------------------------------------------------------------------------
+  app.editPage(ff.Pages.checkout, (page) {
+    for (final key in const [
+      'Container_iuz96ohv',
+      'Container_ebi2q81v',
+      'Container_43akn8dy',
+    ]) {
+      page.update(page.findByKey(key), (patch) {
+        patch.size(width: double.infinity, height: 96);
+        patch.borderRadius(14);
+      });
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // Bag: "9" is a size, the name was cut to "Nike Pegasu…", and shipping said
+  // "Free over ₱2,000" under an ₱8,200 bag.
+  // ---------------------------------------------------------------------------
+  app.editPage(ff.Pages.bag, (page) {
+    page.bindText(
+      page.findByKey('Text_3v0ncfwd'),
+      CustomFunction(sizeLabel, args: {'size': ItemRef()['size']}),
+    );
+    page.update(page.findByKey('Text_4ygq2yyo'), (patch) => patch.maxLines(2));
+    page.bindText(
+      page.findByKey('Text_9xqd1qc8'),
+      CustomFunction(shippingLabel, args: {'items': AppState(ff.AppState.bag)}),
+    );
+  });
+
+  // ---------------------------------------------------------------------------
+  // Orders: raw database words ("pending", "unpaid", "COD"), "Order #" split
+  // from its number across the row, and timestamps as stored.
+  // ---------------------------------------------------------------------------
+  final ordersHasNumber =
+      ff.Pages.myOrders.widgets.all.any((w) => w.key == 'Text_0cm12rss');
+  app.editPage(ff.Pages.myOrders, (page) {
+    page.bindText(
+      page.findByKey('Text_bztfz470'),
+      CustomFunction(orderTitle, args: {'id': ItemRef()['id']}),
+    );
+    page.update(page.findByKey('Text_bztfz470'), (patch) {
+      patch.color(Colors.primaryText);
+    });
+    if (ordersHasNumber) page.ensureRemoved(page.findByKey('Text_0cm12rss'));
+    page.bindText(page.findByKey('Text_iue0zak6'), title(ItemRef()['status']));
+    page.bindText(page.findByKey('Text_09mdfn36'), date(ItemRef()['created_at']));
+  });
+  final order = State(ff.Pages.orderDetail.state.order);
+  app.editPage(ff.Pages.orderDetail, (page) {
+    page.bindText(
+      page.findByKey('Text_w335rbyv'),
+      CustomFunction(orderTitle, args: {'id': order['id']}),
+    );
+    page.bindText(page.findByKey('Text_4sqkdd5u'), title(order['status']));
+    page.bindText(page.findByKey('Text_0wjdyae2'), date(order['created_at']));
+    page.bindText(
+      page.findByKey('Text_fssdx5oo'),
+      CustomFunction(payLabel, args: {'method': order['payment_method']}),
+    );
+    page.bindText(page.findByKey('Text_qxe7x7f7'), title(order['payment_status']));
+    page.bindText(page.findByKey('Text_ruvisu4c'), title(ItemRef()['status']));
+    page.bindText(page.findByKey('Text_ehsb90sr'), date(ItemRef()['created_at']));
+    page.bindText(
+      page.findByKey('Text_yhnil7ji'),
+      CustomFunction(sizeLabel, args: {'size': ItemRef()['size']}),
+    );
+  });
+  app.editPage(ff.Pages.confirmed, (page) {
+    page.bindText(
+      page.findByKey('Text_xskgwsys'),
+      CustomFunction(
+        orderNo,
+        args: {'id': State(ff.Pages.confirmed.state.order)['id']},
+      ),
+    );
+    page.bindText(
+      page.findByKey('Text_2ljozhdf'),
+      title(State(ff.Pages.confirmed.state.order)['status']),
+    );
+  });
+
+  // ---------------------------------------------------------------------------
+  // Notifications: a bare "68", messages cut after one line because their
+  // column was never allowed the row's width, and raw timestamps.
+  // ---------------------------------------------------------------------------
+  final feed = State(ff.Pages.notifications.state.feed);
+  app.editPage(ff.Pages.notifications, (page) {
+    page.bindText(
+      page.findByKey('Text_mcqs516e'),
+      CustomFunction(unreadLabel, args: {'count': feed['unread']}),
+    );
+    page.mutateNode(page.findByKey('Column_bgqyjke3'), (node) {
+      node.props.expanded = FFExpanded(
+        expandedType: FFExpanded_ExpandedType.EXPANDED,
+        flexValue: FFIntegerValue(inputValue: 1),
+      );
+    });
+    page.bindText(page.findByKey('Text_p3hznpe9'), date(ItemRef()['created_at']));
+  });
+
+  // ---------------------------------------------------------------------------
+  // Account: "SC" on everyone's avatar. Initials from the full name, else the
+  // username; "SC" stays for a guest.
+  // ---------------------------------------------------------------------------
+  app.editPage(ff.Pages.account, (page) {
+    page.bindText(
+      page.findByKey('Text_46tahf47'),
+      CustomFunction(
+        initialsOf,
+        args: {
+          'name': AppState(ff.AppState.userFullName),
+          'fallback': AppState(ff.AppState.username),
+        },
+      ),
+    );
+  });
+
+  // ---------------------------------------------------------------------------
+  // Addresses: a Plus Code on the "work" address (saved before the map sheet
+  // learned to strip them), and Edit / Make default still in the old outlined
+  // boxes.
+  // ---------------------------------------------------------------------------
+  app.editPage(ff.Pages.addresses, (page) {
+    page.bindText(
+      page.findByKey('Text_5qhi5uy2'),
+      CustomFunction(cleanAddress, args: {'address': ItemRef()['address']}),
+    );
+    for (final key in const ['Container_jp5ddehk', 'Container_k6s1ay3a']) {
+      page.mutateNode(page.findByKey(key), (node) {
+        final box = node.props.container.boxDecoration;
+        box.colorValue = _themeColor(FFColor_ThemeColor.ACCENT_2);
+        box.borderWidthValue = FFDoubleValue(inputValue: 0);
+        box.borderColorValue = _literalColor(0x00000000);
+      });
+      page.update(page.findByKey(key), (patch) {
+        patch.borderRadius(16);
+        patch.padding(const EdgeInsets.symmetric(horizontal: 14, vertical: 8));
+      });
+    }
+  });
+}
+
+// -----------------------------------------------------------------------------
+// Feature: customers cancel a pending order; sold-out sizes are visible
+// -----------------------------------------------------------------------------
+
+void _cancelOrderAndSoldOutSizes(App app, {required Endpoint cancelOrder}) {
+  // ---------------------------------------------------------------------------
+  // Order detail: "Cancel order", only while the order is still pending. The
+  // server makes the real decision (pending and unpaid) and says why when it
+  // refuses; the app shows that sentence rather than guessing.
+  // ---------------------------------------------------------------------------
+  //
+  // Confirmed inline rather than with a ConfirmDialog: the DSL's dialog stores
+  // the answer but nothing reads it, so "Keep order" still cancelled. The first
+  // tap only swaps in the question; the second is the one that calls the
+  // server. The server's sentence shows either way — a refusal ("already being
+  // prepared") must not disappear into a then-branch.
+  final order = State(ff.Pages.orderDetail.state.order);
+  final allTrue = CustomFunctionHandle(
+    name: 'allTrue',
+    args: {'a': bool_, 'b': bool_},
+    returnType: bool_,
+  );
+  final pending = Equals(order['status'], 'pending');
+  app.editPageState(ff.Pages.orderDetail, (state) {
+    state.ensureField('confirmCancel', bool_.withDefault(false));
+  });
+  final cancelButton = ff.Pages.orderDetail.widgets.all
+      .where((w) => w.name == 'cancelOrderButton')
+      .firstOrNull;
+  final hasConfirmRow = ff.Pages.orderDetail.widgets.all
+      .any((w) => w.name == 'cancelConfirmRow');
+  app.editPage(ff.Pages.orderDetail, (page) {
+    final askFirst = Button(
+      'Cancel order',
+      name: 'cancelOrderButton',
+      width: double.infinity,
+      height: 50,
+      borderRadius: 25,
+      color: Colors.secondaryBackground,
+      textColor: Colors.accent1,
+      onTap: [SetState('confirmCancel', true)],
+    );
+    if (cancelButton == null) {
+      page.ensureInsertedAfter(page.findByKey('Container_48r49x5h'), askFirst);
+    } else {
+      page.ensureActions(
+        page.findByKey(cancelButton.key),
+        triggerType: FFActionTriggerType.ON_TAP,
+        actions: [SetState('confirmCancel', true)],
+      );
+      page.bindVisible(
+        page.findByKey(cancelButton.key),
+        CustomFunction(
+          allTrue,
+          args: {'a': pending, 'b': Not(State('confirmCancel'))},
+        ),
+      );
+    }
+    if (!hasConfirmRow) {
+      page.ensureInsertedAfter(
+        cancelButton == null
+            ? page.findByName('cancelOrderButton')
+            : page.findByKey(cancelButton.key),
+        Container(
+          name: 'cancelConfirmRow',
+          visible: CustomFunction(
+            allTrue,
+            args: {'a': pending, 'b': State('confirmCancel')},
+          ),
+          color: Colors.secondaryBackground,
+          borderRadius: 18,
+          padding: 16,
+          child: Column(
+            crossAxis: CrossAxis.stretch,
+            spacing: 10,
+            children: [
+              Text(
+                'Cancel this order? The shoes go back on the shelf. This '
+                'cannot be undone.',
+                style: Styles.bodyMedium,
+              ),
+              Button(
+                'Yes, cancel order',
+                name: 'cancelConfirmYes',
+                width: double.infinity,
+                height: 50,
+                borderRadius: 25,
+                color: Colors.secondary,
+                textColor: Colors.secondaryBackground,
+                onTap: [
+                  ApiCall(
+                    cancelOrder,
+                    outputAs: 'cancelRes',
+                    params: {
+                      'token': AppState(ff.AppState.authToken),
+                      'id': order['id'],
+                    },
+                    onSuccess: (res) => [
+                      If(
+                        res['ok'],
+                        then: [
+                          SetState(ff.Pages.orderDetail.state.order, res['order']),
+                          SetState('confirmCancel', false),
+                          Snackbar(res['message']),
+                        ],
+                        orElse: [
+                          SetState('confirmCancel', false),
+                          Snackbar(res['message']),
+                        ],
+                      ),
+                    ],
+                    onFailure: [
+                      Snackbar(
+                        'Could not reach SoleCraftPH. Check your connection '
+                        'and try again.',
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              Button(
+                'Keep order',
+                name: 'cancelConfirmNo',
+                width: double.infinity,
+                height: 44,
+                variant: ButtonVariant.text,
+                textColor: Colors.primaryText,
+                onTap: [SetState('confirmCancel', false)],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // Shoe Details: a sold-out size looked exactly like one in stock until it was
+  // tapped. It now shows struck through in gray; tapping it still explains.
+  // Each tile gains a third variant; the plain one hides when the size can't
+  // be sold.
+  // ---------------------------------------------------------------------------
+  final shoe = State(ff.Pages.shoeDetails.state.shoe);
+  final sizeSellable = CustomFunctionHandle(
+    name: 'sizeSellable',
+    args: {'availableSizes': listOf(string), 'size': string},
+    returnType: bool_,
+  );
+  // The Column inside each size tile that holds its variants.
+  const tileColumn = {
+    '7': 'Column_ee9tnkz2',
+    '8': 'Column_z797f6wn',
+    '9': 'Column_3cr05d05',
+    '10': 'Column_wltogb2g',
+    '11': 'Column_uhiag5df',
+    '12': 'Column_ht81k5ad',
+  };
+  const plainVariant = {
+    '7': 'Container_iqtdx7jj',
+    '8': 'Container_on8i8mes',
+    '9': 'Container_s0bkwoor',
+    '10': 'Container_7khwgabg',
+    '11': 'Container_odgztyiz',
+    '12': 'Container_smh9gsbu',
+  };
+  app.editPage(ff.Pages.shoeDetails, (page) {
+    plainVariant.forEach((size, key) {
+      final sellable = CustomFunction(
+        sizeSellable,
+        args: {'availableSizes': shoe['available_sizes'], 'size': size},
+      );
+      page.bindVisible(
+        page.findByKey(key),
+        CustomFunction(
+          allTrue,
+          args: {
+            'a': Not(
+              Equals(State(ff.Pages.shoeDetails.state.selectedSize), size),
+            ),
+            'b': sellable,
+          },
+        ),
+      );
+      // First attempt, "soldOut$size", went in via ensureInsertedAfter the
+      // plain variant and landed *inside* it as a second child of a
+      // single-child Container, where codegen never draws it. Removed, and
+      // replaced by a variant placed into the tile's own column.
+      final misplaced = ff.Pages.shoeDetails.widgets.all
+          .where((w) => w.name == 'soldOut$size');
+      if (misplaced.isNotEmpty) {
+        page.ensureRemoved(page.findByKey(misplaced.first.key));
+      }
+      if (!ff.Pages.shoeDetails.widgets.all
+          .any((w) => w.name == 'soldOutTile$size')) {
+        page.ensureInsertedInto(
+          page.findByKey(tileColumn[size]!),
+          Container(
+            name: 'soldOutTile$size',
+            visible: Not(sellable),
+            width: double.infinity,
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            child: Text(
+              size,
+              name: 'soldOutLabel$size',
+              style: Styles.bodyMedium,
+              color: Colors.tertiary,
+            ),
+          ),
+          index: 2,
+        );
+      }
+    });
+    // No strikethrough: text.strikethrough is set by the patch but codegen
+    // drops it on themed text (checked across two passes). Gray plus the
+    // tap-to-explain snackbar carries it.
   });
 }
 

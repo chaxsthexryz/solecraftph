@@ -267,8 +267,17 @@ require __DIR__ . '/includes/header.php';
           <label for="sizeSelect" class="mono" style="font-size:13px;">Size (US)</label>
           <select id="sizeSelect" class="qty-input" name="size" required style="width:auto;min-width:96px;" <?= $product['stock'] < 1 ? 'disabled' : '' ?>>
             <option value="">Choose</option>
+            <?php
+              // A size the shopper cannot buy is shown, not hidden — so they
+              // know the shoe comes in it — but cannot be picked. Same list
+              // the app gets as available_sizes.
+              $sellable = product_available_sizes((int) $product['id']);
+            ?>
             <?php foreach (CART_SIZES as $sizeOption): ?>
-              <option value="<?= htmlspecialchars($sizeOption) ?>">US <?= htmlspecialchars($sizeOption) ?></option>
+              <?php $soldOut = !in_array((string) $sizeOption, $sellable, true); ?>
+              <option value="<?= htmlspecialchars($sizeOption) ?>" <?= $soldOut ? 'disabled' : '' ?>>
+                US <?= htmlspecialchars($sizeOption) ?><?= $soldOut ? ' — sold out' : '' ?>
+              </option>
             <?php endforeach; ?>
           </select>
           <input class="qty-input" type="number" name="qty" value="1" min="1" <?= $product['stock'] < 1 ? 'disabled' : '' ?>>

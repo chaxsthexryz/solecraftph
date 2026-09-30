@@ -93,7 +93,7 @@ abstract final class ShopWidgets {
                   type: "Text",
                   path: "Shop.appBar[0].title[0]",
                   name: "AppBar Title",
-                  text: "SoleCraftPH",
+                  text: "Shop",
                 ),
               ],
             },
@@ -130,18 +130,32 @@ abstract final class ShopWidgets {
                         ],
                       ),
                       ffai.ProjectWidgetHandle(
-                        key: "Badge_2p67vz3b",
-                        type: "Badge",
+                        key: "Stack_vpymiyfv",
+                        type: "Stack",
                         path: "Shop.body[0].children[0].children[0].children[1]",
-                        name: "Badge",
+                        name: "bagButton",
                         children: <ffai.ProjectWidgetHandle>[
                           ffai.ProjectWidgetHandle(
-                            key: "IconButton_tn1w4uvk",
+                            key: "IconButton_afpsjyaa",
                             type: "IconButton",
                             path: "Shop.body[0].children[0].children[0].children[1].children[0]",
-                            name: "IconButton",
+                            name: "bagButtonIcon",
                             triggers: const <String>[
                               "ON_TAP",
+                            ],
+                          ),
+                          ffai.ProjectWidgetHandle(
+                            key: "Container_fw6dya2s",
+                            type: "Container",
+                            path: "Shop.body[0].children[0].children[0].children[1].children[1]",
+                            name: "bagButtonCount",
+                            children: <ffai.ProjectWidgetHandle>[
+                              ffai.ProjectWidgetHandle(
+                                key: "Text_rloxcin9",
+                                type: "Text",
+                                path: "Shop.body[0].children[0].children[0].children[1].children[1].children[0]",
+                                name: "Text",
+                              ),
                             ],
                           ),
                         ],
@@ -278,19 +292,19 @@ abstract final class ShopWidgets {
                 ],
               ),
               ffai.ProjectWidgetHandle(
-                key: "Container_30nexzjb",
+                key: "Container_szagl3nr",
                 type: "Container",
                 path: "Shop.body[0].children[4]",
                 name: "subcategoryRow",
                 children: <ffai.ProjectWidgetHandle>[
                   ffai.ProjectWidgetHandle(
-                    key: "ListView_q64tk6sl",
+                    key: "ListView_d59szrcb",
                     type: "ListView",
                     path: "Shop.body[0].children[4].children[0]",
                     name: "subcategoryList",
                     children: <ffai.ProjectWidgetHandle>[
                       ffai.ProjectWidgetHandle(
-                        key: "Container_uos76qpd",
+                        key: "Container_bf3i9aah",
                         type: "Container",
                         path: "Shop.body[0].children[4].children[0].children[0]",
                         name: "subcategoryChip",
@@ -299,7 +313,7 @@ abstract final class ShopWidgets {
                         ],
                         children: <ffai.ProjectWidgetHandle>[
                           ffai.ProjectWidgetHandle(
-                            key: "Container_ibddgogg",
+                            key: "Container_exj7gq8p",
                             type: "Container",
                             path: "Shop.body[0].children[4].children[0].children[0].children[0]",
                             name: "CatChip",

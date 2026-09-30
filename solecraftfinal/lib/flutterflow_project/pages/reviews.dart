@@ -37,6 +37,12 @@ final class ReviewsState {
         key: "6z2wjpuv",
         typeName: "DataStruct<ReviewFeed>",
       );
+  ffai.ProjectStateFieldHandle get rating =>
+      const ffai.ProjectStateFieldHandle(
+        name: "rating",
+        key: "dbj7whfp",
+        typeName: "Integer",
+      );
 }
 
 abstract final class ReviewsWidgets {
@@ -100,12 +106,6 @@ abstract final class ReviewsWidgets {
                     path: "Reviews.body[0].children[1].children[1]",
                     name: "Text",
                   ),
-                  ffai.ProjectWidgetHandle(
-                    key: "Text_s1a7hxic",
-                    type: "Text",
-                    path: "Reviews.body[0].children[1].children[2]",
-                    name: "Text",
-                  ),
                 ],
               ),
               ffai.ProjectWidgetHandle(
@@ -128,10 +128,117 @@ abstract final class ReviewsWidgets {
                         text: "Write a review",
                       ),
                       ffai.ProjectWidgetHandle(
-                        key: "DropDown_e1nwysuj",
-                        type: "DropDown",
+                        key: "Column_h35q532o",
+                        type: "Column",
                         path: "Reviews.body[0].children[2].children[0].children[1]",
-                        name: "reviewRating",
+                        name: "starPicker",
+                        children: <ffai.ProjectWidgetHandle>[
+                          ffai.ProjectWidgetHandle(
+                            key: "Row_n4z2jmhn",
+                            type: "Row",
+                            path: "Reviews.body[0].children[2].children[0].children[1].children[0]",
+                            name: "Row",
+                            children: <ffai.ProjectWidgetHandle>[
+                              ffai.ProjectWidgetHandle(
+                                key: "IconButton_l9wrdrfk",
+                                type: "IconButton",
+                                path: "Reviews.body[0].children[2].children[0].children[1].children[0].children[0]",
+                                name: "starOn1",
+                                triggers: const <String>[
+                                  "ON_TAP",
+                                ],
+                              ),
+                              ffai.ProjectWidgetHandle(
+                                key: "IconButton_mhtyge46",
+                                type: "IconButton",
+                                path: "Reviews.body[0].children[2].children[0].children[1].children[0].children[1]",
+                                name: "starOff1",
+                                triggers: const <String>[
+                                  "ON_TAP",
+                                ],
+                              ),
+                              ffai.ProjectWidgetHandle(
+                                key: "IconButton_8dmxdt5h",
+                                type: "IconButton",
+                                path: "Reviews.body[0].children[2].children[0].children[1].children[0].children[2]",
+                                name: "starOn2",
+                                triggers: const <String>[
+                                  "ON_TAP",
+                                ],
+                              ),
+                              ffai.ProjectWidgetHandle(
+                                key: "IconButton_dickoxax",
+                                type: "IconButton",
+                                path: "Reviews.body[0].children[2].children[0].children[1].children[0].children[3]",
+                                name: "starOff2",
+                                triggers: const <String>[
+                                  "ON_TAP",
+                                ],
+                              ),
+                              ffai.ProjectWidgetHandle(
+                                key: "IconButton_m1twrzgd",
+                                type: "IconButton",
+                                path: "Reviews.body[0].children[2].children[0].children[1].children[0].children[4]",
+                                name: "starOn3",
+                                triggers: const <String>[
+                                  "ON_TAP",
+                                ],
+                              ),
+                              ffai.ProjectWidgetHandle(
+                                key: "IconButton_pwpvgolm",
+                                type: "IconButton",
+                                path: "Reviews.body[0].children[2].children[0].children[1].children[0].children[5]",
+                                name: "starOff3",
+                                triggers: const <String>[
+                                  "ON_TAP",
+                                ],
+                              ),
+                              ffai.ProjectWidgetHandle(
+                                key: "IconButton_6zawo07u",
+                                type: "IconButton",
+                                path: "Reviews.body[0].children[2].children[0].children[1].children[0].children[6]",
+                                name: "starOn4",
+                                triggers: const <String>[
+                                  "ON_TAP",
+                                ],
+                              ),
+                              ffai.ProjectWidgetHandle(
+                                key: "IconButton_453aqd77",
+                                type: "IconButton",
+                                path: "Reviews.body[0].children[2].children[0].children[1].children[0].children[7]",
+                                name: "starOff4",
+                                triggers: const <String>[
+                                  "ON_TAP",
+                                ],
+                              ),
+                              ffai.ProjectWidgetHandle(
+                                key: "IconButton_x1mau4wb",
+                                type: "IconButton",
+                                path: "Reviews.body[0].children[2].children[0].children[1].children[0].children[8]",
+                                name: "starOn5",
+                                triggers: const <String>[
+                                  "ON_TAP",
+                                ],
+                              ),
+                              ffai.ProjectWidgetHandle(
+                                key: "IconButton_knvq53bd",
+                                type: "IconButton",
+                                path: "Reviews.body[0].children[2].children[0].children[1].children[0].children[9]",
+                                name: "starOff5",
+                                triggers: const <String>[
+                                  "ON_TAP",
+                                ],
+                              ),
+                            ],
+                          ),
+                          ffai.ProjectWidgetHandle(
+                            key: "Text_qby1te3c",
+                            type: "Text",
+                            path: "Reviews.body[0].children[2].children[0].children[1].children[1]",
+                            name: "Text",
+                            text: "Tap a star to rate",
+                          ),
+                        ],
                       ),
                       ffai.ProjectWidgetHandle(
                         key: "TextField_ft7j44h0",
@@ -173,7 +280,7 @@ abstract final class ReviewsWidgets {
                 type: "Text",
                 path: "Reviews.body[0].children[5]",
                 name: "reviewsEmpty",
-                text: "No reviews yet. Be the first once you have ordered it.",
+                text: "No reviews yet.",
               ),
               ffai.ProjectWidgetHandle(
                 key: "ListView_guswn7fv",

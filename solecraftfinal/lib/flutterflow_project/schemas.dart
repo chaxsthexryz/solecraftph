@@ -83,6 +83,15 @@ abstract final class Structs {
     },
     description: ffai.generatedProjectStructDescription,
   );
+  static final ffai.StructHandle cancelResult = ffai.StructHandle(
+    "CancelResult",
+    <String, ffai.DslType>{
+      "message": ffai.string,
+      "ok": ffai.bool_,
+      "order": Structs.orderFull,
+    },
+    description: ffai.generatedProjectStructDescription,
+  );
   static final ffai.StructHandle cartResponse = ffai.StructHandle(
     "CartResponse",
     <String, ffai.DslType>{
@@ -351,6 +360,7 @@ abstract final class Structs {
     authResponse,
     authUser,
     bagItem,
+    cancelResult,
     cartResponse,
     catalogResponse,
     deviceRegistered,
@@ -391,6 +401,7 @@ abstract final class Tables {
 abstract final class CustomCode {
   static const functions = <String>[
     "activePrice",
+    "allTrue",
     "badgeOf",
     "bagBlocker",
     "bagCount",
@@ -398,23 +409,38 @@ abstract final class CustomCode {
     "bagTotal",
     "bumpQty",
     "cartLines",
+    "cleanAddress",
     "countText",
+    "defaultAddressField",
+    "defaultAddressId",
     "hasNoAddresses",
     "hasSale",
     "imgUrl",
+    "initialsOf",
     "joinPin",
+    "linePrice",
+    "lineSub",
     "listStillHas",
+    "niceDate",
     "orderHeadline",
     "orderItems",
+    "orderNo",
     "orderSubline",
+    "orderTitle",
+    "payMethodLabel",
     "peso",
     "pesoN",
     "pinPart",
+    "ratingLabel",
+    "shippingLabel",
+    "sizeLabel",
     "sizeSellable",
+    "starOn",
     "subcategoriesOf",
     "textOr",
     "titleCase",
     "toNum",
+    "unreadLabel",
     "urlSafe",
   ];
   static const actions = <String>[
@@ -422,7 +448,9 @@ abstract final class CustomCode {
     "deviceToken",
   ];
   static const widgets = <String>[
+    "DevAvatar",
     "PinMap",
+    "TileImage",
   ];
 }
 

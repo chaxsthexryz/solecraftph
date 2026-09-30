@@ -1,0 +1,770 @@
+<title>SoleCraft Store Redesign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&display=block">
+<style>
+:root{
+  /* page chrome */
+  --bg:#F2F0EB; --fg:#111111; --muted:#5E5A52; --rule:#DDD9D0; --card:#FFFFFF;
+  /* app tokens: SoleCraft theme, kept */
+  --ink:#111111; --blaze:#E2412A; --paper:#FAF9F6; --stone:#EDEAE3; --gray:#8A8578; --white:#FFFFFF;
+  /* proposed additions */
+  --mist:#F3F1EC; --label2:#6E6A60;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#161513; --fg:#F2F0EB; --muted:#A8A396; --rule:#2E2C28; --card:#1F1E1B; color-scheme:dark; }
+}
+:root[data-theme="dark"]{ --bg:#161513; --fg:#F2F0EB; --muted:#A8A396; --rule:#2E2C28; --card:#1F1E1B; color-scheme:dark; }
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-inline:20px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding-block:48px 72px}
+header.intro{max-width:720px;margin-bottom:40px}
+header.intro h1{font-size:clamp(30px,4.2vw,44px);line-height:1.08;letter-spacing:-.025em;font-weight:700;margin:0 0 12px;text-wrap:balance}
+header.intro p{margin:0;color:var(--muted);font-size:17px;max-width:62ch}
+.ms{font-family:"Material Symbols Rounded";font-weight:normal;font-style:normal;font-size:24px;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;direction:ltr;-webkit-font-feature-settings:"liga";font-feature-settings:"liga";font-variation-settings:"FILL" 0,"wght" 400,"GRAD" 0,"opsz" 24;user-select:none}
+.ms.fill{font-variation-settings:"FILL" 1,"wght" 400,"GRAD" 0,"opsz" 24}
+
+.stage{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:40px 28px;align-items:start}
+figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:20px}
+figcaption{width:100%;max-width:360px}
+figcaption h2{font-size:17px;font-weight:600;margin:0 0 6px;letter-spacing:-.01em}
+figcaption ul{margin:0;padding-left:18px;color:var(--muted);font-size:14px;display:grid;gap:4px}
+
+/* ---------- phone ---------- */
+.phone{width:360px;max-width:100%;aspect-ratio:360/780;border-radius:44px;background:#0B0B0A;padding:10px;box-shadow:0 30px 60px -20px rgba(20,18,14,.35),0 8px 20px -8px rgba(20,18,14,.25)}
+.screen{position:relative;width:100%;height:100%;border-radius:35px;overflow:hidden;background:var(--white);color:var(--ink);font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.35;display:flex;flex-direction:column}
+.screen.grouped{background:var(--mist)}
+.screen.grouped .body{gap:12px}
+.status{height:34px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 22px 0 26px;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.status .sys{display:flex;gap:4px;align-items:center}
+.status .sys .ms{font-size:16px}
+.body{flex:1;overflow:hidden;padding:0 16px;display:flex;flex-direction:column;gap:14px}
+.gesture{height:18px;flex:none;display:flex;justify-content:center;align-items:center}
+.gesture i{width:108px;height:4px;border-radius:2px;background:var(--ink);opacity:.85}
+
+/* large title row */
+.topbar{display:flex;justify-content:flex-end;gap:4px;height:44px;align-items:center;margin:0 -8px;flex:none}
+.iconbtn{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;position:relative;color:var(--ink)}
+.iconbtn.chip{background:var(--mist)}
+.count{position:absolute;top:7px;right:6px;min-width:17px;height:17px;border-radius:9px;background:var(--blaze);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 4px;font-variant-numeric:tabular-nums}
+.large{font-size:34px;font-weight:700;letter-spacing:-.025em;line-height:1.05;margin:0}
+
+.search{height:40px;border-radius:12px;background:var(--mist);display:flex;align-items:center;gap:8px;padding:0 12px;color:var(--label2);font-size:16px;flex:none}
+.search .ms{font-size:20px}
+.chips{display:flex;gap:8px;margin:0 -16px;padding:0 16px;overflow:hidden;flex:none}
+.pill{height:36px;padding:0 16px;border-radius:18px;background:var(--mist);display:flex;align-items:center;font-size:14px;font-weight:500;white-space:nowrap}
+.pill.on{background:var(--ink);color:#fff}
+
+.feature{border-radius:22px;background:var(--mist);padding:18px 18px 0;display:grid;grid-template-columns:1fr 120px;gap:4px;align-items:end;min-height:150px;flex:none}
+.feature .t{align-self:start;display:flex;flex-direction:column;gap:6px;padding-bottom:18px}
+.flag{font-size:12px;font-weight:600;color:var(--blaze);letter-spacing:.01em}
+.feature h3{margin:0;font-size:21px;line-height:1.12;font-weight:700;letter-spacing:-.02em}
+.feature .sub{font-size:13px;color:var(--label2)}
+.feature img{mix-blend-mode:multiply;width:130px;margin:0 -10px 10px 0;transform:rotate(-8deg)}
+
+.sechead{display:flex;justify-content:space-between;align-items:baseline;margin-top:4px}
+.sechead h3{margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em}
+.sechead span{font-size:13px;color:var(--label2)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 12px}
+.card{display:flex;flex-direction:column;gap:4px}
+.tile{position:relative;aspect-ratio:1/1;border-radius:18px;background:var(--mist);display:grid;place-items:center;overflow:hidden;margin-bottom:6px}
+.tile img{mix-blend-mode:multiply;width:84%;height:84%;object-fit:contain}
+.tile .heart{position:absolute;top:4px;right:4px;width:40px;height:40px;display:grid;place-items:center;color:var(--ink)}
+.tile .heart .ms{font-size:20px}
+.tile .tag{position:absolute;top:10px;left:10px;height:22px;padding:0 9px;border-radius:11px;background:var(--white);color:var(--blaze);font-size:11px;font-weight:600;display:grid;place-items:center}
+/* Names always reserve two lines, so every price in a row sits on one line. */
+.card .name{font-size:14px;font-weight:600;line-height:1.25;min-height:2.5em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .price{font-size:14px;color:var(--ink);font-variant-numeric:tabular-nums}
+.was{color:var(--label2);text-decoration:line-through;margin-left:6px;font-size:13px}
+.sale{color:var(--blaze);font-weight:600}
+
+/* material nav bar, apple-quiet */
+.nav{flex:none;height:72px;background:rgba(255,255,255,.96);border-top:1px solid var(--stone);display:grid;grid-template-columns:repeat(4,1fr);align-items:center;padding-top:6px}
+.screen.grouped .nav{background:var(--white)}
+.tab{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;font-weight:500;color:var(--label2);position:relative}
+.tab .ind{width:56px;height:30px;border-radius:15px;display:grid;place-items:center;position:relative}
+.tab.on{color:var(--ink);font-weight:600}
+.tab.on .ind{background:var(--stone)}
+.tab .count{top:-3px;right:4px}
+
+/* details */
+.appbar{display:flex;justify-content:space-between;align-items:center;height:52px;margin:0 -8px;flex:none}
+.appbar .r{display:flex;gap:4px}
+.hero{border-radius:24px;background:var(--mist);height:228px;display:grid;place-items:center;flex:none}
+.hero img{mix-blend-mode:multiply;width:92%}
+.meta{display:flex;flex-direction:column;gap:4px}
+.meta .cat{font-size:13px;color:var(--label2);font-weight:500}
+.meta h2{margin:0;font-size:26px;line-height:1.1;letter-spacing:-.025em;font-weight:700}
+.meta .p{font-size:19px;font-weight:500;font-variant-numeric:tabular-nums;margin-top:2px}
+.label{font-size:15px;font-weight:600}
+.sizes{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.size{height:48px;border-radius:12px;border:1px solid var(--stone);display:grid;place-items:center;font-size:15px;font-weight:500;font-variant-numeric:tabular-nums}
+.size.on{border:2px solid var(--ink);font-weight:600}
+.row{display:flex;justify-content:space-between;align-items:center}
+.stepper{display:flex;align-items:center;background:var(--mist);border-radius:22px;height:40px}
+.stepper span.ms{width:44px;text-align:center;font-size:20px}
+.stepper b{min-width:20px;text-align:center;font-weight:600;font-variant-numeric:tabular-nums}
+.desc{font-size:14px;color:var(--label2);margin:0;line-height:1.45}
+.bottombar{flex:none;background:var(--white);border-top:1px solid var(--stone);padding:12px 16px 4px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{height:50px;border-radius:25px;display:grid;place-items:center;font-size:16px;font-weight:600;letter-spacing:-.01em;flex:none}
+.btn.primary{background:var(--blaze);color:#fff}
+.btn.tonal{background:var(--mist);color:var(--ink)}
+.btn.full{width:100%}
+
+/* bag */
+.lede{display:flex;flex-direction:column;gap:6px}
+.lede .total{font-size:17px;font-weight:600;letter-spacing:-.01em}
+.lede .total b{font-variant-numeric:tabular-nums}
+.lede .fine{font-size:13px;color:var(--label2)}
+.group{background:var(--white);border-radius:18px;overflow:hidden;flex:none}
+.item{display:grid;grid-template-columns:76px 1fr;gap:12px;padding:12px 14px}
+.item + .item{border-top:1px solid var(--stone);margin-left:14px;padding-left:0}
+.item .tile{margin:0;border-radius:14px;width:76px;height:76px}
+.item .info{display:flex;flex-direction:column;gap:2px;min-width:0}
+.item .top{display:flex;justify-content:space-between;gap:8px;font-size:15px;font-weight:600}
+.item .top span:last-child{font-variant-numeric:tabular-nums;white-space:nowrap}
+.item .opt{font-size:13px;color:var(--label2)}
+.item .acts{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
+.item .stepper{height:32px;background:var(--mist)}
+.item .stepper span.ms{width:36px;font-size:18px}
+.link{color:var(--blaze);font-size:14px;font-weight:600;padding:8px 0}
+.sum{padding:4px 14px}
+.sum .row{height:38px;font-size:15px;font-variant-numeric:tabular-nums}
+.sum .row span:first-child{color:var(--label2)}
+.sum .row.tot{border-top:1px solid var(--stone);height:40px;font-weight:700;font-size:17px}
+.sum .row.tot span:first-child{color:var(--ink)}
+
+/* ---------- shared: pushed-screen app bar, grouped lists, forms ---------- */
+.bar{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;height:52px;margin:0 -8px;flex:none}
+.bar .ttl{text-align:center;font-size:17px;font-weight:600;letter-spacing:-.01em}
+.bar .act{justify-self:end;color:var(--blaze);font-size:14px;font-weight:600;white-space:nowrap;padding-right:8px}
+.note{font-size:13px;color:var(--label2);line-height:1.4;margin:0}
+.ghead{font-size:13px;font-weight:600;color:var(--label2);margin:4px 0 -6px 14px}
+/* Every row keeps the same 14px inset; the divider is drawn, never made by
+   shifting the row, so photos, icons and text stay on one left edge. The
+   divider starts where the text starts, like iOS. */
+.li{display:flex;align-items:center;gap:12px;min-height:50px;padding:0 14px;position:relative;--inset:14px}
+.li:has(.ic){--inset:56px}
+.li:has(.th){--inset:70px}
+.li:has(.av){--inset:82px}
+.li + .li::before{content:"";position:absolute;top:0;right:0;left:var(--inset);height:1px;background:var(--stone)}
+.li .ic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;flex:none;background:var(--mist);color:var(--ink)}
+.li .ic .ms{font-size:18px}
+.li .grow{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;padding:8px 0}
+.li .grow b{font-weight:500;font-size:15px}
+.li .grow small{font-size:12px;color:var(--label2)}
+.li .end{color:var(--label2);font-size:14px;display:flex;align-items:center;gap:2px;font-variant-numeric:tabular-nums}
+.li .end .ms{font-size:20px;color:var(--gray)}
+.li .th{width:44px;height:44px;border-radius:10px;background:var(--mist);display:grid;place-items:center;overflow:hidden;flex:none}
+.li .th img{mix-blend-mode:multiply;width:88%}
+.fields .f{display:flex;flex-direction:column;justify-content:center;gap:2px;min-height:56px;padding:6px 14px}
+.fields .f + .f{border-top:1px solid var(--stone);margin-left:14px;padding-left:0}
+.fields .f small{font-size:12px;color:var(--label2);font-weight:500}
+.fields .f span{font-size:16px;display:flex;justify-content:space-between;align-items:center}
+.fields .f span.ph{color:var(--label2)}
+.fields .f .ms{font-size:20px;color:var(--label2)}
+.st{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:12px;font-size:12px;font-weight:600;white-space:nowrap}
+.st.ship{background:#E7EEF1;color:#2D4E5C}
+.st.done{background:#E3EEE8;color:#2F6B4F}
+.st.pend{background:#F5ECDB;color:#8A5F12}
+.st.cxl{background:#FBE5E1;color:#B12E1B}
+.check{color:var(--blaze)}
+.dot{width:8px;height:8px;border-radius:4px;background:var(--blaze);flex:none}
+.dot.off{background:transparent}
+.stars{color:var(--ink);letter-spacing:1px;font-size:13px}
+.stars .ms{font-size:16px}
+.tl{display:flex;flex-direction:column;padding:6px 14px}
+.tl .step{display:grid;grid-template-columns:18px 1fr;gap:12px;position:relative;padding-bottom:14px}
+.tl .step:last-child{padding-bottom:4px}
+.tl .step::before{content:"";position:absolute;left:8px;top:18px;bottom:0;width:2px;background:var(--stone)}
+.tl .step:last-child::before{display:none}
+.tl .pin{width:18px;height:18px;border-radius:9px;border:2px solid var(--stone);background:var(--white);margin-top:1px}
+.tl .step.on .pin{border-color:var(--ink);background:var(--ink)}
+.tl b{font-size:14px;font-weight:600;display:block}
+.tl small{font-size:12px;color:var(--label2)}
+.web{flex:1;border-radius:18px;background:var(--white);border:1px dashed var(--gray);display:grid;place-items:center;text-align:center;padding:20px;color:var(--label2);font-size:13px}
+.done-hero{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding-top:28px}
+.done-hero .ms{font-size:64px;color:var(--success,#2F6B4F)}
+.brand{font-size:15px;font-weight:700;letter-spacing:-.01em;padding-top:12px}
+.brand b{color:var(--blaze)}
+.center{text-align:center}
+.link.c{display:block;text-align:center}
+.prose{font-size:15px;line-height:1.55;margin:0;color:var(--ink)}
+.acct{display:flex;align-items:center;gap:14px;padding:14px}
+.avatar{width:56px;height:56px;border-radius:28px;background:var(--ink);color:#fff;display:grid;place-items:center;font-size:20px;font-weight:600;flex:none}
+.acct b{font-size:18px;font-weight:600;display:block;letter-spacing:-.01em}
+.acct small{font-size:13px;color:var(--label2)}
+.signout{color:var(--blaze);font-weight:600;justify-content:center}
+.ta{min-height:88px;justify-content:flex-start!important;padding-top:10px!important}
+.rate{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 14px 10px}
+.rate .row5{display:flex;gap:4px}
+.rate .row5 .ms{width:48px;height:48px;display:grid;place-items:center;font-size:34px;color:var(--gray)}
+.rate .row5 .ms.fill{color:var(--blaze)}
+.rate small{font-size:13px;color:var(--label2)}
+.av{width:56px;height:56px;border-radius:28px;background:var(--ink);color:#fff;display:grid;place-items:center;font-size:18px;font-weight:700;letter-spacing:.02em;flex:none;margin:8px 0}
+
+.chapter{margin:88px 0 28px;max-width:720px}
+.chapter h2{font-size:28px;letter-spacing:-.02em;margin:0 0 6px;font-weight:700}
+.chapter p{margin:0;color:var(--muted)}
+.stage.small figcaption h2{margin:0}
+
+/* system strip */
+.system{margin-top:64px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+.panel{background:var(--card);border:1px solid var(--rule);border-radius:18px;padding:22px}
+.panel h3{margin:0 0 14px;font-size:15px;font-weight:600}
+.sw{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;font-size:13px;padding:5px 0}
+.sw i{width:28px;height:28px;border-radius:8px;border:1px solid var(--rule)}
+.sw code{font:12px ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--muted)}
+.sw .new{font-size:11px;font-weight:600;color:var(--blaze)}
+.scale div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:4px 0;border-bottom:1px solid var(--rule)}
+.scale div:last-child{border:0}
+.scale code{font:12px ui-monospace,Consolas,monospace;color:var(--muted);white-space:nowrap}
+.decide{margin:0;padding-left:18px;display:grid;gap:10px;font-size:14px;color:var(--muted)}
+.decide b{color:var(--fg);font-weight:600}
+@media (prefers-reduced-motion:no-preference){ .phone{transition:transform .4s cubic-bezier(.2,.8,.2,1)} .phone:hover{transform:translateY(-4px)} }
+</style>
+
+<div class="wrap">
+  <header class="intro">
+    <h1>SoleCraft in the Apple Store style</h1>
+    <p>Second draft of all 18 screens, plus a new Developers page. It keeps your colors, and your red does the job Apple's blue does: primary buttons, links, and the New and Sale labels. Products, prices, form fields and page copy are real, taken from your catalog and app. Orders, notifications and reviews show example rows. Nothing has been pushed to FlutterFlow yet.</p>
+  </header>
+
+  <section class="stage">
+
+    <!-- ============ SHOP ============ -->
+    <figure>
+      <div class="phone"><div class="screen">
+        <div class="status"><span>9:41</span><span class="sys"><span class="ms fill">signal_cellular_alt</span><span class="ms fill">wifi</span><span class="ms fill">battery_full</span></span></div>
+        <div class="body">
+          <div class="topbar">
+            <span class="iconbtn"><span class="ms">shopping_bag</span><span class="count">2</span></span>
+            <span class="iconbtn chip"><span class="ms">person</span></span>
+          </div>
+          <h1 class="large">Shop</h1>
+          <div class="search"><span class="ms">search</span>Search shoes</div>
+          <div class="chips">
+            <span class="pill on">All</span><span class="pill">Performance</span><span class="pill">Casual</span><span class="pill">Formal</span>
+          </div>
+          <div class="feature">
+            <div class="t">
+              <span class="flag">New</span>
+              <h3>New drops every Friday.</h3>
+              <span class="sub">Nike Air Force 1 · ₱4,450.00</span>
+            </div>
+            <img src="img/af1.jpg" alt="Nike Air Force 1">
+          </div>
+          <div class="sechead"><h3>All shoes</h3><span>45 styles</span></div>
+          <div class="grid">
+            <div class="card"><div class="tile"><img src="img/pegasus41.png" alt="Nike Pegasus 41"><span class="heart"><span class="ms">favorite</span></span></div><span class="name">Nike Pegasus 41</span><span class="price">₱8,200.00</span></div>
+            <div class="card"><div class="tile"><img src="img/kayano31.webp" alt="Asics Gel-Kayano 31"><span class="heart"><span class="ms">favorite</span></span></div><span class="name">Asics Gel-Kayano 31</span><span class="price">₱6,300.00</span></div>
+            <div class="card"><div class="tile"><img src="img/metcon9.jpg" alt="Nike Metcon 9"><span class="heart"><span class="ms">favorite</span></span><span class="tag">Sale</span></div><span class="name">Nike Metcon 9</span><span class="price"><span class="sale">₱4,700.00</span><span class="was">₱5,300.00</span></span></div>
+            <div class="card"><div class="tile"><img src="img/clifton9.jpg" alt="Hoka Clifton 9"><span class="heart"><span class="ms">favorite</span></span></div><span class="name">Hoka Clifton 9</span><span class="price">₱8,350.00</span></div>
+          </div>
+        </div>
+        <nav class="nav">
+          <span class="tab on"><span class="ind"><span class="ms fill">storefront</span></span>Shop</span>
+          <span class="tab"><span class="ind"><span class="ms">shopping_bag</span><span class="count">2</span></span>Bag</span>
+          <span class="tab"><span class="ind"><span class="ms">receipt_long</span></span>Orders</span>
+          <span class="tab"><span class="ind"><span class="ms">person</span></span>Account</span>
+        </nav>
+        <div class="gesture"><i></i></div>
+      </div></div>
+      <figcaption>
+        <h2>Shop</h2>
+        <ul>
+          <li>Big bold "Shop" title, account button top right, like the Apple Store app.</li>
+          <li>Photos sit on soft warm tiles, and their white backgrounds blend into the tile.</li>
+          <li>"New" and "Sale" come from each product's real badge, shown in red above the name.</li>
+        </ul>
+      </figcaption>
+    </figure>
+
+    <!-- ============ SHOE DETAILS ============ -->
+    <figure>
+      <div class="phone"><div class="screen">
+        <div class="status"><span>9:41</span><span class="sys"><span class="ms fill">signal_cellular_alt</span><span class="ms fill">wifi</span><span class="ms fill">battery_full</span></span></div>
+        <div class="body">
+          <div class="appbar">
+            <span class="iconbtn chip"><span class="ms">arrow_back</span></span>
+            <span class="r"><span class="iconbtn chip"><span class="ms">favorite</span></span><span class="iconbtn chip"><span class="ms">share</span></span></span>
+          </div>
+          <div class="hero"><img src="img/kayano31.webp" alt="Asics Gel-Kayano 31"></div>
+          <div class="meta">
+            <span class="cat">Road Running Shoes</span>
+            <h2>Asics Gel-Kayano 31</h2>
+            <span class="p">₱6,300.00</span>
+          </div>
+          <span class="label">Size (US)</span>
+          <div class="sizes"><span class="size">7</span><span class="size">8</span><span class="size on">9</span><span class="size">10</span><span class="size">11</span><span class="size">12</span></div>
+          <div class="row"><span class="label">Quantity</span><span class="stepper"><span class="ms">remove</span><b>1</b><span class="ms">add</span></span></div>
+          <p class="desc">Cushioned road runner built for daily mileage and long-distance comfort.</p>
+        </div>
+        <div class="bottombar">
+          <span class="btn tonal">Buy Now</span>
+          <span class="btn primary">Add to Bag</span>
+        </div>
+        <div class="gesture"><i></i></div>
+      </div></div>
+      <figcaption>
+        <h2>Shoe Details</h2>
+        <ul>
+          <li>The photo leads the page, then the name and price in large type.</li>
+          <li>Sizes are 48dp tiles; the selected one gets an ink outline, like Apple's option pickers.</li>
+          <li>The buttons are pinned to the bottom: red capsule for Add to Bag, quiet capsule for Buy Now. The back arrow is Android's own.</li>
+        </ul>
+      </figcaption>
+    </figure>
+
+    <!-- ============ BAG ============ -->
+    <figure>
+      <div class="phone"><div class="screen grouped">
+        <div class="status"><span>9:41</span><span class="sys"><span class="ms fill">signal_cellular_alt</span><span class="ms fill">wifi</span><span class="ms fill">battery_full</span></span></div>
+        <div class="body">
+          <div class="topbar"></div>
+          <h1 class="large">Bag</h1>
+          <div class="lede">
+            <span class="total">Your bag total is <b>₱12,900.00</b>.</span>
+          </div>
+          <span class="btn primary full">Check Out</span>
+          <div class="group">
+            <div class="item">
+              <div class="tile"><img src="img/pegasus41.png" alt="Nike Pegasus 41"></div>
+              <div class="info">
+                <div class="top"><span>Nike Pegasus 41</span><span>₱8,200.00</span></div>
+                <span class="opt">Size 9</span>
+                <div class="acts"><span class="stepper"><span class="ms">remove</span><b>1</b><span class="ms">add</span></span><span class="link">Remove</span></div>
+              </div>
+            </div>
+            <div class="item">
+              <div class="tile"><img src="img/metcon9.jpg" alt="Nike Metcon 9"></div>
+              <div class="info">
+                <div class="top"><span>Nike Metcon 9</span><span>₱4,700.00</span></div>
+                <span class="opt">Size 10</span>
+                <div class="acts"><span class="stepper"><span class="ms">remove</span><b>1</b><span class="ms">add</span></span><span class="link">Remove</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="group sum">
+            <div class="row"><span>Subtotal</span><span>₱12,900.00</span></div>
+            <div class="row"><span>Shipping</span><span>Free</span></div>
+            <div class="row tot"><span>Total</span><span>₱12,900.00</span></div>
+          </div>
+        </div>
+        <nav class="nav">
+          <span class="tab"><span class="ind"><span class="ms">storefront</span></span>Shop</span>
+          <span class="tab on"><span class="ind"><span class="ms fill">shopping_bag</span><span class="count">2</span></span>Bag</span>
+          <span class="tab"><span class="ind"><span class="ms">receipt_long</span></span>Orders</span>
+          <span class="tab"><span class="ind"><span class="ms">person</span></span>Account</span>
+        </nav>
+        <div class="gesture"><i></i></div>
+      </div></div>
+      <figcaption>
+        <h2>Bag</h2>
+        <ul>
+          <li>Opens with the total and a Check Out button, the way the Apple Store bag does.</li>
+          <li>Items and totals sit in white groups on a warm grey ground, like iOS Settings.</li>
+          <li>Shipping reads "Free" from your real rule: free over ₱2,000.</li>
+        </ul>
+      </figcaption>
+    </figure>
+  </section>
+
+  <!-- ================================================================ CHECKOUT & PAYMENT -->
+  <div class="chapter"><h2>Checkout and payment</h2><p>One white group per step, the way the Apple Store checkout reads. Place Order stays pinned to the bottom.</p></div>
+  <section class="stage">
+    <figure>
+      <div class="phone"><div class="screen grouped">
+        <div class="status"><span>9:41</span><span class="sys"><span class="ms fill">signal_cellular_alt</span><span class="ms fill">wifi</span><span class="ms fill">battery_full</span></span></div>
+        <div class="body">
+          <div class="bar"><span class="iconbtn"><span class="ms">arrow_back</span></span><span class="ttl">Checkout</span><span></span></div>
+          <div class="ghead">Shipping details</div>
+          <div class="group fields">
+            <div class="f"><small>Full name</small><span>Juan dela Cruz</span></div>
+            <div class="f"><small>Mobile number</small><span>0917 555 0142</span></div>
+            <div class="f"><small>Delivery address</small><span>12 Mabini St, Brgy. San Roque, Marikina<span class="ms">location_on</span></span></div>
+          </div>
+          <div class="ghead">Payment method</div>
+          <div class="group">
+            <div class="li plain"><span class="grow"><b>Cash on Delivery</b></span><span class="ms check">check</span></div>
+            <div class="li plain"><span class="grow"><b>GCash</b></span></div>
+            <div class="li plain"><span class="grow"><b>Card</b></span></div>
+          </div>
+          <div class="group">
+            <div class="li"><span class="th"><img src="img/pegasus41.png" alt=""></span><span class="grow"><b>Nike Pegasus 41</b><small>Size 9 · Qty 1</small></span><span class="end">₱8,200.00</span></div>
+            <div class="li"><span class="th"><img src="img/metcon9.jpg" alt=""></span><span class="grow"><b>Nike Metcon 9</b><small>Size 10 · Qty 1</small></span><span class="end">₱4,700.00</span></div>
+          </div>
+        </div>
+        <div class="bottombar" style="grid-template-columns:1fr auto;align-items:center">
+          <span class="lede"><span class="fine">Order total</span><span class="total"><b>₱12,900.00</b></span></span>
+          <span class="btn primary" style="padding:0 28px">Place Order</span>
+        </div>
+        <div class="gesture"><i></i></div>
+      </div></div>
+      <figcaption><h2>Checkout</h2><ul><li>The items you're buying now show above the total (right now it only says "Items 1").</li><li>The payment method list uses a red check mark, like an iOS picker.</li></ul></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="screen grouped">
+        <div class="status"><span>9:41</span><span class="sys"><span class="ms fill">signal_cellular_alt</span><span class="ms fill">wifi</span><span class="ms fill">battery_full</span></span></div>
+        <div class="body">
+          <div class="bar"><span class="iconbtn"><span class="ms">close</span></span><span class="ttl">Complete Payment</span><span></span></div>
+          <div class="web">PayMongo checkout loads here<br>(test mode, no real charge)</div>
+          <p class="note center">Finish paying above, then check your order.</p>
+        </div>
+        <div class="bottombar" style="grid-template-columns:1fr"><span class="btn primary">I have paid — check my order</span></div>
+        <div class="gesture"><i></i></div>
+      </div></div>
+      <figcaption><h2>Complete Payment</h2><ul><li>PayMongo's page gets the whole screen, and your one action stays at the bottom.</li></ul></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="screen grouped">
+        <div class="status"><span>9:41</span><span class="sys"><span class="ms fill">signal_cellular_alt</span><span class="ms fill">wifi</span><span class="ms fill">battery_full</span></span></div>
+        <div class="body">
+          <div class="done-hero"><span class="ms fill">check_circle</span><h1 class="large">Order Placed</h1><p class="note">We'll notify you when it ships.</p></div>
+          <div class="group">
+            <div class="li plain"><span class="grow"><b>Order number</b></span><span class="end">#62</span></div>
+            <div class="li plain"><span class="grow"><b>Status</b></span><span class="st pend">Pending</span></div>
+            <div class="li plain"><span class="grow"><b>Amount</b></span><span class="end">₱12,900.00</span></div>
+          </div>
+        </div>
+        <div class="bottombar" style="grid-template-columns:1fr"><span class="btn primary">Continue shopping</span></div>
+        <div class="gesture"><i></i></div>
+      </div></div>
+      <figcaption><h2>Order Placed</h2><ul><li>One green check, a big title and three facts. Nothing else competes with them.</li></ul></figcaption>
+    </figure>
+  </section>
+
+  <!-- ================================================================ ORDERS -->
+  <div class="chapter"><h2>Orders and notifications</h2><p>Status shows as a colored pill, so you can tell shipped from cancelled without reading.</p></div>
+  <section class="stage">
+    <figure>
+      <div class="phone"><div class="screen grouped">
+        <div class="status"><span>9:41</span><span class="sys"><span class="ms fill">signal_cellular_alt</span><span class="ms fill">wifi</span><span class="ms fill">battery_full</span></span></div>
+        <div class="body">
+          <div class="topbar"></div>
+          <h1 class="large">My Orders</h1>
+          <div class="group">
+            <div class="li"><span class="th"><img src="img/kayano31.webp" alt=""></span><span class="grow"><b>Order #61</b><small>Sep 26 · ₱6,300.00</small></span><span class="st ship">Shipped</span><span class="end"><span class="ms">chevron_right</span></span></div>
+            <div class="li"><span class="th"><img src="img/af1.jpg" alt=""></span><span class="grow"><b>Order #58</b><small>Sep 19 · ₱4,450.00</small></span><span class="st done">Completed</span><span class="end"><span class="ms">chevron_right</span></span></div>
+            <div class="li"><span class="th"><img src="img/ghost16.jpg" alt=""></span><span class="grow"><b>Order #55</b><small>Sep 14 · ₱6,950.00</small></span><span class="st pend">Processing</span><span class="end"><span class="ms">chevron_right</span></span></div>
+            <div class="li"><span class="th"><img src="img/clifton9.jpg" alt=""></span><span class="grow"><b>Order #54</b><small>Sep 12 · ₱8,350.00</small></span><span class="st cxl">Cancelled</span><span class="end"><span class="ms">chevron_right</span></span></div>
+          </div>
+        </div>
+        <nav class="nav">
+          <span class="tab"><span class="ind"><span class="ms">storefront</span></span>Shop</span>
+          <span class="tab"><span class="ind"><span class="ms">shopping_bag</span></span>Bag</span>
+          <span class="tab on"><span class="ind"><span class="ms fill">receipt_long</span></span>Orders</span>
+          <span class="tab"><span class="ind"><span class="ms">person</span></span>Account</span>
+        </nav>
+        <div class="gesture"><i></i></div>
+      </div></div>
+      <figcaption><h2>My Orders</h2><ul><li>Each row: shoe photo, order number, date and total, then the status pill.</li></ul></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="screen grouped">
+        <div class="status"><span>9:41</span><span class="sys"><span class="ms fill">signal_cellular_alt</span><span class="ms fill">wifi</span><span class="ms fill">battery_full</span></span></div>
+        <div class="body">
+          <div class="bar"><span class="iconbtn"><span class="ms">arrow_back</span></span><span class="ttl"></span><span></span></div>
+          <div class="row"><h1 class="large" style="font-size:30px">Order #61</h1><span class="st ship">Shipped</span></div>
+          <div class="group">
+            <div class="li plain"><span class="grow"><b>Placed</b></span><span class="end">Sep 26, 2026</span></div>
+            <div class="li plain"><span class="grow"><b>Payment</b></span><span class="end">Cash on Delivery</span></div>
+            <div class="li plain"><span class="grow"><b>Total</b></span><span class="end" style="color:var(--ink);font-weight:600">₱6,300.00</span></div>
+          </div>
+          <div class="ghead">Tracking history</div>
+          <div class="group tl">
+            <div class="step on"><span class="pin"></span><span><b>Shipped</b><small>Sep 27, 10:14 AM</small></span></div>
+            <div class="step on"><span class="pin"></span><span><b>Processing</b><small>Sep 26, 4:02 PM</small></span></div>
+            <div class="step on"><span class="pin"></span><span><b>Pending</b><small>Sep 26, 2:40 PM</small></span></div>
+          </div>
+          <div class="ghead">Delivering to</div>
+          <div class="group"><div class="li plain"><span class="grow"><b>Juan dela Cruz</b><small>12 Mabini St, Brgy. San Roque, Marikina</small></span></div></div>
+        </div>
+        <div class="gesture"><i></i></div>
+      </div></div>
+      <figcaption><h2>Order detail</h2><ul><li>Tracking history is a real timeline, newest first, instead of a plain list.</li></ul></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="screen grouped">
+        <div class="status"><span>9:41</span><span class="sys"><span class="ms fill">signal_cellular_alt</span><span class="ms fill">wifi</span><span class="ms fill">battery_full</span></span></div>
+        <div class="body">
+          <div class="bar"><span class="iconbtn"><span class="ms">arrow_back</span></span><span class="ttl"></span><span class="act">Mark all read</span></div>
+          <h1 class="large">Notifications</h1>
+          <div class="group">
+            <div class="li plain"><span class="dot"></span><span class="grow"><b>Order #61 has shipped</b><small>Your Asics Gel-Kayano 31 is on the way.</small></span><span class="end" style="font-size:12px">2h</span></div>
+            <div class="li plain"><span class="dot"></span><span class="grow"><b>Order #61 is being prepared</b><small>We're packing your order.</small></span><span class="end" style="font-size:12px">1d</span></div>
+            <div class="li plain"><span class="dot off"></span><span class="grow"><b>Order #58 was delivered</b><small>Enjoy your Nike Air Force 1.</small></span><span class="end" style="font-size:12px">Sep 21</span></div>
+            <div class="li plain"><span class="dot off"></span><span class="grow"><b>Order #54 was cancelled</b><small>No payment was taken.</small></span><span class="end" style="font-size:12px">Sep 12</span></div>
+          </div>
+        </div>
+        <div class="gesture"><i></i></div>
+      </div></div>
+      <figcaption><h2>Notifications</h2><ul><li>A red dot marks unread. "Mark all read" sits top right, like Mail.</li></ul></figcaption>
+    </figure>
+  </section>
+
+  <!-- ================================================================ ACCOUNT -->
+  <div class="chapter"><h2>Account</h2><p>Built like iOS Settings: small icon tiles, rows in groups, Sign out on its own at the bottom.</p></div>
+  <section class="stage">
+    <figure>
+      <div class="phone"><div class="screen grouped">
+        <div class="status"><span>9:41</span><span class="sys"><span class="ms fill">signal_cellular_alt</span><span class="ms fill">wifi</span><span class="ms fill">battery_full</span></span></div>
+        <div class="body">
+          <div class="topbar"></div>
+          <h1 class="large">Account</h1>
+          <div class="group"><div class="acct"><span class="avatar">JD</span><span><b>Juan dela Cruz</b><small>juan.delacruz@email.com</small></span></div></div>
+          <div class="group">
+            <div class="li"><span class="ic"><span class="ms">receipt_long</span></span><span class="grow"><b>My orders</b></span><span class="end"><span class="ms">chevron_right</span></span></div>
+            <div class="li"><span class="ic"><span class="ms">favorite</span></span><span class="grow"><b>Wishlist</b></span><span class="end"><span class="ms">chevron_right</span></span></div>
+            <div class="li"><span class="ic"><span class="ms">notifications</span></span><span class="grow"><b>Notifications</b></span><span class="end">2<span class="ms">chevron_right</span></span></div>
+          </div>
+          <div class="group">
+            <div class="li"><span class="ic"><span class="ms">person</span></span><span class="grow"><b>Profile</b></span><span class="end"><span class="ms">chevron_right</span></span></div>
+            <div class="li"><span class="ic"><span class="ms">location_on</span></span><span class="grow"><b>Delivery addresses</b></span><span class="end"><span class="ms">chevron_right</span></span></div>
+            <div class="li"><span class="ic"><span class="ms">help</span></span><span class="grow"><b>Help &amp; Info</b></span><span class="end"><span class="ms">chevron_right</span></span></div>
+          </div>
+          <div class="group"><div class="li plain signout">Sign out</div></div>
+        </div>
+        <nav class="nav">
+          <span class="tab"><span class="ind"><span class="ms">storefront</span></span>Shop</span>
+          <span class="tab"><span class="ind"><span class="ms">shopping_bag</span></span>Bag</span>
+          <span class="tab"><span class="ind"><span class="ms">receipt_long</span></span>Orders</span>
+          <span class="tab on"><span class="ind"><span class="ms fill">person</span></span>Account</span>
+        </nav>
+        <div class="gesture"><i></i></div>
+      </div></div>
+      <figcaption><h2>Account</h2><ul><li>Your name and email at the top, where Apple shows your Apple Account.</li><li>"My bag" and "Visit the website" are dropped: Bag is already a tab, and the website link isn't needed to shop. Say if you want them back.</li></ul></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="screen grouped">
+        <div class="status"><span>9:41</span><span class="sys"><span class="ms fill">signal_cellular_alt</span><span class="ms fill">wifi</span><span class="ms fill">battery_full</span></span></div>
+        <div class="body">
+          <div class="bar"><span class="iconbtn"><span class="ms">arrow_back</span></span><span class="ttl">Profile</span><span></span></div>
+          <div class="group fields">
+            <div class="f"><small>Full name</small><span>Juan dela Cruz</span></div>
+            <div class="f"><small>Mobile number</small><span>0917 555 0142</span></div>
+            <div class="f"><small>Delivery address</small><span>12 Mabini St, Brgy. San Roque, Marikina</span></div>
+          </div>
+          <span class="btn primary full">Save changes</span>
+          <div class="ghead">Password</div>
+          <div class="group fields">
+            <div class="f"><small>Current password</small><span>••••••••<span class="ms">visibility</span></span></div>
+            <div class="f"><small>New password</small><span class="ph">At least 8 characters</span></div>
+          </div>
+          <span class="btn tonal full">Change password</span>
+        </div>
+        <div class="gesture"><i></i></div>
+      </div></div>
+      <figcaption><h2>Profile</h2><ul><li>Fields sit inside grouped rows with small labels, like iOS contact cards, instead of boxed text fields.</li></ul></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="screen grouped">
+        <div class="status"><span>9:41</span><span class="sys"><span class="ms fill">signal_cellular_alt</span><span class="ms fill">wifi</span><span class="ms fill">battery_full</span></span></div>
+        <div class="body">
+          <div class="bar"><span class="iconbtn"><span class="ms">arrow_back</span></span><span class="ttl">Delivery addresses</span><span></span></div>
+          <div class="group">
+            <div class="li plain"><span class="grow"><b>Home</b><small>Juan dela Cruz · 0917 555 0142<br>12 Mabini St, Brgy. San Roque, Marikina</small></span><span class="ms check">check</span></div>
+            <div class="li plain"><span class="grow"><b>Work</b><small>Juan dela Cruz · 0917 555 0142<br>8th Ave, Bonifacio Global City, Taguig</small></span></div>
+          </div>
+          <div class="ghead">Add an address</div>
+          <div class="group fields">
+            <div class="f"><span class="ph">Label — Home, Work, Mum's</span></div>
+            <div class="f"><span class="ph">Who receives it</span></div>
+            <div class="f"><span class="ph">Contact number</span></div>
+            <div class="f"><span class="ph">House / street / barangay / city</span></div>
+            <div class="f"><span style="color:var(--blaze);font-weight:600">Pin on map<span class="ms" style="color:var(--blaze)">location_on</span></span></div>
+          </div>
+          <span class="btn primary full">Save address</span>
+        </div>
+        <div class="gesture"><i></i></div>
+      </div></div>
+      <figcaption><h2>Delivery addresses</h2><ul><li>Saved addresses on top, the default one checked. "Pin on map" reads as a red action row.</li></ul></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="screen">
+        <div class="status"><span>9:41</span><span class="sys"><span class="ms fill">signal_cellular_alt</span><span class="ms fill">wifi</span><span class="ms fill">battery_full</span></span></div>
+        <div class="body">
+          <div class="bar"><span class="iconbtn"><span class="ms">arrow_back</span></span><span class="ttl"></span><span></span></div>
+          <h1 class="large">Wishlist</h1>
+          <div class="grid">
+            <div class="card"><div class="tile"><img src="img/ghost16.jpg" alt="Brooks Ghost 16"><span class="heart"><span class="ms fill" style="color:var(--blaze)">favorite</span></span></div><span class="name">Brooks Ghost 16</span><span class="price">₱6,950.00</span></div>
+            <div class="card"><div class="tile"><img src="img/af1.jpg" alt="Nike Air Force 1"><span class="heart"><span class="ms fill" style="color:var(--blaze)">favorite</span></span><span class="tag">New</span></div><span class="name">Nike Air Force 1</span><span class="price">₱4,450.00</span></div>
+            <div class="card"><div class="tile"><img src="img/metcon9.jpg" alt="Nike Metcon 9"><span class="heart"><span class="ms fill" style="color:var(--blaze)">favorite</span></span><span class="tag">Sale</span></div><span class="name">Nike Metcon 9</span><span class="price"><span class="sale">₱4,700.00</span><span class="was">₱5,300.00</span></span></div>
+            <div class="card"><div class="tile"><img src="img/pegasus41.png" alt="Nike Pegasus 41"><span class="heart"><span class="ms fill" style="color:var(--blaze)">favorite</span></span></div><span class="name">Nike Pegasus 41</span><span class="price">₱8,200.00</span></div>
+          </div>
+        </div>
+        <div class="gesture"><i></i></div>
+      </div></div>
+      <figcaption><h2>Wishlist</h2><ul><li>Same tiles as Shop, so a saved shoe looks the same everywhere. Filled red hearts.</li></ul></figcaption>
+    </figure>
+  </section>
+
+  <!-- ================================================================ HELP & SIGN IN -->
+  <div class="chapter"><h2>Reviews, help and sign-in</h2><p>Forms use the same grouped rows as Profile, so they look the same everywhere.</p></div>
+  <section class="stage">
+    <figure>
+      <div class="phone"><div class="screen grouped">
+        <div class="status"><span>9:41</span><span class="sys"><span class="ms fill">signal_cellular_alt</span><span class="ms fill">wifi</span><span class="ms fill">battery_full</span></span></div>
+        <div class="body">
+          <div class="bar"><span class="iconbtn"><span class="ms">arrow_back</span></span><span class="ttl">Reviews</span><span></span></div>
+          <div class="group"><div class="li plain"><span class="th"><img src="img/kayano31.webp" alt=""></span><span class="grow"><b>Asics Gel-Kayano 31</b><small><span class="stars"><span class="ms fill">star</span><span class="ms fill">star</span><span class="ms fill">star</span><span class="ms fill">star</span><span class="ms">star</span></span> 4.0 · 2 reviews</small></span></div></div>
+          <div class="ghead">Write a review</div>
+          <div class="group">
+            <div class="rate">
+              <div class="row5"><span class="ms fill">star</span><span class="ms fill">star</span><span class="ms fill">star</span><span class="ms fill">star</span><span class="ms">star</span></div>
+              <small>4 of 5 · Tap a star to rate</small>
+            </div>
+          </div>
+          <div class="group fields">
+            <div class="f ta"><small>Your review</small><span class="ph">How do they fit and feel?</span></div>
+          </div>
+          <span class="btn primary full">Post review</span>
+          <div class="group">
+            <div class="li plain"><span class="grow"><b>Great for long runs</b><small><span class="stars"><span class="ms fill">star</span><span class="ms fill">star</span><span class="ms fill">star</span><span class="ms fill">star</span><span class="ms fill">star</span></span> Mika R. · Sep 20</small></span></div>
+            <div class="li plain"><span class="grow"><b>Runs a little narrow</b><small><span class="stars"><span class="ms fill">star</span><span class="ms fill">star</span><span class="ms fill">star</span><span class="ms">star</span><span class="ms">star</span></span> Paolo S. · Sep 15</small></span></div>
+          </div>
+        </div>
+        <div class="gesture"><i></i></div>
+      </div></div>
+      <figcaption><h2>Reviews</h2><ul><li>Rate by tapping one of five stars (each 48dp), not a dropdown. Stars you pick are red; stars on existing reviews stay black, so it's clear which ones you can tap.</li></ul></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="screen grouped">
+        <div class="status"><span>9:41</span><span class="sys"><span class="ms fill">signal_cellular_alt</span><span class="ms fill">wifi</span><span class="ms fill">battery_full</span></span></div>
+        <div class="body">
+          <div class="bar"><span class="iconbtn"><span class="ms">arrow_back</span></span><span class="ttl"></span><span></span></div>
+          <h1 class="large">Help</h1>
+          <div class="group">
+            <div class="li plain"><span class="grow"><b>About Us</b></span><span class="end"><span class="ms">chevron_right</span></span></div>
+            <div class="li plain"><span class="grow"><b>FAQs</b></span><span class="end"><span class="ms">chevron_right</span></span></div>
+            <div class="li plain"><span class="grow"><b>Privacy Policy</b></span><span class="end"><span class="ms">chevron_right</span></span></div>
+            <div class="li plain"><span class="grow"><b>The Developers</b></span><span class="end"><span class="ms">chevron_right</span></span></div>
+          </div>
+          <div class="ghead">Contact support</div>
+          <div class="group fields">
+            <div class="f"><span class="ph">Subject</span></div>
+            <div class="f ta"><span class="ph">Message</span></div>
+          </div>
+          <p class="note" style="padding:0 14px">Signed in? Leave your name and email blank and we will use your account details.</p>
+          <span class="btn primary full">Send message</span>
+        </div>
+        <div class="gesture"><i></i></div>
+      </div></div>
+      <figcaption><h2>Help</h2><ul><li>Your three real info pages, then the contact form. Shown signed in, so name and email are hidden.</li></ul></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="screen">
+        <div class="status"><span>9:41</span><span class="sys"><span class="ms fill">signal_cellular_alt</span><span class="ms fill">wifi</span><span class="ms fill">battery_full</span></span></div>
+        <div class="body">
+          <div class="bar"><span class="iconbtn"><span class="ms">arrow_back</span></span><span class="ttl"></span><span></span></div>
+          <h1 class="large">About Us</h1>
+          <p class="prose">SoleCraftPH is a footwear storefront dedicated to authentic, fairly-priced shoes for every Filipino.</p>
+        </div>
+        <div class="gesture"><i></i></div>
+      </div></div>
+      <figcaption><h2>About Us</h2><ul><li>Large title and plain text at a comfortable reading size. The admin note is left out here; it needs removing on the site.</li></ul></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="screen grouped">
+        <div class="status"><span>9:41</span><span class="sys"><span class="ms fill">signal_cellular_alt</span><span class="ms fill">wifi</span><span class="ms fill">battery_full</span></span></div>
+        <div class="body">
+          <div class="bar"><span class="iconbtn"><span class="ms">arrow_back</span></span><span class="ttl"></span><span></span></div>
+          <h1 class="large">The Developers</h1>
+          <p class="note" style="font-size:15px">Group 9, the five of us who built SoleCraftPH, from the storefront and the admin panel to the Android app.</p>
+          <div class="group">
+            <div class="li"><span class="av">BB</span><span class="grow"><b>Brian Ballano</b></span></div>
+            <div class="li"><span class="av">ER</span><span class="grow"><b>Erika Joan Del Rosario</b></span></div>
+            <div class="li"><span class="av">JB</span><span class="grow"><b>John Lawrence Balitos</b></span></div>
+            <div class="li"><span class="av">KL</span><span class="grow"><b>Keanu Florenz Licup</b></span></div>
+            <div class="li"><span class="av">PB</span><span class="grow"><b>Paul Francis Balboa</b></span></div>
+          </div>
+        </div>
+        <div class="gesture"><i></i></div>
+      </div></div>
+      <figcaption><h2>The Developers</h2><ul><li>New page, opened from Help. One row per member, all on one left edge.</li><li>The circles are photo slots. They show initials, like your website, until your team photos are uploaded.</li></ul></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="screen grouped">
+        <div class="status"><span>9:41</span><span class="sys"><span class="ms fill">signal_cellular_alt</span><span class="ms fill">wifi</span><span class="ms fill">battery_full</span></span></div>
+        <div class="body">
+          <div class="brand center">SoleCraft<b>PH</b></div>
+          <div style="height:40px"></div>
+          <h1 class="large">Sign in</h1>
+          <p class="note" style="font-size:15px">Track orders, save shoes and check out faster.</p>
+          <div class="group fields">
+            <div class="f"><small>Username or email</small><span>juan.delacruz@email.com</span></div>
+            <div class="f"><small>Password</small><span>••••••••<span class="ms">visibility</span></span></div>
+          </div>
+          <span class="btn primary full">Sign in</span>
+          <span class="link c">New here? Create an account</span>
+        </div>
+        <div class="gesture"><i></i></div>
+      </div></div>
+      <figcaption><h2>Sign in</h2><ul><li>One clear action, with the create-account link under it.</li></ul></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="screen grouped">
+        <div class="status"><span>9:41</span><span class="sys"><span class="ms fill">signal_cellular_alt</span><span class="ms fill">wifi</span><span class="ms fill">battery_full</span></span></div>
+        <div class="body">
+          <div class="bar"><span class="iconbtn"><span class="ms">arrow_back</span></span><span class="ttl"></span><span></span></div>
+          <h1 class="large">Create account</h1>
+          <div class="group fields">
+            <div class="f"><small>Username</small><span class="ph">At least 3 characters</span></div>
+            <div class="f"><small>Full name</small><span class="ph">Juan dela Cruz</span></div>
+            <div class="f"><small>Email</small><span class="ph">you@email.com</span></div>
+            <div class="f"><small>Password</small><span class="ph">At least 8 characters<span class="ms">visibility_off</span></span></div>
+          </div>
+          <span class="btn primary full">Create account</span>
+          <span class="link c">Already have an account? Sign in</span>
+        </div>
+        <div class="gesture"><i></i></div>
+      </div></div>
+      <figcaption><h2>Create account</h2><ul><li>Password hint fixed to 8 characters to match the server (it currently says 6).</li></ul></figcaption>
+    </figure>
+  </section>
+
+  <section class="system">
+    <div class="panel">
+      <h3>Colors</h3>
+      <div class="sw"><i style="background:#111111"></i><span>Ink: text, selected chips</span><code>#111111</code></div>
+      <div class="sw"><i style="background:#E2412A"></i><span>Blaze: buttons, links, labels</span><code>#E2412A</code></div>
+      <div class="sw"><i style="background:#FFFFFF"></i><span>White: page, cards</span><code>#FFFFFF</code></div>
+      <div class="sw"><i style="background:#EDEAE3"></i><span>Stone: dividers, borders</span><code>#EDEAE3</code></div>
+      <div class="sw"><i style="background:#F3F1EC"></i><span>Mist: tiles, grouped ground <span class="new">new</span></span><code>#F3F1EC</code></div>
+      <div class="sw"><i style="background:#6E6A60"></i><span>Secondary text <span class="new">new</span></span><code>#6E6A60</code></div>
+    </div>
+    <div class="panel">
+      <h3>Type (Inter) and shape</h3>
+      <div class="scale">
+        <div><span style="font-size:24px;font-weight:700;letter-spacing:-.025em">Large title</span><code>34 / 700</code></div>
+        <div><span style="font-size:19px;font-weight:700;letter-spacing:-.02em">Section</span><code>22 / 700</code></div>
+        <div><span style="font-weight:600">Product name</span><code>14–15 / 600</code></div>
+        <div><span>Body and price</span><code>14–15 / 400</code></div>
+        <div><span>Buttons: capsule</span><code>50dp, radius 25</code></div>
+        <div><span>Tiles / groups</span><code>radius 18–22 / 18</code></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Decisions for you</h3>
+      <ul class="decide">
+        <li><b>Secondary text gets darker.</b> Your warm grey #8A8578 is 3.7:1 on white, which is too faint for small text. #6E6A60 is the same hue at 5.4:1. The old grey stays for icons and borders.</li>
+        <li><b>One new tone, Mist.</b> Paper #FAF9F6 is almost identical to white, so tiles and grouped screens need a step between paper and stone.</li>
+        <li><b>For your info:</b> white on your red is 4.2:1, about the same as Apple's own blue buttons (4.0:1). Fine for bold button labels.</li>
+      </ul>
+    </div>
+  </section>
+</div>

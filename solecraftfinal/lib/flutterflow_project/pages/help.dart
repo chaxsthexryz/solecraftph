@@ -140,6 +140,15 @@ abstract final class HelpWidgets {
                   ),
                 ],
               ),
+              ffai.ProjectWidgetHandle(
+                key: "ListTile_sqa8df2w",
+                type: "ListTile",
+                path: "Help.body[0].children[9]",
+                name: "helpDevelopersTile",
+                triggers: const <String>[
+                  "ON_TAP",
+                ],
+              ),
             ],
           ),
         ],

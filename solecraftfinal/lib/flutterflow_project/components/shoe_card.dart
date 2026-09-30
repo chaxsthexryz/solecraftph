@@ -103,10 +103,40 @@ abstract final class ShoeCardWidgets {
               name: "Column",
               children: <ffai.ProjectWidgetHandle>[
                 ffai.ProjectWidgetHandle(
-                  key: "Image_z9p2xqg7",
-                  type: "Image",
+                  key: "Stack_kr6xftd0",
+                  type: "Stack",
                   path: "ShoeCard.children[0].children[0].children[0]",
-                  name: "Image",
+                  name: "cardMedia",
+                  children: <ffai.ProjectWidgetHandle>[
+                    ffai.ProjectWidgetHandle(
+                      key: "Container_kh0n27mi",
+                      type: "Container",
+                      path: "ShoeCard.children[0].children[0].children[0].children[0]",
+                      name: "cardTile",
+                    ),
+                    ffai.ProjectWidgetHandle(
+                      key: "Container_spd9f1gz",
+                      type: "Container",
+                      path: "ShoeCard.children[0].children[0].children[0].children[1]",
+                      name: "Container Margin",
+                      children: <ffai.ProjectWidgetHandle>[
+                        ffai.ProjectWidgetHandle(
+                          key: "Container_ucyen0lm",
+                          type: "Container",
+                          path: "ShoeCard.children[0].children[0].children[0].children[1].children[0]",
+                          name: "Container",
+                          children: <ffai.ProjectWidgetHandle>[
+                            ffai.ProjectWidgetHandle(
+                              key: "Text_cx9b9zq7",
+                              type: "Text",
+                              path: "ShoeCard.children[0].children[0].children[0].children[1].children[0].children[0]",
+                              name: "Text",
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
                 ffai.ProjectWidgetHandle(
                   key: "Container_5rgwxeyu",
@@ -121,13 +151,13 @@ abstract final class ShoeCardWidgets {
                       name: "Column",
                       children: <ffai.ProjectWidgetHandle>[
                         ffai.ProjectWidgetHandle(
-                          key: "Container_ucyen0lm",
+                          key: "Container_wbi6imk6",
                           type: "Container",
                           path: "ShoeCard.children[0].children[0].children[1].children[0].children[0]",
-                          name: "Container",
+                          name: "cardTitleBox",
                           children: <ffai.ProjectWidgetHandle>[
                             ffai.ProjectWidgetHandle(
-                              key: "Text_cx9b9zq7",
+                              key: "Text_g70nwyob",
                               type: "Text",
                               path: "ShoeCard.children[0].children[0].children[1].children[0].children[0].children[0]",
                               name: "Text",
@@ -135,21 +165,15 @@ abstract final class ShoeCardWidgets {
                           ],
                         ),
                         ffai.ProjectWidgetHandle(
-                          key: "Text_g70nwyob",
+                          key: "Text_4xy0b8zk",
                           type: "Text",
                           path: "ShoeCard.children[0].children[0].children[1].children[0].children[1]",
                           name: "Text",
                         ),
                         ffai.ProjectWidgetHandle(
-                          key: "Text_4xy0b8zk",
-                          type: "Text",
-                          path: "ShoeCard.children[0].children[0].children[1].children[0].children[2]",
-                          name: "Text",
-                        ),
-                        ffai.ProjectWidgetHandle(
                           key: "Text_4z5ux1mq",
                           type: "Text",
-                          path: "ShoeCard.children[0].children[0].children[1].children[0].children[3]",
+                          path: "ShoeCard.children[0].children[0].children[1].children[0].children[2]",
                           name: "Text",
                         ),
                       ],

@@ -3,6 +3,7 @@
  * Shared Order API
  * GET  /api/orders.php?id=1  -> fetch a single order + items
  * POST /api/orders.php       -> create an order
+ * POST /api/orders.php?action=cancel -> customer cancels a pending order ({id})
  *      body: { "customer": {name,email,phone,address,payment_method},
  *               "items": { "<product_id>|<size>": {"product_id":1,"size":"9","qty":1}, ... } }
  *
@@ -65,6 +66,37 @@ if ($method === 'GET') {
     $order['status_history'] = order_status_history($id);
 
     echo json_encode($order);
+    exit;
+}
+
+/* ---------------------------------------------------------------------------
+ * POST /api/orders.php?action=cancel  body: {"id": 56}
+ *
+ * The customer cancelling their own pending order from the app. Bearer token
+ * only — no session — so a page on another site cannot fire it through a
+ * signed-in visitor's cookie. Answers 200 with {ok, message, order} either
+ * way: the app can only read the body of a successful call, and a refusal
+ * ("already being prepared") is something to show, not a transport error.
+ * ------------------------------------------------------------------------- */
+if ($method === 'POST' && ($_GET['action'] ?? '') === 'cancel') {
+    $viewerId = auth_user_id_from_bearer_token();
+    $input    = json_decode(file_get_contents('php://input') ?: '', true);
+    $id       = (int) (is_array($input) ? ($input['id'] ?? 0) : 0);
+
+    $error = $viewerId === null
+        ? 'Please sign in again.'
+        : order_cancel_by_customer($id, (int) $viewerId);
+
+    $order = $error === null ? order_find($id) : null;
+    if ($order !== null) {
+        $order['status_history'] = order_status_history($id);
+    }
+
+    echo json_encode([
+        'ok'      => $error === null,
+        'message' => $error ?? 'Order cancelled. The shoes are back in stock.',
+        'order'   => $order,
+    ]);
     exit;
 }
 
