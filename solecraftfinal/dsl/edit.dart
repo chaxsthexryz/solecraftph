@@ -6767,21 +6767,21 @@ void _declareDefaultAddressFunctions(App app) {
       'fallback': string,
     },
     returns: string,
+    // An empty field on the default (saved without a name or number) falls
+    // back too — it used to blank out the profile's name and phone.
     code: r'''
 for (final a in (items ?? <AddressRowStruct>[])) {
   if (!a.isDefault) continue;
-  switch (field) {
-    case 'recipient_name':
-      return a.recipientName;
-    case 'phone':
-      return a.phone;
-    case 'address':
-      return a.address;
-    case 'latitude':
-      return a.latitude;
-    case 'longitude':
-      return a.longitude;
-  }
+  final value = switch (field) {
+    'recipient_name' => a.recipientName,
+    'phone' => a.phone,
+    'address' => a.address,
+    'latitude' => a.latitude,
+    'longitude' => a.longitude,
+    _ => '',
+  };
+  if (value.trim().isNotEmpty) return value;
+  break;
 }
 return fallback ?? '';
 ''',
@@ -7000,7 +7000,6 @@ return (address ?? '')
       page.findByKey('Text_3v0ncfwd'),
       CustomFunction(sizeLabel, args: {'size': ItemRef()['size']}),
     );
-    page.update(page.findByKey('Text_4ygq2yyo'), (patch) => patch.maxLines(2));
     page.bindText(
       page.findByKey('Text_9xqd1qc8'),
       CustomFunction(shippingLabel, args: {'items': AppState(ff.AppState.bag)}),
@@ -7373,32 +7372,29 @@ void _sizeTileAndCheckoutNameFixes(App app) {
     }
   });
 
-  // A default address saved without a name or number filled those boxes
-  // with '' — overwriting the profile's name and phone the page had just put
-  // there. An empty field now falls back like a missing default does.
-  app.raw((project) {
-    updateCustomFunction(
-      project,
-      name: 'defaultAddressField',
-      description: 'A field of the saved default address, else the fallback.',
-      code: r'''
-for (final a in (items ?? <AddressRowStruct>[])) {
-  if (!a.isDefault) continue;
-  final value = switch (field) {
-    'recipient_name' => a.recipientName,
-    'phone' => a.phone,
-    'address' => a.address,
-    'latitude' => a.latitude,
-    'longitude' => a.longitude,
-    _ => '',
-  };
-  if (value.trim().isNotEmpty) return value;
-  break;
-}
-return fallback ?? '';
-''',
-    );
+  // Bag rows: the quantity stepper (48 + number + 48 dp) sat beside the name,
+  // squeezing "Brooks Ghost 16" down to "Br". It moves under the price, so
+  // only the delete button shares the row, and the name may take two lines.
+  final stepper =
+      ff.Pages.bag.widgets.all.firstWhere((w) => w.name == 'qtyStepper');
+  app.editPage(ff.Pages.bag, (page) {
+    if (stepper.path.contains('children[0].children[2].children[0]')) {
+      page.ensureMovedTo(
+        page.findByKey(stepper.key),
+        page.findByKey('Column_5f0zwvsu'),
+        index: 3,
+      );
+    }
+    // Not patch.maxLines: the SDK writes that as a *character* cap, which is
+    // what cut the names to "Br" and "Ho". Set real max lines, drop the cap.
+    page.mutateNode(page.findByKey('Text_4ygq2yyo'), (node) {
+      node.props.text.maxLinesValue = FFIntegerValue(inputValue: 2);
+      node.props.text.clearLegacyOverriddenTextMaxCharsValue();
+    });
   });
+
+  // The checkout name/phone fix lives in defaultAddressField's declaration
+  // (_declareDefaultAddressFunctions): empty fields there fall back now.
 }
 
 /// The trailing `children[N]` index out of a generated widget path, or null
