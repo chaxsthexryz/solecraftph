@@ -5638,6 +5638,7 @@ return 'https://snow-jellyfish-553645.hostingersite.com/assets/icons/icon-512.pn
   _appleRedesignRound3(app);
   _phoneBugFixes(app);
   _cancelOrderAndSoldOutSizes(app, cancelOrder: cancelOrder);
+  _sizeTileAndCheckoutNameFixes(app);
 }
 
 // -----------------------------------------------------------------------------
@@ -7335,6 +7336,68 @@ void _cancelOrderAndSoldOutSizes(App app, {required Endpoint cancelOrder}) {
     // No strikethrough: text.strikethrough is set by the patch but codegen
     // drops it on themed text (checked across two passes). Gray plus the
     // tap-to-explain snackbar carries it.
+  });
+}
+
+/// Build 11 on the phone: the chosen size was still a thin ink pill, and
+/// checkout left name and mobile blank.
+void _sizeTileAndCheckoutNameFixes(App app) {
+  // patch.padding is the generic padding codegen puts *outside* a widget, so
+  // the variants' 13px sat around the ink box, not inside it, and each tile's
+  // Column kept 10px of its own. Both go; a fixed height centres the number
+  // and lets the chosen variant fill the tile edge to edge.
+  const variants = [
+    'Container_b9zgmtae', 'Container_iqtdx7jj', // 7
+    'Container_xbzzmorq', 'Container_on8i8mes', // 8
+    'Container_8ap8umo2', 'Container_s0bkwoor', // 9
+    'Container_0gxv45bd', 'Container_7khwgabg', // 10
+    'Container_tkfz20fj', 'Container_odgztyiz', // 11
+    'Container_r2y30mp6', 'Container_smh9gsbu', // 12
+  ];
+  const columns = [
+    'Column_ee9tnkz2', 'Column_z797f6wn', 'Column_3cr05d05',
+    'Column_wltogb2g', 'Column_uhiag5df', 'Column_ht81k5ad',
+  ];
+  final soldOut = ff.Pages.shoeDetails.widgets.all
+      .where((w) => w.name.startsWith('soldOutTile'))
+      .map((w) => w.key);
+  app.editPage(ff.Pages.shoeDetails, (page) {
+    for (final key in columns) {
+      page.update(page.findByKey(key), (patch) => patch.padding(0));
+    }
+    for (final key in [...variants, ...soldOut]) {
+      page.update(page.findByKey(key), (patch) {
+        patch.padding(0);
+        patch.size(height: 46);
+      });
+    }
+  });
+
+  // A default address saved without a name or number filled those boxes
+  // with '' — overwriting the profile's name and phone the page had just put
+  // there. An empty field now falls back like a missing default does.
+  app.raw((project) {
+    updateCustomFunction(
+      project,
+      name: 'defaultAddressField',
+      description: 'A field of the saved default address, else the fallback.',
+      code: r'''
+for (final a in (items ?? <AddressRowStruct>[])) {
+  if (!a.isDefault) continue;
+  final value = switch (field) {
+    'recipient_name' => a.recipientName,
+    'phone' => a.phone,
+    'address' => a.address,
+    'latitude' => a.latitude,
+    'longitude' => a.longitude,
+    _ => '',
+  };
+  if (value.trim().isNotEmpty) return value;
+  break;
+}
+return fallback ?? '';
+''',
+    );
   });
 }
 
