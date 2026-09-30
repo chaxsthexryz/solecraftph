@@ -25,6 +25,12 @@ final class OrderDetailParams {
 
 final class OrderDetailState {
   const OrderDetailState();
+  ffai.ProjectStateFieldHandle get confirmCancel =>
+      const ffai.ProjectStateFieldHandle(
+        name: "confirmCancel",
+        key: "wqcwpygj",
+        typeName: "Boolean",
+      );
   ffai.ProjectStateFieldHandle get loading =>
       const ffai.ProjectStateFieldHandle(
         name: "loading",
@@ -63,7 +69,6 @@ abstract final class OrderDetailWidgets {
                   type: "Text",
                   path: "OrderDetail.appBar[0].title[0]",
                   name: "AppBar Title",
-                  text: "Order",
                 ),
               ],
             },
@@ -210,40 +215,93 @@ abstract final class OrderDetailWidgets {
                 ],
               ),
               ffai.ProjectWidgetHandle(
+                key: "Button_rzllq56c",
+                type: "Button",
+                path: "OrderDetail.body[0].children[2]",
+                name: "cancelOrderButton",
+                text: "Cancel order",
+                triggers: const <String>[
+                  "ON_TAP",
+                ],
+              ),
+              ffai.ProjectWidgetHandle(
+                key: "Container_px07mwdw",
+                type: "Container",
+                path: "OrderDetail.body[0].children[3]",
+                name: "cancelConfirmRow",
+                children: <ffai.ProjectWidgetHandle>[
+                  ffai.ProjectWidgetHandle(
+                    key: "Column_g8oyph4x",
+                    type: "Column",
+                    path: "OrderDetail.body[0].children[3].children[0]",
+                    name: "Column",
+                    children: <ffai.ProjectWidgetHandle>[
+                      ffai.ProjectWidgetHandle(
+                        key: "Text_imularyl",
+                        type: "Text",
+                        path: "OrderDetail.body[0].children[3].children[0].children[0]",
+                        name: "Text",
+                        text: "Cancel this order? The shoes go back on the shelf. This cannot be undone.",
+                      ),
+                      ffai.ProjectWidgetHandle(
+                        key: "Button_o7siebt2",
+                        type: "Button",
+                        path: "OrderDetail.body[0].children[3].children[0].children[1]",
+                        name: "cancelConfirmYes",
+                        text: "Yes, cancel order",
+                        triggers: const <String>[
+                          "ON_TAP",
+                        ],
+                      ),
+                      ffai.ProjectWidgetHandle(
+                        key: "Button_u1eumjb8",
+                        type: "Button",
+                        path: "OrderDetail.body[0].children[3].children[0].children[2]",
+                        name: "cancelConfirmNo",
+                        text: "Keep order",
+                        triggers: const <String>[
+                          "ON_TAP",
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              ffai.ProjectWidgetHandle(
                 key: "Text_hdyz0qnt",
                 type: "Text",
-                path: "OrderDetail.body[0].children[2]",
+                path: "OrderDetail.body[0].children[4]",
                 name: "Text",
                 text: "Items",
               ),
               ffai.ProjectWidgetHandle(
                 key: "ListView_x5cnmiuw",
                 type: "ListView",
-                path: "OrderDetail.body[0].children[3]",
+                path: "OrderDetail.body[0].children[5]",
                 name: "ListView",
                 children: <ffai.ProjectWidgetHandle>[
                   ffai.ProjectWidgetHandle(
                     key: "Row_71rsfbgj",
                     type: "Row",
-                    path: "OrderDetail.body[0].children[3].children[0]",
+                    path: "OrderDetail.body[0].children[5].children[0]",
                     name: "Row",
                     children: <ffai.ProjectWidgetHandle>[
                       ffai.ProjectWidgetHandle(
                         key: "Column_3cz8nwt2",
                         type: "Column",
-                        path: "OrderDetail.body[0].children[3].children[0].children[0]",
+                        path: "OrderDetail.body[0].children[5].children[0].children[0]",
                         name: "Column",
                         children: <ffai.ProjectWidgetHandle>[
                           ffai.ProjectWidgetHandle(
                             key: "Text_ut9ahsnz",
                             type: "Text",
-                            path: "OrderDetail.body[0].children[3].children[0].children[0].children[0]",
+                            path: "OrderDetail.body[0].children[5].children[0].children[0].children[0]",
                             name: "Text",
                           ),
                           ffai.ProjectWidgetHandle(
                             key: "Text_yhnil7ji",
                             type: "Text",
-                            path: "OrderDetail.body[0].children[3].children[0].children[0].children[1]",
+                            path: "OrderDetail.body[0].children[5].children[0].children[0].children[1]",
                             name: "Text",
                           ),
                         ],
@@ -251,7 +309,7 @@ abstract final class OrderDetailWidgets {
                       ffai.ProjectWidgetHandle(
                         key: "Text_901nm2a9",
                         type: "Text",
-                        path: "OrderDetail.body[0].children[3].children[0].children[1]",
+                        path: "OrderDetail.body[0].children[5].children[0].children[1]",
                         name: "Text",
                       ),
                     ],
@@ -261,38 +319,38 @@ abstract final class OrderDetailWidgets {
               ffai.ProjectWidgetHandle(
                 key: "Text_zs346sue",
                 type: "Text",
-                path: "OrderDetail.body[0].children[4]",
+                path: "OrderDetail.body[0].children[6]",
                 name: "Text",
                 text: "Tracking history",
               ),
               ffai.ProjectWidgetHandle(
                 key: "ListView_ko0iuo5f",
                 type: "ListView",
-                path: "OrderDetail.body[0].children[5]",
+                path: "OrderDetail.body[0].children[7]",
                 name: "ListView",
                 children: <ffai.ProjectWidgetHandle>[
                   ffai.ProjectWidgetHandle(
                     key: "Column_m8b9ud1r",
                     type: "Column",
-                    path: "OrderDetail.body[0].children[5].children[0]",
+                    path: "OrderDetail.body[0].children[7].children[0]",
                     name: "Column",
                     children: <ffai.ProjectWidgetHandle>[
                       ffai.ProjectWidgetHandle(
                         key: "Text_ruvisu4c",
                         type: "Text",
-                        path: "OrderDetail.body[0].children[5].children[0].children[0]",
+                        path: "OrderDetail.body[0].children[7].children[0].children[0]",
                         name: "Text",
                       ),
                       ffai.ProjectWidgetHandle(
                         key: "Text_ehsb90sr",
                         type: "Text",
-                        path: "OrderDetail.body[0].children[5].children[0].children[1]",
+                        path: "OrderDetail.body[0].children[7].children[0].children[1]",
                         name: "Text",
                       ),
                       ffai.ProjectWidgetHandle(
                         key: "Text_ijy9vsfb",
                         type: "Text",
-                        path: "OrderDetail.body[0].children[5].children[0].children[2]",
+                        path: "OrderDetail.body[0].children[7].children[0].children[2]",
                         name: "Text",
                       ),
                     ],
@@ -302,32 +360,32 @@ abstract final class OrderDetailWidgets {
               ffai.ProjectWidgetHandle(
                 key: "Text_r8kx0m2i",
                 type: "Text",
-                path: "OrderDetail.body[0].children[6]",
+                path: "OrderDetail.body[0].children[8]",
                 name: "Text",
                 text: "Delivering to",
               ),
               ffai.ProjectWidgetHandle(
                 key: "Column_x3wk8118",
                 type: "Column",
-                path: "OrderDetail.body[0].children[7]",
+                path: "OrderDetail.body[0].children[9]",
                 name: "Column",
                 children: <ffai.ProjectWidgetHandle>[
                   ffai.ProjectWidgetHandle(
                     key: "Text_5cmfpayt",
                     type: "Text",
-                    path: "OrderDetail.body[0].children[7].children[0]",
+                    path: "OrderDetail.body[0].children[9].children[0]",
                     name: "Text",
                   ),
                   ffai.ProjectWidgetHandle(
                     key: "Text_hcswur02",
                     type: "Text",
-                    path: "OrderDetail.body[0].children[7].children[1]",
+                    path: "OrderDetail.body[0].children[9].children[1]",
                     name: "Text",
                   ),
                   ffai.ProjectWidgetHandle(
                     key: "Text_o3qggqd3",
                     type: "Text",
-                    path: "OrderDetail.body[0].children[7].children[2]",
+                    path: "OrderDetail.body[0].children[9].children[2]",
                     name: "Text",
                   ),
                 ],

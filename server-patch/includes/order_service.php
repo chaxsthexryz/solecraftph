@@ -311,18 +311,51 @@ function order_update_status(int $orderId, string $status, string $note = '', ?s
     }
 
     $db = db();
+    $from = (string) ($order['status'] ?? '');
     $sql = 'UPDATE orders SET status = ?';
     $params = [$status];
     if ($trackingNumber !== null) {
         $sql .= ', tracking_number = ?';
         $params[] = $trackingNumber;
     }
-    $sql .= ' WHERE id = ?';
+    // Conditional on the status just checked, so two cancels racing each other
+    // (the customer's button and the admin's dropdown) cannot both win and put
+    // the same shoes back on the shelf twice.
+    $sql .= ' WHERE id = ? AND status = ?';
     $params[] = $orderId;
-    $db->prepare($sql)->execute($params);
+    $params[] = $from;
 
-    $db->prepare('INSERT INTO order_status_log (order_id, status, note) VALUES (?, ?, ?)')
-       ->execute([$orderId, $status, $note ?: null]);
+    $ownTransaction = !$db->inTransaction();
+    if ($ownTransaction) {
+        $db->beginTransaction();
+    }
+    try {
+        $update = $db->prepare($sql);
+        $update->execute($params);
+        if ($update->rowCount() === 0 && $from !== $status) {
+            // Someone else moved it first; their change stands.
+            if ($ownTransaction) {
+                $db->rollBack();
+            }
+            return false;
+        }
+
+        $db->prepare('INSERT INTO order_status_log (order_id, status, note) VALUES (?, ?, ?)')
+           ->execute([$orderId, $status, $note ?: null]);
+
+        if ($status === 'cancelled' && $from !== 'cancelled') {
+            order_restock($orderId);
+        }
+
+        if ($ownTransaction) {
+            $db->commit();
+        }
+    } catch (Throwable $e) {
+        if ($ownTransaction) {
+            $db->rollBack();
+        }
+        throw $e;
+    }
 
     if (!empty($order['user_id'])) {
         require_once __DIR__ . '/notification_service.php';
@@ -335,6 +368,66 @@ function order_update_status(int $orderId, string $status, string $note = '', ?s
         );
     }
     return true;
+}
+
+/**
+ * Puts a cancelled order's shoes back on the shelf: the product total and, for
+ * products counted per size, the size row — the exact reverse of what
+ * order_create took off.
+ *
+ * Until this existed, cancelling never restocked, so every cancelled order
+ * quietly shrank the catalogue for good (including every GCash/Card order that
+ * failed to reach PayMongo, which order creation cancels itself).
+ */
+function order_restock(int $orderId): void
+{
+    $db = db();
+    $items = $db->prepare('SELECT product_id, size, quantity FROM order_items WHERE order_id = ?');
+    $items->execute([$orderId]);
+
+    $total = $db->prepare('UPDATE products SET stock = stock + ? WHERE id = ?');
+    $sized = $db->prepare(
+        'INSERT INTO product_sizes (product_id, size, stock) VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE stock = stock + VALUES(stock)'
+    );
+
+    foreach ($items->fetchAll() as $item) {
+        $productId = (int) ($item['product_id'] ?? 0);
+        $qty       = (int) $item['quantity'];
+        $size      = (string) ($item['size'] ?? '');
+        if ($productId === 0 || $qty < 1) {
+            continue; // product since deleted: nothing to put back
+        }
+        $total->execute([$qty, $productId]);
+        if ($size !== '' && product_has_size_stock($productId)) {
+            $sized->execute([$productId, $size, $qty]);
+        }
+    }
+}
+
+/**
+ * A customer cancelling their own order. Returns null on success, or the
+ * sentence to show them when it cannot be done.
+ *
+ * Only while it is still pending: once the store has started on it, stopping it
+ * is a conversation, not a button. A paid order is refused too — cancelling it
+ * here would leave money with no order and nobody told to refund it.
+ */
+function order_cancel_by_customer(int $orderId, int $userId): ?string
+{
+    $order = order_find($orderId);
+    if ($order === null || (int) ($order['user_id'] ?? 0) !== $userId) {
+        return 'Order not found.';
+    }
+    if (($order['status'] ?? '') !== 'pending') {
+        return 'This order is already being prepared, so it can no longer be cancelled here. Contact us and we will help.';
+    }
+    if (($order['payment_status'] ?? '') === 'paid') {
+        return 'This order is already paid. Contact us to cancel it and arrange a refund.';
+    }
+    return order_update_status($orderId, 'cancelled', 'Cancelled by the customer.')
+        ? null
+        : 'This order could not be cancelled. Please refresh and try again.';
 }
 
 /** Stores the PayMongo Checkout Session id against the order so the webhook can be traced back. */

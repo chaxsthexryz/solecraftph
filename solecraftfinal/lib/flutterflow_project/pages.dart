@@ -8,6 +8,7 @@ import 'pages/addresses.dart' show addressesHandle;
 import 'pages/bag.dart' show bagHandle;
 import 'pages/checkout.dart' show checkoutHandle;
 import 'pages/confirmed.dart' show confirmedHandle;
+import 'pages/developers.dart' show developersHandle;
 import 'pages/help.dart' show helpHandle;
 import 'pages/info_page.dart' show infoPageHandle;
 import 'pages/my_orders.dart' show myOrdersHandle;
@@ -28,6 +29,7 @@ abstract final class Pages {
   static final bag = bagHandle;
   static final checkout = checkoutHandle;
   static final confirmed = confirmedHandle;
+  static final developers = developersHandle;
   static final help = helpHandle;
   static final infoPage = infoPageHandle;
   static final myOrders = myOrdersHandle;
@@ -47,6 +49,7 @@ abstract final class Pages {
     bag,
     checkout,
     confirmed,
+    developers,
     help,
     infoPage,
     myOrders,

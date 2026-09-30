@@ -46,3 +46,8 @@ desktop.ini
 server-patch/uploads/
 server-patch/sql/uploads/
 server-patch/assets/media/hero-video/
+
+# Signing keys and local tool config
+*.jks
+*.keystore
+.impeccable/

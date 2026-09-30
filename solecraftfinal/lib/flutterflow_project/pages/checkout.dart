@@ -391,41 +391,84 @@ abstract final class CheckoutWidgets {
                 name: "Divider",
               ),
               ffai.ProjectWidgetHandle(
-                key: "Row_mbzwpgog",
-                type: "Row",
+                key: "Container_fw6md7ss",
+                type: "Container",
                 path: "Checkout.body[0].children[6]",
-                name: "Row",
+                name: "checkoutLines",
                 children: <ffai.ProjectWidgetHandle>[
                   ffai.ProjectWidgetHandle(
-                    key: "Text_26f7ptke",
-                    type: "Text",
+                    key: "ListView_pqzkdbdi",
+                    type: "ListView",
                     path: "Checkout.body[0].children[6].children[0]",
-                    name: "Text",
-                    text: "Items",
-                  ),
-                  ffai.ProjectWidgetHandle(
-                    key: "Text_013fmb3a",
-                    type: "Text",
-                    path: "Checkout.body[0].children[6].children[1]",
-                    name: "Text",
+                    name: "ListView",
+                    children: <ffai.ProjectWidgetHandle>[
+                      ffai.ProjectWidgetHandle(
+                        key: "Row_q5przuj9",
+                        type: "Row",
+                        path: "Checkout.body[0].children[6].children[0].children[0]",
+                        name: "Row",
+                        children: <ffai.ProjectWidgetHandle>[
+                          ffai.ProjectWidgetHandle(
+                            key: "Container_tnyf58zk",
+                            type: "Container",
+                            path: "Checkout.body[0].children[6].children[0].children[0].children[0]",
+                            name: "Container",
+                            children: <ffai.ProjectWidgetHandle>[
+                              ffai.ProjectWidgetHandle(
+                                key: "Container_ax2mpmur",
+                                type: "Container",
+                                path: "Checkout.body[0].children[6].children[0].children[0].children[0].children[0]",
+                                name: "checkoutLineTile",
+                              ),
+                            ],
+                          ),
+                          ffai.ProjectWidgetHandle(
+                            key: "Column_tg5c9qiv",
+                            type: "Column",
+                            path: "Checkout.body[0].children[6].children[0].children[0].children[1]",
+                            name: "Column",
+                            children: <ffai.ProjectWidgetHandle>[
+                              ffai.ProjectWidgetHandle(
+                                key: "Text_2xkqcrbw",
+                                type: "Text",
+                                path: "Checkout.body[0].children[6].children[0].children[0].children[1].children[0]",
+                                name: "Text",
+                              ),
+                              ffai.ProjectWidgetHandle(
+                                key: "Text_60acm2k3",
+                                type: "Text",
+                                path: "Checkout.body[0].children[6].children[0].children[0].children[1].children[1]",
+                                name: "Text",
+                              ),
+                            ],
+                          ),
+                          ffai.ProjectWidgetHandle(
+                            key: "Text_tthwhcse",
+                            type: "Text",
+                            path: "Checkout.body[0].children[6].children[0].children[0].children[2]",
+                            name: "Text",
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),
               ffai.ProjectWidgetHandle(
-                key: "Row_fsz3wtzj",
+                key: "Row_mbzwpgog",
                 type: "Row",
                 path: "Checkout.body[0].children[7]",
                 name: "Row",
                 children: <ffai.ProjectWidgetHandle>[
                   ffai.ProjectWidgetHandle(
-                    key: "Text_d87xasym",
+                    key: "Text_26f7ptke",
                     type: "Text",
                     path: "Checkout.body[0].children[7].children[0]",
                     name: "Text",
-                    text: "Order total",
+                    text: "Items",
                   ),
                   ffai.ProjectWidgetHandle(
-                    key: "Text_hb4ipyla",
+                    key: "Text_013fmb3a",
                     type: "Text",
                     path: "Checkout.body[0].children[7].children[1]",
                     name: "Text",
@@ -433,9 +476,30 @@ abstract final class CheckoutWidgets {
                 ],
               ),
               ffai.ProjectWidgetHandle(
+                key: "Row_fsz3wtzj",
+                type: "Row",
+                path: "Checkout.body[0].children[8]",
+                name: "Row",
+                children: <ffai.ProjectWidgetHandle>[
+                  ffai.ProjectWidgetHandle(
+                    key: "Text_d87xasym",
+                    type: "Text",
+                    path: "Checkout.body[0].children[8].children[0]",
+                    name: "Text",
+                    text: "Order total",
+                  ),
+                  ffai.ProjectWidgetHandle(
+                    key: "Text_hb4ipyla",
+                    type: "Text",
+                    path: "Checkout.body[0].children[8].children[1]",
+                    name: "Text",
+                  ),
+                ],
+              ),
+              ffai.ProjectWidgetHandle(
                 key: "Button_ye04uoud",
                 type: "Button",
-                path: "Checkout.body[0].children[8]",
+                path: "Checkout.body[0].children[9]",
                 name: "Button",
                 text: "Place Order",
                 triggers: const <String>[
@@ -445,7 +509,7 @@ abstract final class CheckoutWidgets {
               ffai.ProjectWidgetHandle(
                 key: "ProgressBar_dmcpk0nh",
                 type: "ProgressBar",
-                path: "Checkout.body[0].children[9]",
+                path: "Checkout.body[0].children[10]",
                 name: "ProgressBar",
               ),
             ],

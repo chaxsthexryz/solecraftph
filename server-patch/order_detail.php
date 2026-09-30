@@ -24,6 +24,21 @@ $error = '';
 $success = '';
 $canReturn = in_array($order['status'], ['shipped', 'completed'], true) && !return_has_existing($orderId);
 
+// Same rule as the app's Cancel button (order_cancel_by_customer): pending and
+// not yet paid.
+$canCancel = $order['status'] === 'pending' && ($order['payment_status'] ?? '') !== 'paid';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cancel_order') {
+    $cancelError = order_cancel_by_customer($orderId, $userId);
+    if ($cancelError !== null) {
+        $error = $cancelError;
+    } else {
+        $success = 'Your order is cancelled. The shoes are back in stock.';
+        $order = order_find($orderId);
+        $canCancel = false;
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'request_return') {
     $reason  = trim($_POST['reason'] ?? '');
     $details = trim($_POST['details'] ?? '');
@@ -59,6 +74,16 @@ require __DIR__ . '/includes/header.php';
 
     <?php if ($error): ?><div class="alert alert--error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
     <?php if ($success): ?><div class="alert alert--success"><?= htmlspecialchars($success) ?></div><?php endif; ?>
+
+    <?php if ($canCancel): ?>
+      <form method="post" action="<?= BASE_PATH ?>/order_detail.php?id=<?= $orderId ?>"
+            onsubmit="return confirm('Cancel order #<?= str_pad((string) $orderId, 6, '0', STR_PAD_LEFT) ?>? This cannot be undone.');"
+            style="margin-bottom:24px;">
+        <input type="hidden" name="action" value="cancel_order">
+        <button type="submit" class="btn">Cancel order</button>
+        <span class="mono" style="color:var(--gray);margin-left:10px;">You can cancel until we start preparing it.</span>
+      </form>
+    <?php endif; ?>
 
     <div class="table-scroll">
     <table class="cart-table">
