@@ -209,6 +209,10 @@ void buildStarterEditFlow(App app) {
   // for a white card to read against it.
   app.themeColor('primaryBackground', 0xFFF3F1EC);
   app.themeColor('secondaryBackground', 0xFFFFFFFF);
+  // Light only. The app followed the phone's setting, and a phone in dark
+  // mode (seen on an iPhone) got the never-designed dark palette: dark
+  // background, text the same colour as it, cards gone.
+  app.darkMode(enabled: false);
   // accent1 is the red for small text (links, sale prices, "Remove"). The
   // brand red #E2412A is 4.2:1 under white-on-red and red-on-white; this
   // deeper shade is 5.3:1 and still reads as the same red. Buttons keep the

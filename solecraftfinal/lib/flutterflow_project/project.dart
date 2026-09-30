@@ -4,6 +4,6 @@ library;
 
 abstract final class Project {
   static const id = "solecraftfinal-egt61q";
-  static const name = "SOLECRAFT FINAL";
+  static const name = "SoleCraftPH";
   static const sdkMetaVersion = 3;
 }
