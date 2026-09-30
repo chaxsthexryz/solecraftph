@@ -191,6 +191,38 @@ abstract final class BagWidgets {
                                 path: "Bag.body[0].children[3].children[0].children[0].children[1].children[2]",
                                 name: "Text",
                               ),
+                              ffai.ProjectWidgetHandle(
+                                key: "Row_hbsmqkzs",
+                                type: "Row",
+                                path: "Bag.body[0].children[3].children[0].children[0].children[1].children[3]",
+                                name: "qtyStepper",
+                                children: <ffai.ProjectWidgetHandle>[
+                                  ffai.ProjectWidgetHandle(
+                                    key: "IconButton_68d3z5ax",
+                                    type: "IconButton",
+                                    path: "Bag.body[0].children[3].children[0].children[0].children[1].children[3].children[0]",
+                                    name: "qtyDown",
+                                    triggers: const <String>[
+                                      "ON_TAP",
+                                    ],
+                                  ),
+                                  ffai.ProjectWidgetHandle(
+                                    key: "Text_3czhhb78",
+                                    type: "Text",
+                                    path: "Bag.body[0].children[3].children[0].children[0].children[1].children[3].children[1]",
+                                    name: "qtyValue",
+                                  ),
+                                  ffai.ProjectWidgetHandle(
+                                    key: "IconButton_vi892kbi",
+                                    type: "IconButton",
+                                    path: "Bag.body[0].children[3].children[0].children[0].children[1].children[3].children[2]",
+                                    name: "qtyUp",
+                                    triggers: const <String>[
+                                      "ON_TAP",
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ],
                           ),
                           ffai.ProjectWidgetHandle(
@@ -200,41 +232,9 @@ abstract final class BagWidgets {
                             name: "Column",
                             children: <ffai.ProjectWidgetHandle>[
                               ffai.ProjectWidgetHandle(
-                                key: "Row_hbsmqkzs",
-                                type: "Row",
-                                path: "Bag.body[0].children[3].children[0].children[0].children[2].children[0]",
-                                name: "qtyStepper",
-                                children: <ffai.ProjectWidgetHandle>[
-                                  ffai.ProjectWidgetHandle(
-                                    key: "IconButton_68d3z5ax",
-                                    type: "IconButton",
-                                    path: "Bag.body[0].children[3].children[0].children[0].children[2].children[0].children[0]",
-                                    name: "qtyDown",
-                                    triggers: const <String>[
-                                      "ON_TAP",
-                                    ],
-                                  ),
-                                  ffai.ProjectWidgetHandle(
-                                    key: "Text_3czhhb78",
-                                    type: "Text",
-                                    path: "Bag.body[0].children[3].children[0].children[0].children[2].children[0].children[1]",
-                                    name: "qtyValue",
-                                  ),
-                                  ffai.ProjectWidgetHandle(
-                                    key: "IconButton_vi892kbi",
-                                    type: "IconButton",
-                                    path: "Bag.body[0].children[3].children[0].children[0].children[2].children[0].children[2]",
-                                    name: "qtyUp",
-                                    triggers: const <String>[
-                                      "ON_TAP",
-                                    ],
-                                  ),
-                                ],
-                              ),
-                              ffai.ProjectWidgetHandle(
                                 key: "IconButton_vtj0lvjt",
                                 type: "IconButton",
-                                path: "Bag.body[0].children[3].children[0].children[0].children[2].children[1]",
+                                path: "Bag.body[0].children[3].children[0].children[0].children[2].children[0]",
                                 name: "IconButton",
                                 triggers: const <String>[
                                   "ON_TAP",
