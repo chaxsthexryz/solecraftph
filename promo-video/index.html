@@ -1,0 +1,328 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>SoleCraftPH promo</title>
+<link rel="stylesheet" href="fonts/inter.css">
+<link rel="stylesheet" href="fonts/bebas.css">
+<style>html,body{margin:0;background:#111}canvas{display:block;width:100vw;height:auto}</style>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// SoleCraftPH 15 s pitch promo. Pure function of time: window.seek(t) paints frame t.
+const W = 1920, H = 1080, DUR = 15;
+const C = { ink: '#111111', blaze: '#E2412A', paper: '#FAF9F6', stone: '#EDEAE3', gray: '#8A8578', label: '#6E6A60', white: '#FFFFFF' };
+const URL_TEXT = 'snow-jellyfish-553645.hostingersite.com';
+const g = document.getElementById('c').getContext('2d');
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const mix = (a, b, p) => a + (b - a) * p;
+
+// ---------- motion ----------
+function spring(t, k = 170, d = 26) {
+  if (t <= 0) return 0;
+  const w0 = Math.sqrt(k), z = d / (2 * w0);
+  if (z < 1) {
+    const wd = w0 * Math.sqrt(1 - z * z);
+    return 1 - Math.exp(-z * w0 * t) * (Math.cos(wd * t) + (z * w0 / wd) * Math.sin(wd * t));
+  }
+  return 1 - Math.exp(-w0 * t) * (1 + w0 * t);
+}
+// keys: [[time, value], ...]. One spring per change, so motion stays continuous and seekable.
+function track(t, keys, k = 170, d = 26) {
+  let v = keys[0][1];
+  for (let i = 1; i < keys.length; i++) v += (keys[i][1] - keys[i - 1][1]) * spring(t - keys[i][0], k, d);
+  return v;
+}
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+  let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+  t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+// ---------- assets ----------
+const SCREENS = ['shop', 'shoe-details', 'bag', 'checkout', 'order-detail', 'notifications'];
+const FILES = { shop: '00-shop', 'shoe-details': '01-shoe-details', bag: '02-bag', checkout: '03-checkout',
+  'order-detail': '07-order-detail', notifications: '08-notifications' };
+const IMG = {};
+const load = (src) => new Promise((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = bad; i.src = src; });
+
+// The splash logo is a blaze sole on white; key the white out so it sits on any ground.
+function keyWhite(img) {
+  const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+  const x = c.getContext('2d'); x.drawImage(img, 0, 0);
+  const d = x.getImageData(0, 0, c.width, c.height), p = d.data;
+  for (let i = 0; i < p.length; i += 4) {
+    const m = Math.min(p[i], p[i + 1], p[i + 2]);           // white → 255, blaze → ~42
+    const a = clamp((235 - m) / (235 - 60)) * p[i + 3] / 255;
+    p[i] = 0xE2; p[i + 1] = 0x41; p[i + 2] = 0x2A; p[i + 3] = Math.round(a * 255);
+  }
+  x.putImageData(d, 0, 0); return c;
+}
+
+window.ready = (async () => {
+  for (const s of SCREENS) IMG[s] = await load(`assets/screens/${FILES[s]}.png`);
+  IMG.desktop = await load('assets/desktop.png');
+  IMG.logo = keyWhite(await load('assets/splash-logo.png'));
+  await Promise.all(['400 100px "Bebas Neue"', '400 20px Inter', '500 20px Inter', '600 20px Inter', '700 20px Inter']
+    .map((f) => document.fonts.load(f)));
+  await document.fonts.ready;
+  return true;
+})();
+
+// ---------- drawing helpers ----------
+function rr(x, y, w, h, r) { g.beginPath(); g.roundRect(x, y, w, h, r); }
+const BEBAS = (px) => `400 ${px}px "Bebas Neue"`;
+const INTER = (w, px) => `${w} ${px}px Inter`;
+
+// Draw a line made of [text, color] segments starting at x (left aligned, alphabetic baseline).
+function segs(parts, x, y) {
+  for (const [s, col] of parts) { g.fillStyle = col; g.fillText(s, x, y); x += g.measureText(s).width; }
+}
+// A line of display type that slides up from behind a mask on enter and up out on exit.
+function kinetic(parts, x, y, px, tIn, tOut, t) {
+  const pIn = spring(t - tIn, 210, 26), pOut = spring(t - tOut, 260, 30);
+  if (pIn <= 0.001 || pOut >= 0.999) return;
+  g.save(); g.font = BEBAS(px);
+  const w = parts.reduce((a, [s]) => a + g.measureText(s).width, 0);
+  rr(x - 10, y - px * 0.9, w + 30, px * 1.02, 0); g.clip();
+  segs(parts, x, y + (1 - pIn) * px * 1.0 - pOut * px * 1.05);
+  g.restore();
+}
+// Supporting Inter line: slides in from 40px left on a spring, exits upward.
+function subline(text, x, y, px, col, tIn, tOut, t, weight = 500) {
+  const pIn = spring(t - tIn, 190, 24), pOut = spring(t - tOut, 260, 30);
+  if (pIn <= 0.001 || pOut >= 0.999) return;
+  g.save(); g.font = INTER(weight, px);
+  rr(x - 6, y - px * 1.1, 1100, px * 1.5, 0); g.clip();
+  g.fillStyle = col; g.fillText(text, x - (1 - pIn) * 40, y + (1 - pIn) * px * 0.6 - pOut * px * 1.6);
+  g.restore();
+}
+
+// ---------- the phone ----------
+// Screen is 340×760 CSS px (the draft's coordinate system); point (sx, sy) lands at
+// (cx + S*(sx-170), cy + S*(sy-380)).
+function drawScreenImage(name, dx = 0, scroll = 0) {
+  const im = IMG[name];
+  g.drawImage(im, dx, -scroll, 340, im.height * 340 / im.width);
+}
+function tile(x, y, w, h, label, mode, p = 1) {
+  // mode: 'plain' | 'filled' | 'sold'
+  g.save();
+  g.translate(x + w / 2, y + h / 2); const s = mode === 'filled' ? 0.86 + 0.14 * p : 1; g.scale(s, s);
+  rr(-w / 2, -h / 2, w, h, 12);
+  g.fillStyle = mode === 'filled' ? C.ink : mode === 'sold' ? C.stone : C.white; g.fill();
+  if (mode !== 'filled') { g.strokeStyle = C.stone; g.lineWidth = 1; g.stroke(); }
+  g.fillStyle = mode === 'filled' ? C.white : mode === 'sold' ? '#B4AFA4' : C.ink;
+  g.font = INTER(mode === 'filled' ? 600 : 500, 15); g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(label, 0, 1);
+  if (mode === 'sold') { g.strokeStyle = '#B4AFA4'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(-w / 2 + 8, h / 2 - 8); g.lineTo(w / 2 - 8, -h / 2 + 8); g.stroke(); }
+  g.restore();
+}
+function press(x, y, w, h, r, t, at) {           // darken a button for the length of a tap
+  const a = clamp(1 - Math.abs(t - at - 0.06) / 0.14) * 0.22;
+  if (a <= 0) return;
+  rr(x, y, w, h, r); g.fillStyle = `rgba(0,0,0,${a})`; g.fill();
+}
+function checkMark(x, y, col) {
+  g.save(); g.strokeStyle = col; g.lineWidth = 2.4; g.lineCap = 'round'; g.lineJoin = 'round';
+  g.beginPath(); g.moveTo(x + 4, y + 12.5); g.lineTo(x + 9.5, y + 18); g.lineTo(x + 20, y + 7); g.stroke(); g.restore();
+}
+
+// Overlays that bring each real screen to life, in screen CSS px.
+const TAP = { size: 4.75, add: 5.75, gcash: 7.75, place: 9.0 };
+function overlays(name, t) {
+  if (name === 'shoe-details') {
+    const sizes = [[16, '7'], [68.3, '8'], [120.7, '9'], [173, '10'], [225.3, '11'], [277.7, '12']];
+    const chosen = t >= TAP.size;
+    for (const [x, l] of sizes) {
+      if (l === '12') tile(x, 472, 46.3, 48, l, 'sold');
+      else if (l === '9' && chosen) tile(x, 472, 46.3, 48, l, 'plain');
+      else if (l === '10' && chosen) tile(x, 472, 46.3, 48, l, 'filled', spring(t - TAP.size, 420, 22));
+    }
+    press(175, 688, 149, 50, 25, t, TAP.add);
+    // "Added to Bag" toast
+    const ty = track(t, [[0, 0], [TAP.add + 0.12, 1], [6.3, 0]], 300, 30);
+    if (ty > 0.01) {
+      g.save(); g.translate(170, 640 + (1 - ty) * 60); g.globalAlpha = clamp(ty * 1.4);
+      rr(-90, -20, 180, 40, 20); g.fillStyle = C.ink; g.fill();
+      g.fillStyle = C.white; g.font = INTER(600, 14); g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText('Added to Bag', 8, 1); checkMark(-82, -12, C.blaze); g.restore();
+    }
+  }
+  if (name === 'checkout') {
+    if (t >= TAP.gcash) {
+      g.fillStyle = C.white; g.fillRect(282, 360, 32, 32);
+      const p = spring(t - TAP.gcash, 380, 24);
+      g.save(); g.translate(298, 426.5); g.scale(p, p); checkMark(-12, -12, C.blaze); g.restore();
+    }
+    press(181.8, 688, 142.3, 50, 25, t, TAP.place);
+  }
+}
+
+// Screen sequence inside the phone, pushed like native navigation.
+const NAV = [[0, 'shop'], [4.0, 'shoe-details'], [6.4, 'bag'], [7.0, 'checkout'], [9.5, 'order-detail'], [12.0, 'bag'], [13.5, 'shop']];
+function screenContent(t) {
+  let i = 0; for (let j = 0; j < NAV.length; j++) if (t >= NAV[j][0]) i = j;
+  const name = NAV[i][1], p = i ? spring(t - NAV[i][0], 240, 30) : 1;
+  const scroll = name === 'shop' && t < 13.5 ? track(t, [[0, 0], [3.0, 70]], 120, 22) : 0;
+  if (p < 0.999 && i) {
+    const prev = NAV[i - 1][1];
+    g.save(); g.translate(-p * 110, 0); drawScreenImage(prev); overlays(prev, t); g.restore();
+    g.fillStyle = `rgba(0,0,0,${0.18 * p})`; g.fillRect(0, 0, 340, 760);
+    g.save(); g.translate(340 * (1 - p), 0);
+    g.shadowColor = 'rgba(0,0,0,.25)'; g.shadowBlur = 30; g.fillStyle = C.white; g.fillRect(0, 0, 340, 760); g.shadowBlur = 0;
+    drawScreenImage(name, 0, scroll); overlays(name, t); g.restore();
+  } else { drawScreenImage(name, 0, scroll); overlays(name, t); }
+}
+
+// Touch indicator path in screen px; visible while the cursor is "driving".
+const CUR = [[4.2, 230, 620], [4.3, 196, 496], [5.2, 250, 713], [7.1, 170, 520], [7.2, 120, 426], [8.45, 253, 713]];
+function cursor(t) {
+  const vis = Math.min(spring(t - 4.25, 200, 26), 1 - spring(t - 9.25, 200, 26), t < 7.2 ? 1 - spring(t - 6.3, 260, 30) : spring(t - 7.15, 200, 26));
+  if (vis <= 0.01) return;
+  const x = track(t, CUR.map(([k, x]) => [k, x]), 140, 24), y = track(t, CUR.map(([k, , y]) => [k, y]), 140, 24);
+  let down = 0, rip = -1;
+  for (const k of Object.values(TAP)) { down = Math.max(down, clamp(1 - Math.abs(t - k - 0.05) / 0.12)); if (t >= k && t < k + 0.5) rip = t - k; }
+  g.save(); g.globalAlpha = vis;
+  if (rip >= 0) { const r = 18 + 70 * spring(rip, 90, 18); g.beginPath(); g.arc(x, y, r, 0, 7); g.strokeStyle = `rgba(226,65,42,${0.8 * (1 - rip / 0.5)})`; g.lineWidth = 3; g.stroke(); }
+  g.beginPath(); g.arc(x, y, 20 * (1 - 0.22 * down), 0, 7); g.fillStyle = 'rgba(17,17,17,.28)'; g.fill();
+  g.lineWidth = 3; g.strokeStyle = C.white; g.stroke(); g.restore();
+}
+
+// Phone placement: x, y, scale, rotation, each its own spring track.
+const PX = [[0, 1360], [4.0, 1260], [6.4, 1300], [7.0, 1380], [9.45, 1020], [12.0, 1680], [13.45, 1510]];
+const PY = [[0, 1700], [2.05, 540], [4.05, 366], [5.25, 410], [6.4, 540], [7.05, 485], [8.35, 467], [9.45, 540], [12.0, 660], [13.45, 545]];
+const PS = [[0, 1.12], [4.05, 1.5], [5.25, 1.4], [6.4, 1.12], [7.05, 1.5], [8.35, 1.32], [9.45, 1.18], [12.0, 0.72], [13.45, 1.02]];
+const PR = [[0, 0.14], [2.05, -0.035], [4.05, 0], [12.0, 0.04], [13.45, -0.05]];
+function drawPhone(t) {
+  if (t < 1.9) return;
+  const cx = track(t, PX, 150, 24), cy = track(t, PY, 150, 22), S = track(t, PS, 150, 26), rot = track(t, PR, 120, 18);
+  g.save(); g.translate(cx, cy); g.rotate(rot); g.scale(S, S);
+  g.save(); g.shadowColor = 'rgba(20,18,14,.35)'; g.shadowBlur = 70 * S; g.shadowOffsetY = 34 * S;
+  rr(-180, -390, 360, 780, 46); g.fillStyle = '#0B0B0A'; g.fill(); g.restore();
+  g.translate(-170, -380); rr(0, 0, 340, 760, 36); g.clip(); g.fillStyle = C.white; g.fillRect(0, 0, 340, 760);
+  screenContent(t); cursor(t);
+  g.restore();
+}
+
+// ---------- scenes ----------
+function hook(t) {                                       // 0–2 s: the problem
+  kinetic([['FOUND THE PAIR.', C.paper]], 150, 500, 290, 0.02, 0.98, t);
+  kinetic([['SIZE ', C.paper], ['SOLD OUT.', C.blaze]], 150, 500, 290, 1.0, 9, t);
+  const labels = ['7', '8', '9', '10', '11', '12'], slashed = { 2: 1.15, 3: 1.4, 1: 1.65 };
+  for (let i = 0; i < 6; i++) {
+    const p = spring(t - 0.12 - i * 0.07, 260, 22);
+    if (p <= 0.001) continue;
+    const x = 156 + i * 190, y = 600;
+    g.save(); g.translate(x + 80, y + 80 + (1 - p) * 90); g.globalAlpha = clamp(p * 1.5);
+    rr(-80, -80, 160, 160, 34); g.strokeStyle = '#3A3936'; g.lineWidth = 3; g.stroke();
+    g.fillStyle = C.paper; g.font = INTER(600, 54); g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(labels[i], 0, 2);
+    if (slashed[i] !== undefined) {
+      const s = spring(t - slashed[i], 380, 30);
+      if (s > 0) { g.strokeStyle = C.blaze; g.lineWidth = 11; g.lineCap = 'round'; g.beginPath(); g.moveTo(-64, 64); g.lineTo(-64 + 128 * s, 64 - 128 * s); g.stroke(); }
+    }
+    g.restore();
+  }
+}
+function brand(t) {                                      // 2–4 s: who we are
+  const p = spring(t - 2.15, 150, 16);
+  if (p > 0 && t < 4.2) {
+    const out = spring(t - 3.9, 260, 30);
+    g.save(); g.translate(225, 270 - out * 400); g.rotate((1 - p) * -0.5 - 0.2); g.scale(0.4 + 0.6 * p, 0.4 + 0.6 * p);
+    g.drawImage(IMG.logo, -160, -160, 320, 320); g.restore();
+  }
+  kinetic([['SOLE', C.ink], ['CRAFT', C.blaze], ['PH', C.ink]], 150, 600, 230, 2.3, 3.9, t);
+  subline('Footwear, done right.', 156, 690, 48, C.label, 2.6, 3.9, t, 500);
+}
+function stock(t) {                                      // 4–6.4 s
+  kinetic([['STOCK SHOWN', C.ink]], 140, 470, 180, 4.1, 6.2, t);
+  kinetic([['PER ', C.ink], ['SIZE.', C.blaze]], 140, 640, 180, 4.2, 6.25, t);
+  subline('Know it fits before you fall for it.', 146, 740, 38, C.label, 4.5, 6.2, t);
+}
+function pay(t) {                                        // 6.4–9.5 s
+  kinetic([['PAY WITH', C.ink]], 140, 470, 180, 6.6, 9.3, t);
+  kinetic([['GCASH ', C.blaze], ['OR CARD.', C.ink]], 140, 640, 180, 6.7, 9.35, t);
+  subline('Secure checkout, confirmed by PayMongo.', 146, 740, 38, C.label, 7.0, 9.3, t);
+}
+// Real notification rows cropped from the Notifications screen, in the order they arrive.
+const NOTES = [[199.1, 10.0], [145.7, 10.5], [252.6, 11.0]];
+function track_(t) {                                     // 9.5–12 s
+  kinetic([['TRACK EVERY', C.ink]], 120, 470, 165, 9.6, 11.85, t);
+  kinetic([['ORDER.', C.blaze]], 120, 630, 165, 9.7, 11.9, t);
+  subline('A live timeline, any time.', 126, 725, 38, C.label, 10.0, 11.85, t);
+  NOTES.forEach(([sy, at], i) => {
+    const p = spring(t - at, 200, 22), out = spring(t - 11.85 - i * 0.05, 240, 30);
+    if (p <= 0.001 || out >= 0.999) return;
+    const S = 1.75, cw = 300 * S, ch = 62 * S;
+    const x = mix(1020, 1600, p) + out * 900, y = 300 + i * 175;
+    g.save(); g.translate(x, y); g.scale(0.7 + 0.3 * p, 0.7 + 0.3 * p);
+    g.shadowColor = 'rgba(20,18,14,.22)'; g.shadowBlur = 40; g.shadowOffsetY = 16;
+    rr(-cw / 2, -ch / 2, cw, ch, 24); g.fillStyle = C.white; g.fill(); g.shadowBlur = 0; g.shadowOffsetY = 0;
+    rr(-cw / 2, -ch / 2, cw, ch, 24); g.clip();
+    const im = IMG.notifications, k = im.width / 340;
+    g.drawImage(im, 26 * k, (sy - 4) * k, 300 * k, 62 * k, -cw / 2, -ch / 2, cw, ch);
+    g.restore();
+  });
+}
+function account(t) {                                    // 12–13.5 s
+  kinetic([['ONE ACCOUNT.', C.ink]], 110, 400, 130, 12.05, 13.4, t);
+  kinetic([['WEB ', C.ink], ['AND ', C.ink], ['APP.', C.blaze]], 110, 530, 130, 12.15, 13.45, t);
+  subline('Your cart and orders follow you.', 116, 610, 32, C.label, 12.35, 13.4, t);
+  const p = spring(t - 12.0, 160, 24);
+  if (p <= 0.001) return;
+  const lw = 880, lh = 550, x = 1260 + (1 - p) * 1100, y = 520;
+  g.save(); g.translate(x, y);
+  g.shadowColor = 'rgba(20,18,14,.3)'; g.shadowBlur = 60; g.shadowOffsetY = 30;
+  rr(-lw / 2 - 18, -lh / 2 - 18, lw + 36, lh + 36, 22); g.fillStyle = '#1A1A19'; g.fill(); g.shadowBlur = 0;
+  g.drawImage(IMG.desktop, -lw / 2, -lh / 2, lw, lh);
+  rr(-lw / 2 - 90, lh / 2 + 18, lw + 180, 26, 8); g.fillStyle = '#CFCBC2'; g.fill();
+  g.restore();
+}
+function cta(t) {                                        // 13.5–15 s
+  const p = spring(t - 13.6, 120, 14);
+  if (p > 0) {
+    g.save(); g.translate(250, 470); g.rotate((1 - p) * -0.6 - 0.18); g.scale(p, p);
+    g.drawImage(IMG.logo, -190, -190, 380, 380); g.restore();
+  }
+  kinetic([['SOLE', C.paper], ['CRAFT', C.blaze], ['PH', C.paper]], 150, 740, 230, 13.7, 99, t);
+  subline('Footwear, done right.', 156, 820, 44, '#CFCBC2', 13.95, 99, t);
+  const u = spring(t - 14.2, 200, 26);
+  if (u > 0) {
+    g.save(); g.font = INTER(600, 34);
+    const w = g.measureText(URL_TEXT).width;
+    rr(150, 880, w + 40, 64, 32); g.clip();
+    g.fillStyle = C.paper; g.fillText(URL_TEXT, 170, 924 + (1 - u) * 60);
+    g.restore();
+    g.fillStyle = C.blaze; g.fillRect(170, 952, w * spring(t - 14.35, 160, 26), 4);
+  }
+}
+
+// ---------- grounds and wipes ----------
+function grounds(t) {
+  g.fillStyle = C.ink; g.fillRect(0, 0, W, H);
+  const b = spring(t - 1.85, 190, 28), pp = spring(t - 1.97, 190, 28);
+  if (b > 0) { g.fillStyle = C.blaze; g.fillRect(W * (1 - b), 0, W * b + 2, H); }
+  if (pp > 0) { g.fillStyle = C.paper; g.fillRect(W * (1 - pp), 0, W * pp + 2, H); }
+}
+function finale(t) {                                     // ink rises over everything but the phone
+  const b = spring(t - 13.35, 180, 28), k = spring(t - 13.45, 180, 28);
+  if (b > 0) { g.fillStyle = C.blaze; g.fillRect(0, H * (1 - b), W, H * b + 2); }
+  if (k > 0) { g.fillStyle = C.ink; g.fillRect(0, H * (1 - k), W, H * k + 2); }
+}
+
+function draw(t) {
+  grounds(t);
+  if (t < 2.2) hook(t);
+  if (t >= 2.0 && t < 4.3) brand(t);
+  if (t >= 4.0 && t < 6.6) stock(t);
+  if (t >= 6.4 && t < 9.7) pay(t);
+  if (t >= 9.4 && t < 12.4) track_(t);
+  if (t >= 11.9 && t < 14) account(t);
+  if (t >= 13.3) finale(t);
+  if (t >= 13.4) cta(t);
+  drawPhone(t);
+}
+window.seek = (t) => { draw(t); return true; };
+window.frame = (t, q) => { draw(t); return g.canvas.toDataURL('image/jpeg', q); };
+
+// Live preview in a normal browser; off during headless render.
+if (!navigator.webdriver) window.ready.then(() => {
+  const t0 = performance.now();
+  (function loop() { draw(((performance.now() - t0) / 1000) % DUR); requestAnimationFrame(loop); })();
+});
+</script>
