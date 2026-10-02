@@ -5,3 +5,11 @@ out/still-*.jpg
 out/film20-silent.mp4
 out/film20-score.wav
 out/f20-*.jpg
+.venv-blender/
+out/b3d/
+film3d/seq/
+film3d/assets/
+film3d/scene.blend
+film3d/scene.blend1
+film3d/bench.py
+film3d/scene.json

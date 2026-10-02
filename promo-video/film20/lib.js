@@ -22,7 +22,7 @@ export const load = (src) => new Promise((ok, bad) => { const i = new Image(); i
 
 // Cut a product photo off its studio background: flood-fill from the border over pixels close to the
 // background colour, then turn what was filled into a dark, translucent contact shadow.
-export async function cutout(src, tol = 26) {
+export async function cutout(src, tol = 26, shadow = true) {
   const img = await load(src);
   const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
   const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(img, 0, 0);
@@ -39,7 +39,7 @@ export async function cutout(src, tol = 26) {
   for (let i = 0; i < W * H; i++) {
     if (!seen[i]) continue;
     const o = i * 4, L = (p[o] + p[o + 1] + p[o + 2]) / 3;
-    const a = clamp((bgL - L - 3) / 70) * 0.75;           // only darker-than-ground pixels survive, as shadow
+    const a = shadow ? clamp((bgL - L - 3) / 70) * 0.75 : 0;   // only darker-than-ground pixels survive, as shadow
     p[o] = p[o + 1] = p[o + 2] = 12; p[o + 3] = Math.round(a * 255);
   }
   x.putImageData(d, 0, 0);
