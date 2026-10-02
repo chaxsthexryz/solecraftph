@@ -1,0 +1,85 @@
+<!doctype html><meta charset="utf-8">
+<link rel="stylesheet" href="../fonts/inter.css"><link rel="stylesheet" href="../fonts/bebas.css">
+<style>
+  html, body { margin: 0; background: transparent; overflow: hidden; }
+  #f { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+  .kl, .sub { position: absolute; left: 0; top: 0; overflow: hidden; white-space: nowrap; }
+  .o { position: absolute; left: 0; top: 0; }
+</style>
+<div id="f"></div>
+<script type="module">
+// Type layer for the 3D film: transparent frames composited over the Blender render. seek(t) is a pure function of t.
+import { clamp, spring } from '../film20/lib.js';
+const C = { ink: '#111111', blaze: '#E2412A', paper: '#FAF9F6', label: '#6E6A60' };
+const URL_TEXT = 'snow-jellyfish-553645.hostingersite.com';
+const F = document.getElementById('f');
+const html = (s) => { const t = document.createElement('template'); t.innerHTML = s.trim(); return t.content.firstChild; };
+const anchors = await (await fetch('anchors.json')).json();
+const L = [];
+function line(parts, x, y, px, tIn, tOut, cut = 99) {
+  const el = html(`<div class="kl" style="font:400 ${px}px/${px}px 'Bebas Neue';height:${px * 0.86}px;padding-right:${px * 0.1}px"><div>${parts.map(([s, c]) => `<span style="color:${c}">${s}</span>`).join('')}</div></div>`);
+  el.style.transform = `translate(${x}px,${y - px * 0.8}px)`; F.appendChild(el); L.push({ el, inner: el.firstChild, px, tIn, tOut, cut, k: 'line' });
+}
+function sub(text, x, y, tIn, tOut, color = C.label, px = 36, weight = 500, cut = 99) {
+  const el = html(`<div class="sub" style="font:${weight} ${px}px/1.3 Inter;color:${color};padding-right:20px"><div>${text}</div></div>`);
+  el.style.transform = `translate(${x}px,${y - px}px)`; F.appendChild(el); L.push({ el, inner: el.firstChild, px, tIn, tOut, cut, k: 'sub' });
+  return el;
+}
+// bar 1 (dark): the problem
+line([['FOUND', C.paper]], 120, 380, 190, 0.06, 1.18, 2.5);
+line([['THE PAIR.', C.paper]], 120, 555, 190, 0.14, 1.22, 2.5);
+line([['YOUR SIZE?', C.paper]], 120, 380, 190, 1.25, 9, 2.5);
+line([['SOLD OUT.', C.blaze]], 120, 555, 190, 1.33, 9, 2.5);
+// bars 3–7 (studio): one headline per beat of the story, on the left third
+line([['STOCK SHOWN', C.ink]], 120, 470, 170, 5.25, 7.2);
+line([['PER ', C.ink], ['SIZE.', C.blaze]], 120, 635, 170, 5.33, 7.25);
+sub('See what’s left before you fall for a pair.', 126, 735, 5.6, 7.2);
+line([['PAY WITH', C.ink]], 120, 470, 170, 7.65, 9.75);
+line([['GCASH ', C.blaze], ['OR CARD.', C.ink]], 120, 635, 170, 7.73, 9.8);
+sub('Secure checkout through PayMongo.', 126, 735, 8.0, 9.75);
+line([['TRACK EVERY', C.ink]], 120, 470, 170, 10.05, 12.3);
+line([['ORDER.', C.blaze]], 120, 635, 170, 10.13, 12.35);
+sub('A live timeline, any time.', 126, 735, 10.4, 12.3);
+line([['ONE ACCOUNT.', C.ink]], 120, 430, 150, 12.65, 14.8);
+line([['WEB AND ', C.ink], ['APP.', C.blaze]], 120, 580, 150, 12.73, 14.85);
+sub('Your cart and orders follow you.', 126, 670, 13.0, 14.8);
+line([['100% AUTHENTIC.', C.ink]], 120, 250, 140, 15.15, 17.3);
+line([['BELOW ', C.ink], ['MALL PRICES.', C.blaze]], 120, 390, 140, 15.23, 17.35);
+// bar 8 (dark): tagline and URL under the 3D wordmark, logo above it; positions come from the camera projection
+const a0 = anchors['599'];
+const logo = html(`<img class="o" src="../film3d/assets/logo.png" style="width:220px;height:220px">`); F.appendChild(logo);
+const tag = sub('Footwear, done right.', 0, 0, 18.2, 99, '#CFCBC2', 44);
+const url = html(`<div class="o" style="font:600 34px/64px Inter;color:${C.paper};height:64px;overflow:hidden;padding:0 4px"><span>${URL_TEXT}</span><i style="position:absolute;left:4px;bottom:4px;height:4px;width:0;background:${C.blaze}"></i></div>`); F.appendChild(url);
+// wipes that hide the two cuts between sets
+const slab = html(`<div class="o" style="width:2700px;height:1400px;left:-390px;top:-160px;background:${C.blaze}"></div>`); F.appendChild(slab);
+const rise = [C.blaze, C.ink].map((c) => { const el = html(`<div class="o" style="width:1920px;height:1200px;background:${c}"></div>`); F.appendChild(el); return el; });
+
+window.seek = (t) => {
+  for (const x of L) {
+    const pIn = spring(t - x.tIn, 210, 26), pOut = spring(t - x.tOut, 260, 30);
+    if (pIn <= 0.001 || pOut >= 0.999 || t >= x.cut) { x.el.style.visibility = 'hidden'; continue; }
+    x.el.style.visibility = 'visible';
+    x.inner.style.transform = x.k === 'line' ? `translateY(${(1 - pIn) * x.px - pOut * x.px * 1.05}px)` : `translateY(${(1 - pIn) * x.px * 1.4 - pOut * x.px * 1.6}px)`;
+  }
+  const f = Math.min(599, Math.max(525, Math.round(t * 30))), a = anchors[f] || a0;
+  tag.style.transform = `translate(${a.left + 6}px,${a.bottom + 74 - 44}px)`;
+  const l = spring(t - 17.95, 120, 14);
+  logo.style.visibility = t >= 17.9 ? 'visible' : 'hidden';
+  logo.style.transform = `translate(${a.left - 30}px,${a.top - 250}px) rotate(${(1 - l) * -50 - 12}deg) scale(${0.25 + 0.75 * l})`;
+  logo.style.opacity = clamp(l * 3);
+  const u = spring(t - 18.45, 200, 26);
+  url.style.visibility = t >= 18.4 ? 'visible' : 'hidden';
+  url.style.transform = `translate(${a.left + 2}px,${a.bottom + 100 + (1 - u) * 30}px)`; url.style.opacity = clamp(u * 1.5);
+  url.querySelector('i').style.width = `${url.querySelector('span').offsetWidth * spring(t - 18.6, 160, 26)}px`;
+  // blaze slab: covers the frame at 2.5 s, then leaves
+  const sIn = spring(t - 2.12, 320, 34), sOut = spring(t - 2.5, 260, 32);
+  slab.style.transform = `translateX(${(1 - sIn) * 2900 - sOut * 2900}px) skewX(-14deg)`; slab.style.visibility = t > 2.0 && t < 3.2 ? 'visible' : 'hidden';
+  // ink rises over the studio, then lifts off the dark finale at 17.5 s
+  const r1 = spring(t - 17.15, 220, 30), r2 = spring(t - 17.22, 220, 30), up = spring(t - 17.5, 200, 30);
+  rise[0].style.transform = `translateY(${(1 - r1) * 1100 - up * 1300}px)`; rise[0].style.visibility = t > 17.1 && t < 18.3 ? 'visible' : 'hidden';
+  rise[1].style.transform = `translateY(${(1 - r2) * 1100 - up * 1300}px)`; rise[1].style.visibility = t > 17.15 && t < 18.3 ? 'visible' : 'hidden';
+  return true;
+};
+await Promise.all(['400 100px "Bebas Neue"', '500 20px Inter', '600 20px Inter'].map((f) => document.fonts.load(f)));
+window.done = true;
+</script>

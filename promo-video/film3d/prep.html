@@ -1,0 +1,110 @@
+<!doctype html><meta charset="utf-8">
+<link rel="stylesheet" href="../fonts/inter.css">
+<script type="module">
+// Builds the textures the Blender scene needs. Every function returns PNG/JPEG data URLs to film3d/prep.mjs.
+import { clamp, spring, track, load, cutout, keyLogo } from '../film20/lib.js';
+const C = { ink: '#111111', blaze: '#E2412A', stone: '#EDEAE3', white: '#FFFFFF', mist: 'rgb(243,241,236)' };
+const FPS = 30;
+const SHOES = { kayano: 'kayano31.webp', pegasus: 'pegasus41.png', metcon: 'metcon9.jpg', ghost: 'ghost16.jpg', clifton: 'clifton9.jpg', af1: 'af1.jpg' };
+const SCR = { shop: '00-shop', details: '01-shoe-details', bag: '02-bag', checkout: '03-checkout', placed: '05-order-placed', order: '07-order-detail', notes: '08-notifications' };
+const IMG = {};
+
+// ---- phone screen drawing (340×760 CSS px, 3× canvas) ----
+const cv = document.createElement('canvas'); cv.width = 1020; cv.height = 2280;
+const sc = cv.getContext('2d');
+const rr = (x, y, w, h, r) => { sc.beginPath(); sc.roundRect(x, y, w, h, r); };
+const draw = (name, dx = 0) => { const im = IMG[name]; sc.drawImage(im, dx, 0, 340, im.height * 340 / im.width); };
+function tile(x, y, w, h, label, mode, p = 1) {
+  sc.save(); sc.translate(x + w / 2, y + h / 2);
+  const s = mode === 'filled' ? 0.84 + 0.16 * p : mode === 'sold' ? 0.9 + 0.1 * p : 1; sc.scale(s, s);
+  rr(-w / 2, -h / 2, w, h, 12);
+  sc.fillStyle = mode === 'filled' ? C.ink : mode === 'sold' ? C.stone : C.white; sc.fill();
+  if (mode !== 'filled') { sc.strokeStyle = C.stone; sc.lineWidth = 1; sc.stroke(); }
+  sc.fillStyle = mode === 'filled' ? C.white : mode === 'sold' ? '#B4AFA4' : C.ink;
+  sc.font = `${mode === 'filled' ? 600 : 500} 15px Inter`; sc.textAlign = 'center'; sc.textBaseline = 'middle'; sc.fillText(label, 0, 1);
+  if (mode === 'sold') { sc.strokeStyle = '#B4AFA4'; sc.lineWidth = 1.5; sc.beginPath(); sc.moveTo(-w / 2 + 8, h / 2 - 8); sc.lineTo(w / 2 - 8, -h / 2 + 8); sc.stroke(); }
+  sc.restore();
+}
+function press(x, y, w, h, r, t, at) { const a = clamp(1 - Math.abs(t - at - 0.06) / 0.14) * 0.22; if (a <= 0) return; rr(x, y, w, h, r); sc.fillStyle = `rgba(0,0,0,${a})`; sc.fill(); }
+function check(x, y, col) { sc.save(); sc.strokeStyle = col; sc.lineWidth = 2.4; sc.lineCap = 'round'; sc.lineJoin = 'round'; sc.beginPath(); sc.moveTo(x + 4, y + 12.5); sc.lineTo(x + 9.5, y + 18); sc.lineTo(x + 20, y + 7); sc.stroke(); sc.restore(); }
+function cursor(t, keys, taps, from, to) {
+  const vis = Math.min(spring(t - from, 200, 26), 1 - spring(t - to, 260, 30)); if (vis <= 0.01) return;
+  const x = track(t, keys.map(([k, x]) => [k, x]), 140, 24), y = track(t, keys.map(([k, , y]) => [k, y]), 140, 24);
+  let down = 0, rip = -1;
+  for (const k of taps) { down = Math.max(down, clamp(1 - Math.abs(t - k - 0.05) / 0.12)); if (t >= k && t < k + 0.5) rip = t - k; }
+  sc.save(); sc.globalAlpha = vis;
+  if (rip >= 0) { sc.beginPath(); sc.arc(x, y, 18 + 70 * spring(rip, 90, 18), 0, 7); sc.strokeStyle = `rgba(226,65,42,${0.8 * (1 - rip / 0.5)})`; sc.lineWidth = 3; sc.stroke(); }
+  sc.beginPath(); sc.arc(x, y, 20 * (1 - 0.22 * down), 0, 7); sc.fillStyle = 'rgba(17,17,17,.28)'; sc.fill(); sc.lineWidth = 3; sc.strokeStyle = C.white; sc.stroke(); sc.restore();
+}
+function push(t, t0, a, b, overA, overB) {
+  const p = spring(t - t0, 240, 30);
+  if (t < t0) { draw(a); overA?.(); return; }
+  if (p >= 0.999) { draw(b); overB?.(); return; }
+  sc.save(); sc.translate(-p * 110, 0); draw(a); overA?.(); sc.restore();
+  sc.fillStyle = `rgba(0,0,0,${0.18 * p})`; sc.fillRect(0, 0, 340, 760);
+  sc.save(); sc.translate(340 * (1 - p), 0); sc.shadowColor = 'rgba(0,0,0,.25)'; sc.shadowBlur = 30; sc.fillStyle = C.white; sc.fillRect(0, 0, 340, 760); sc.shadowBlur = 0; draw(b); overB?.(); sc.restore();
+}
+const begin = () => { sc.setTransform(3, 0, 0, 3, 0, 0); sc.fillStyle = C.white; sc.fillRect(0, 0, 340, 760); };
+
+// Panel A: Shoe Details. Size 12 shows sold out, a tap fills 10, a tap on Add to Bag, a toast.
+const TA = { sold: 5.625, size: 6.25, add: 6.875 };
+function panelA(t) {
+  begin(); draw('details');
+  if (t >= TA.sold) tile(277.7, 472, 46.3, 48, '12', 'sold', spring(t - TA.sold, 380, 18));
+  if (t >= TA.size) { tile(120.7, 472, 46.3, 48, '9', 'plain'); tile(173, 472, 46.3, 48, '10', 'filled', spring(t - TA.size, 420, 22)); }
+  press(175, 688, 149, 50, 25, t, TA.add);
+  const ty = track(t, [[0, 0], [TA.add + 0.1, 1], [7.6, 0]], 300, 30);
+  if (ty > 0.01) { sc.save(); sc.translate(170, 640 + (1 - ty) * 60); sc.globalAlpha = clamp(ty * 1.4); rr(-90, -20, 180, 40, 20); sc.fillStyle = C.ink; sc.fill();
+    sc.fillStyle = C.white; sc.font = '600 14px Inter'; sc.textAlign = 'center'; sc.textBaseline = 'middle'; sc.fillText('Added to Bag', 8, 1); check(-82, -12, C.blaze); sc.restore(); }
+  cursor(t, [[5.5, 230, 640], [5.6, 196, 496], [6.5, 250, 713]], [TA.size, TA.add], 5.55, 7.3);
+  return cv.toDataURL('image/jpeg', 0.93);
+}
+// Phone: Shop until it unfolds, then Checkout (GCash tap, Place Order), then Order Placed.
+const TP = { gcash: 8.125, place: 9.375, placed: 9.7 };
+function phone(t) {
+  begin();
+  if (t < 5.0) { draw('shop'); return cv.toDataURL('image/jpeg', 0.93); }
+  const over = () => {
+    if (t >= TP.gcash) { sc.fillStyle = C.white; sc.fillRect(282, 360, 32, 32); const p = spring(t - TP.gcash, 380, 24); sc.save(); sc.translate(298, 426.5); sc.scale(p, p); check(-12, -12, C.blaze); sc.restore(); }
+    press(181.8, 688, 142.3, 50, 25, t, TP.place);
+  };
+  push(t, TP.placed, 'checkout', 'placed', over);
+  if (t < TP.placed + 0.3) cursor(t, [[7.6, 170, 560], [7.7, 120, 426], [8.85, 253, 713]], [TP.gcash, TP.place], 7.65, 9.6);
+  return cv.toDataURL('image/jpeg', 0.93);
+}
+
+window.prep = {
+  async init() {
+    for (const [k, f] of Object.entries(SCR)) IMG[k] = await load(`../assets/screens/${f}.png`);
+    await Promise.all(['500 15px Inter', '600 15px Inter'].map((f) => document.fonts.load(f)));
+    return true;
+  },
+  async shoes() { const out = {}; for (const [k, f] of Object.entries(SHOES)) out[k] = (await cutout(`../assets/shoes/${f}`, 26, false)).toDataURL('image/png'); return out; },
+  async logo() { return (await keyLogo('../assets/splash-logo.png')).toDataURL('image/png'); },
+  notes() {   // three real notification rows, cropped at 6× for crisp textures
+    const im = IMG.notes, k = im.width / 340, out = [];
+    for (const sy of [199.1, 145.7, 252.6]) {
+      const c = document.createElement('canvas'); c.width = 1800; c.height = 372; const x = c.getContext('2d');
+      x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+      x.drawImage(im, 26 * k, (sy - 4) * k, 300 * k, 62 * k, 0, 0, c.width, c.height); out.push(c.toDataURL('image/png'));
+    }
+    return out;
+  },
+  keyboard() {   // laptop deck: key grid + trackpad, warm aluminium
+    const c = document.createElement('canvas'); c.width = 2600; c.height = 1750; const x = c.getContext('2d');
+    x.fillStyle = '#D6D2C9'; x.fillRect(0, 0, c.width, c.height);
+    const kx = 230, ky = 150, kw = 2140, kh = 760, rows = 6, cols = 14, gap = 14;
+    x.fillStyle = '#C4C0B6'; x.beginPath(); x.roundRect(kx - 20, ky - 20, kw + 40, kh + 40, 24); x.fill();
+    for (let r = 0; r < rows; r++) for (let q = 0; q < cols; q++) {
+      const w = (kw - gap * (cols - 1)) / cols, h = (kh - gap * (rows - 1)) / rows;
+      if (r === 5 && q > 3 && q < 10) { if (q === 4) { x.fillStyle = '#2A2A28'; x.beginPath(); x.roundRect(kx + q * (w + gap), ky + r * (h + gap), w * 6 + gap * 5, h, 12); x.fill(); } continue; }
+      x.fillStyle = '#2A2A28'; x.beginPath(); x.roundRect(kx + q * (w + gap), ky + r * (h + gap), w, h, 12); x.fill();
+    }
+    x.fillStyle = '#CBC7BD'; x.beginPath(); x.roundRect(900, 1040, 800, 520, 30); x.fill();
+    return c.toDataURL('image/png');
+  },
+  panelA: (f) => panelA(f / FPS),
+  phone: (f) => phone(f / FPS),
+};
+window.done = true;
+</script>
