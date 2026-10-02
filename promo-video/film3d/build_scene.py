@@ -8,7 +8,9 @@
 #   bar 6   f375–449  a laptop opens on the website, phone beside it
 #   bar 7   f450–524  six real pairs in acrylic blocks on plinths
 #   bar 8   f525–599  dark stage: wordmark rises, Kayano block, rim light
-import bpy, bmesh, math, os, json
+import bpy, bmesh, math, os, json, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import af1_model
 from mathutils import Vector
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -212,14 +214,21 @@ for idx, f in ((2, 47), (3, 56), (1, 66)):
     t = tiles[idx][0]
     keys(t, 'rotation_euler', [(f, (0, 0, 0)), (f + 9, (0, 0, rad(180)))])
     ease_in_last(t, 'BACK', paths=('rotation_euler',))
-# the hero Kayano, floating and lit from behind; it loses its colour when the sizes sell out
-m_hero = img_mat('hero_kayano', os.path.join(A, 'shoes', 'kayano.png'), emit=0.25, alpha=True, rough=0.5, sat_key=True)
-hero = upright('hero_kayano', 3.2, 3.2 * 512 / 683, m_hero, loc=(H.x + 2.1, 1.2, 1.75))
-keys(hero, 'location', [(0, (H.x + 4.2, 1.2, 2.3)), (14, (H.x + 2.1, 1.2, 1.75)), (74, (H.x + 2.0, 1.2, 1.82))])
-keys(hero, 'rotation_euler', [(0, (rad(90), 0, rad(-28))), (14, (rad(90), 0, rad(-6))), (74, (rad(90), 0, rad(4)))])
-hs = m_hero.node_tree.nodes['HS']
-node_key(hs.inputs['Saturation'], 47, 1.0); node_key(hs.inputs['Saturation'], 55, 0.0)
-node_key(hs.inputs['Value'], 47, 1.0); node_key(hs.inputs['Value'], 55, 0.55)
+# the hero: a 3D white court sneaker (AF1 style) floating and turning; it drains to grey when the sizes sell out
+def shoe_rig(prefix, scale):
+    pivot = empty(prefix + '_pivot'); shoe = af1_model.build_shoe(prefix)
+    shoe.parent = pivot; shoe.location = (-0.5 * scale, 0, -0.2 * scale); shoe.scale = (scale, scale, scale)
+    return pivot, shoe
+def grey_out(shoe, f0, f1):
+    for name in shoe['materials']:
+        nt = bpy.data.materials[name].node_tree; b = nt.nodes['Principled BSDF']; sock = b.inputs['Base Color']
+        if sock.is_linked: sock = sock.links[0].from_node.inputs['A']
+        c = tuple(sock.default_value); g = sum(c[:3]) / 3 * 0.45
+        node_key(sock, f0, c); node_key(sock, f1, (g, g, g, 1))
+hero, hero_shoe = shoe_rig('hero', 3.0)
+keys(hero, 'location', [(0, (H.x + 4.6, 1.0, 2.4)), (16, (H.x + 2.1, 1.0, 1.45)), (74, (H.x + 2.0, 1.0, 1.55))])
+keys(hero, 'rotation_euler', [(0, (rad(12), rad(-14), rad(-110))), (16, (rad(8), rad(-6), rad(-58))), (74, (rad(6), rad(-4), rad(-40)))])
+grey_out(hero_shoe, 47, 55)
 glow = area('hook_glow', 420, 3.0, (H.x + 2.1, 3.0, 3.6), (H.x + 2.1, 0, 1.7), color=BLAZE[:3], shape='DISK')
 keys(glow.data, 'energy', [(0, 0), (10, 420), (47, 420), (56, 60)])
 spot('hook_key', 2200, (H.x - 2.5, -5, 6), (H.x + 1.8, 0, 0.3), size=55, blend=0.8, radius=0.8)
@@ -359,12 +368,12 @@ for i, (ob, ox) in enumerate(WM2):
     f = 528 + i * 5; base = ob.location.copy()
     keys(ob, 'location', [(f, (base.x, base.y, -1.6)), (f + 14, tuple(base))])
     ease_in_last(ob, 'BACK')
-fpl = rounded_box('fin_plinth', 1.3, 1.0, 0.9, 0.04, segs=3, materials=[M_GRAPHITE], loc=(F0.x + 3.6, F0.y + 0.4, 0.45))
-fblk = rounded_box('fin_block', 1.24, 0.42, 0.95, 0.05, segs=4, materials=[M_ACRYLIC], loc=(F0.x + 3.6, F0.y + 0.4, 1.38))
-fpr = upright('fin_print', 1.14, 1.14 * 512 / 683, img_mat('fin_print_m', os.path.join(A, 'shoes', 'kayano.png'), emit=0.35, alpha=True, rough=0.5), loc=(0, 0, 0)); fpr.parent = fblk
-keys(fblk, 'rotation_euler', [(525, (0, 0, rad(-40))), (560, (0, 0, rad(-12))), (599, (0, 0, rad(-6)))])
-keys(fpl, 'rotation_euler', [(525, (0, 0, rad(-40))), (560, (0, 0, rad(-12))), (599, (0, 0, rad(-6)))])
-area('fin_rim', 520, 2.5, (F0.x + 3.6, F0.y + 2.6, 3.8), (F0.x + 3.6, F0.y, 1.3), color=BLAZE[:3], shape='DISK')
+fpl = rounded_box('fin_plinth', 2.0, 1.3, 0.8, 0.05, segs=3, materials=[M_GRAPHITE], loc=(F0.x + 2.9, F0.y + 0.4, 0.4))
+fin, fin_shoe = shoe_rig('fin', 2.3)
+keys(fin, 'location', [(525, (F0.x + 2.9, F0.y + 0.4, 0.8 + 0.46))])
+keys(fin, 'rotation_euler', [(525, (0, 0, rad(-150))), (599, (0, 0, rad(-48)))])
+keys(fpl, 'rotation_euler', [(525, (0, 0, rad(-120))), (599, (0, 0, rad(-30)))])
+area('fin_rim', 520, 2.5, (F0.x + 2.9, F0.y + 2.6, 3.8), (F0.x + 2.9, F0.y, 1.3), color=BLAZE[:3], shape='DISK')
 area('fin_rim2', 260, 4, (F0.x - 1.5, F0.y + 3.0, 4.0), (F0.x - 1.5, F0.y, 0.6), color=BLAZE[:3], shape='DISK')
 spot('fin_key', 1800, (F0.x - 1.0, F0.y - 6, 6), (F0.x + 0.8, F0.y, 0.6), size=70, blend=0.9, radius=1.0)
 camera('cam_finale', 40, [(525, (F0.x - 0.3, F0.y - 12.6, 1.9)), (599, (F0.x - 0.1, F0.y - 11.4, 1.7))],
