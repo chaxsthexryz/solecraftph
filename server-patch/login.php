@@ -30,6 +30,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// A refused Google sign-in comes back here with its reason.
+if ($error === '' && !empty($_SESSION['google_error'])) {
+    $error = $_SESSION['google_error'];
+}
+unset($_SESSION['google_error']);
+
 $redirectTo = $_GET['redirect'] ?? (BASE_PATH . '/index.php');
 $pageTitle  = 'Log In — SoleCraftPH';
 require __DIR__ . '/includes/header.php';
@@ -52,6 +58,7 @@ require __DIR__ . '/includes/header.php';
         </div>
         <button type="submit" class="btn btn--solid" style="width:100%;justify-content:center;">Log In</button>
       </form>
+      <?php $googleRedirect = $redirectTo; require __DIR__ . '/includes/google_button.php'; ?>
       <p style="margin-top:14px;font-size:14px;">
         <a href="<?= BASE_PATH ?>/forgot-password.php">Forgot your password?</a>
       </p>

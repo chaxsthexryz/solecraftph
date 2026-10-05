@@ -17,17 +17,23 @@ function auth_attempt_login(string $username, string $password): bool
     }
 
     if ($user && password_verify($password, $user['password_hash'])) {
-        session_regenerate_id(true);
-        $_SESSION['user_id']  = $user['id'];
-        $_SESSION['username'] = $user['username'];
-        $_SESSION['role']     = $user['role'];
-        // Whatever they put in the bag while logged out follows them into the
-        // account cart, so signing in never silently empties the cart.
-        require_once __DIR__ . '/cart.php';
-        cart_merge_session_into_account((int) $user['id']);
+        auth_start_session_for($user);
         return true;
     }
     return false;
+}
+
+/** Signs $user in on the website. Shared by password and Google sign-in. */
+function auth_start_session_for(array $user): void
+{
+    session_regenerate_id(true);
+    $_SESSION['user_id']  = $user['id'];
+    $_SESSION['username'] = $user['username'];
+    $_SESSION['role']     = $user['role'];
+    // Whatever they put in the bag while logged out follows them into the
+    // account cart, so signing in never silently empties the cart.
+    require_once __DIR__ . '/cart.php';
+    cart_merge_session_into_account((int) $user['id']);
 }
 
 function auth_logout(): void

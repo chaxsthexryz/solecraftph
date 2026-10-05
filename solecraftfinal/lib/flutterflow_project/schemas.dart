@@ -118,6 +118,16 @@ abstract final class Structs {
     },
     description: ffai.generatedProjectStructDescription,
   );
+  static final ffai.StructHandle googleAuthResult = ffai.StructHandle(
+    "GoogleAuthResult",
+    <String, ffai.DslType>{
+      "message": ffai.string,
+      "ok": ffai.bool_,
+      "token": ffai.string,
+      "user": Structs.authUser,
+    },
+    description: ffai.generatedProjectStructDescription,
+  );
   static final ffai.StructHandle infoMenu = ffai.StructHandle(
     "InfoMenu",
     <String, ffai.DslType>{
@@ -364,6 +374,7 @@ abstract final class Structs {
     cartResponse,
     catalogResponse,
     deviceRegistered,
+    googleAuthResult,
     infoMenu,
     infoPage,
     infoPageRow,
@@ -446,6 +457,7 @@ abstract final class CustomCode {
   static const actions = <String>[
     "currentPin",
     "deviceToken",
+    "googleIdToken",
   ];
   static const widgets = <String>[
     "DevAvatar",

@@ -124,9 +124,19 @@ abstract final class SignInWidgets {
                 name: "ProgressBar",
               ),
               ffai.ProjectWidgetHandle(
-                key: "Button_f6bwzfs0",
+                key: "Button_skz5qa5n",
                 type: "Button",
                 path: "SignIn.body[0].children[6]",
+                name: "googleSignIn",
+                text: "Continue with Google",
+                triggers: const <String>[
+                  "ON_TAP",
+                ],
+              ),
+              ffai.ProjectWidgetHandle(
+                key: "Button_f6bwzfs0",
+                type: "Button",
+                path: "SignIn.body[0].children[7]",
                 name: "Button",
                 text: "New here? Create an account",
                 triggers: const <String>[

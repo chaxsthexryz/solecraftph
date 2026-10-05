@@ -500,6 +500,22 @@ void buildStarterEditFlow(App app) {
     response: cancelResult,
   );
 
+  // Google sign-in: same {token, user} as Login, plus ok/message because a
+  // refusal ("admin accounts sign in with their password") is a 200 to show.
+  final googleAuthResult = app.struct('GoogleAuthResult', {
+    'ok': bool_,
+    'message': string,
+    'token': string,
+    'user': ff.Structs.authUser,
+  }, description: 'Answer from POST /auth.php?action=google.');
+  final googleLogin = Endpoint.post(
+    'GoogleLogin',
+    '/auth.php?action=google',
+    variables: {'id_token': string},
+    body: const {'id_token': '<id_token>'},
+    response: googleAuthResult,
+  );
+
   // --- Profile ---------------------------------------------------------------
   final profileStruct = app.struct('Profile', {
     'id': int_,
@@ -1742,6 +1758,7 @@ return (rows ?? <AddressRowStruct>[]).isEmpty;
       getOrder,
       getOrderDetail,
       cancelOrder,
+      googleLogin,
       getProfile,
       updateProfile,
       changePassword,
@@ -2342,6 +2359,89 @@ return next;
       ],
     );
   });
+
+  // "Continue with Google": the phone asks Google for an ID token addressed to
+  // the website's client ID, api/auth.php?action=google checks it and answers
+  // like Login. Off until _googleWebClientId is filled in.
+  if (_googleWebClientId.isNotEmpty) {
+    app.pubDependency('google_sign_in', '6.2.2');
+    final googleIdToken = app.customAction(
+      'googleIdToken',
+      args: const <String, DslType>{},
+      returns: string,
+      code: _googleIdTokenCode(),
+      description: 'Google ID token for the chosen account, or empty.',
+    );
+    final googleActions = <DslAction>[
+      SetState(ff.Pages.signIn.state.busy, true),
+      CallCustomAction(googleIdToken, outputAs: 'googleToken'),
+      If(
+        Equals(ActionOutput('googleToken'), ''),
+        // Closed the account picker: nothing to say.
+        then: [SetState(ff.Pages.signIn.state.busy, false)],
+        orElse: [
+          ApiCall(
+            googleLogin,
+            outputAs: 'googleRes',
+            params: {'id_token': ActionOutput('googleToken')},
+            onSuccess: (res) => [
+              SetState(ff.Pages.signIn.state.busy, false),
+              If(
+                res['ok'],
+                then: [
+                  UpdateAppState.set(ff.AppState.authToken, res['token']),
+                  UpdateAppState.set(ff.AppState.signedIn, true),
+                  UpdateAppState.set(ff.AppState.userId, res['user']['id']),
+                  UpdateAppState.set(ff.AppState.username, res['user']['username']),
+                  UpdateAppState.set(ff.AppState.userEmail, res['user']['email']),
+                  UpdateAppState.set(ff.AppState.userFullName, res['user']['full_name']),
+                  UpdateAppState.set(ff.AppState.userPhone, res['user']['phone']),
+                  UpdateAppState.set(ff.AppState.userAddress, res['user']['address']),
+                  UpdateAppState.set(ff.AppState.userRole, res['user']['role']),
+                  UpdateAppState.set(ff.AppState.isAdmin, res['user']['is_admin']),
+                  Snackbar('Signed in'),
+                  Navigate.to(ff.Pages.shop),
+                  ...mergeBag('googleMergeRes'),
+                ],
+                orElse: [Snackbar(res['message'])],
+              ),
+            ],
+            onFailure: [
+              SetState(ff.Pages.signIn.state.busy, false),
+              Snackbar('Could not reach SoleCraftPH. Check your connection.'),
+            ],
+          ),
+        ],
+      ),
+    ];
+    final existing = ff.Pages.signIn.widgets.all
+        .where((w) => w.name == 'googleSignIn')
+        .firstOrNull;
+    app.editPage(ff.Pages.signIn, (page) {
+      if (existing == null) {
+        page.ensureInsertedInto(
+          page.findByKey('Column_k1pmej7x'),
+          Button(
+            'Continue with Google',
+            name: 'googleSignIn',
+            width: double.infinity,
+            height: 50,
+            borderRadius: 25,
+            color: Colors.secondaryBackground,
+            textColor: Colors.primaryText,
+            onTap: googleActions,
+          ),
+          index: 6, // under Sign in and its spinner, above "New here?"
+        );
+      } else {
+        page.ensureActions(
+          page.findByKey(existing.key),
+          triggerType: FFActionTriggerType.ON_TAP,
+          actions: googleActions,
+        );
+      }
+    });
+  }
 
   final orderDetailPage = app.ensurePage(
     'OrderDetail',
@@ -6739,6 +6839,42 @@ return '₱' + NumberFormat('#,##0.00').format(total);
 // -----------------------------------------------------------------------------
 // Bugs found testing build 10 on the phone, with a real COD order (#56)
 // -----------------------------------------------------------------------------
+
+// Google sign-in OAuth client IDs (public identifiers, not secrets), from
+// Google Cloud Console → APIs & Services → Credentials. The Web one must match
+// GOOGLE_WEB_CLIENT_ID in server-patch/config/google.php. Android needs no ID
+// here: Google recognises the app by package name + signing SHA-1.
+const _googleWebClientId =
+    '794246915972-lkonh5mthsaaqu9pa4ljmok6l6h5ghsu.apps.googleusercontent.com';
+const _googleIosClientId =
+    '794246915972-cv4gvq1hg2nspptn3m1cgrbbiehffngp.apps.googleusercontent.com';
+
+String _googleIdTokenCode() {
+  final iosId = _googleIosClientId.isEmpty ? 'null' : "'$_googleIosClientId'";
+  return '''
+import 'dart:io' show Platform;
+
+import 'package:google_sign_in/google_sign_in.dart';
+
+Future<String> googleIdToken() async {
+  try {
+    final google = GoogleSignIn(
+      scopes: const ['email'],
+      clientId: Platform.isIOS ? $iosId : null,
+      serverClientId: '$_googleWebClientId',
+    );
+    // Signed out first so the account picker always shows: a shared phone
+    // must not quietly reuse whoever signed in last.
+    await google.signOut();
+    final account = await google.signIn();
+    if (account == null) return ''; // closed the picker
+    return (await account.authentication).idToken ?? '';
+  } catch (_) {
+    return '';
+  }
+}
+''';
+}
 
 final _defaultAddressField = CustomFunctionHandle(
   name: 'defaultAddressField',

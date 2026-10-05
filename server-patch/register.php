@@ -65,6 +65,7 @@ require __DIR__ . '/includes/header.php';
         </div>
         <button type="submit" class="btn btn--solid" style="width:100%;justify-content:center;">Create Account</button>
       </form>
+      <?php $googleRedirect = BASE_PATH . '/index.php?welcome=1'; require __DIR__ . '/includes/google_button.php'; ?>
       <p class="mono" style="margin-top:18px;color:var(--gray);">
         Already have an account? <a href="<?= BASE_PATH ?>/login.php">Log in</a>
       </p>

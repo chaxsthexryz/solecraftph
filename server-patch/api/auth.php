@@ -4,6 +4,7 @@
  * POST /api/auth.php?action=register  -> body: {username, email, password, full_name}
  * POST /api/auth.php?action=login     -> body: {username, password}
  * POST /api/auth.php?action=forgot    -> body: {email}  (emails a reset link)
+ * POST /api/auth.php?action=google    -> body: {id_token}  (Google sign-in)
  * GET  /api/auth.php?action=me        -> header: Authorization: Bearer <token>
  * POST /api/auth.php?action=logout    -> header: Authorization: Bearer <token>
  *
@@ -211,6 +212,36 @@ if ($action === 'login' && $method === 'POST') {
     echo json_encode([
         'token' => $token,
         'user'  => auth_api_public_user($user),
+    ]);
+    exit;
+}
+
+/* ---------------------------------------------------------------------------
+ * POST ?action=google  -> body: {id_token}
+ *
+ * The app signs in with Google on the phone and sends the ID token here. Same
+ * {token, user} as ?action=login on success. Answers 200 with ok:false and a
+ * message on refusal: the app can only read the body of a successful call.
+ * ------------------------------------------------------------------------- */
+if ($action === 'google' && $method === 'POST') {
+    require_once __DIR__ . '/../includes/google_auth.php';
+
+    $input  = auth_api_body();
+    $claims = google_verify_id_token((string) ($input['id_token'] ?? ''));
+    [$user, $error] = $claims
+        ? google_user_for($claims)
+        : [null, 'Google sign-in could not be verified. Please try again.'];
+
+    if ($user === null) {
+        echo json_encode(['ok' => false, 'message' => $error, 'token' => '', 'user' => null]);
+        exit;
+    }
+
+    echo json_encode([
+        'ok'      => true,
+        'message' => 'Signed in',
+        'token'   => auth_api_issue_token((int) $user['id']),
+        'user'    => auth_api_public_user($user),
     ]);
     exit;
 }
