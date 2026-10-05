@@ -19,6 +19,12 @@ final class ProfileParams {
 
 final class ProfileState {
   const ProfileState();
+  ffai.ProjectStateFieldHandle get confirmDelete =>
+      const ffai.ProjectStateFieldHandle(
+        name: "confirmDelete",
+        key: "pvlhchcx",
+        typeName: "Boolean",
+      );
   ffai.ProjectStateFieldHandle get me =>
       const ffai.ProjectStateFieldHandle(
         name: "me",
@@ -250,6 +256,59 @@ abstract final class ProfileWidgets {
                 text: "Change password",
                 triggers: const <String>[
                   "ON_TAP",
+                ],
+              ),
+              ffai.ProjectWidgetHandle(
+                key: "Button_rc0nudl0",
+                type: "Button",
+                path: "Profile.body[0].children[11]",
+                name: "pfDeleteAsk",
+                text: "Delete account",
+                triggers: const <String>[
+                  "ON_TAP",
+                ],
+              ),
+              ffai.ProjectWidgetHandle(
+                key: "Container_cjrcn0ok",
+                type: "Container",
+                path: "Profile.body[0].children[12]",
+                name: "pfDeleteConfirm",
+                children: <ffai.ProjectWidgetHandle>[
+                  ffai.ProjectWidgetHandle(
+                    key: "Column_s9io8hws",
+                    type: "Column",
+                    path: "Profile.body[0].children[12].children[0]",
+                    name: "Column",
+                    children: <ffai.ProjectWidgetHandle>[
+                      ffai.ProjectWidgetHandle(
+                        key: "Text_20i78mkz",
+                        type: "Text",
+                        path: "Profile.body[0].children[12].children[0].children[0]",
+                        name: "Text",
+                        text: "Delete your account? Your profile, saved addresses, wishlist and notifications are removed and you are signed out. Past orders stay on record for the shop. This cannot be undone.",
+                      ),
+                      ffai.ProjectWidgetHandle(
+                        key: "Button_lmzd6sn3",
+                        type: "Button",
+                        path: "Profile.body[0].children[12].children[0].children[1]",
+                        name: "pfDeleteYes",
+                        text: "Yes, delete my account",
+                        triggers: const <String>[
+                          "ON_TAP",
+                        ],
+                      ),
+                      ffai.ProjectWidgetHandle(
+                        key: "Button_zj1scwh6",
+                        type: "Button",
+                        path: "Profile.body[0].children[12].children[0].children[2]",
+                        name: "pfDeleteNo",
+                        text: "Keep my account",
+                        triggers: const <String>[
+                          "ON_TAP",
+                        ],
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ],

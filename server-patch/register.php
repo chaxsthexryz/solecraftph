@@ -64,6 +64,11 @@ require __DIR__ . '/includes/header.php';
           <input type="password" name="confirm_password" required minlength="8">
         </div>
         <button type="submit" class="btn btn--solid" style="width:100%;justify-content:center;">Create Account</button>
+        <p style="margin-top:12px;font-size:13px;color:var(--gray);">
+          By creating an account you agree to our
+          <a href="<?= BASE_PATH ?>/page.php?slug=terms">Terms &amp; Conditions</a> and
+          <a href="<?= BASE_PATH ?>/page.php?slug=privacy">Privacy Policy</a>.
+        </p>
       </form>
       <?php $googleRedirect = BASE_PATH . '/index.php?welcome=1'; require __DIR__ . '/includes/google_button.php'; ?>
       <p class="mono" style="margin-top:18px;color:var(--gray);">

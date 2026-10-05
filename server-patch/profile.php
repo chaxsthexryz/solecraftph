@@ -32,6 +32,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             auth_change_password($userId, $new);
             $success = 'Your password has been changed.';
         }
+    } elseif ($formAction === 'delete_account') {
+        // Typed rather than a password: Google sign-in accounts never had one.
+        if (trim($_POST['confirm'] ?? '') !== 'DELETE') {
+            $error = 'Type DELETE in capitals to confirm.';
+        } elseif (!auth_delete_own_account($userId)) {
+            $error = 'This account cannot be deleted here. Please contact us.';
+        } else {
+            auth_logout();
+            header('Location: ' . BASE_PATH . '/index.php');
+            exit;
+        }
     }
 }
 
@@ -112,6 +123,26 @@ require __DIR__ . '/includes/header.php';
         </form>
       </div>
     </div>
+
+    <?php if (($me['role'] ?? '') !== 'admin'): ?>
+    <div class="panel" style="margin-top:30px;max-width:560px;">
+      <h3 class="display" style="font-size:24px;margin-bottom:10px;">Delete Account</h3>
+      <p style="color:var(--gray);margin-bottom:16px;">
+        This removes your profile, saved addresses, bag, wishlist and notifications,
+        and signs you out everywhere. Past orders stay on record for the shop
+        without your account. This cannot be undone.
+      </p>
+      <form method="post" action="<?= BASE_PATH ?>/profile.php"
+            onsubmit="return confirm('Delete your SoleCraftPH account? This cannot be undone.');">
+        <input type="hidden" name="form_action" value="delete_account">
+        <div class="form-field">
+          <label>Type DELETE to confirm</label>
+          <input type="text" name="confirm" required autocomplete="off" pattern="DELETE">
+        </div>
+        <button type="submit" class="btn">Delete my account</button>
+      </form>
+    </div>
+    <?php endif; ?>
   </div>
 </section>
 

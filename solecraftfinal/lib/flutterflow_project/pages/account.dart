@@ -213,6 +213,15 @@ abstract final class AccountWidgets {
                           "ON_TAP",
                         ],
                       ),
+                      ffai.ProjectWidgetHandle(
+                        key: "ListTile_fl4uvbun",
+                        type: "ListTile",
+                        path: "Account.body[0].children[2].children[0].children[6]",
+                        name: "accountAboutTile",
+                        triggers: const <String>[
+                          "ON_TAP",
+                        ],
+                      ),
                     ],
                   ),
                 ],

@@ -520,6 +520,16 @@ void buildStarterEditFlow(App app) {
     response: okMessage,
   );
 
+  // Delete account from Profile. {ok, message}, always a 200.
+  final deleteAccount = Endpoint.post(
+    'DeleteAccount',
+    '/profile.php?action=delete',
+    variables: {'token': string},
+    headers: {'Authorization': 'Bearer [token]'},
+    body: const {'action': 'delete'},
+    response: okMessage,
+  );
+
   // Return request on a shipped or delivered order. Same {ok, message, order}
   // answer as cancel, so it reuses CancelResult.
   final returnOrder = Endpoint.post(
@@ -1799,6 +1809,7 @@ return (rows ?? <AddressRowStruct>[]).isEmpty;
       googleLogin,
       forgotPassword,
       returnOrder,
+      deleteAccount,
       getProfile,
       updateProfile,
       changePassword,
@@ -5849,6 +5860,190 @@ return 'https://snow-jellyfish-553645.hostingersite.com/assets/icons/icon-512.pn
   _cancelOrderAndSoldOutSizes(app, cancelOrder: cancelOrder);
   _sizeTileAndCheckoutNameFixes(app);
   _returnRequest(app, returnOrder: returnOrder);
+  _aboutAndDeleteAccount(app, deleteAccount: deleteAccount);
+}
+
+// -----------------------------------------------------------------------------
+// Feature: About screen (version, policies) and Delete account on Profile —
+// what every published store app has
+// -----------------------------------------------------------------------------
+
+void _aboutAndDeleteAccount(App app, {required Endpoint deleteAccount}) {
+  // ---------------------------------------------------------------------------
+  // About: reached from Account. The policy pages are the same CMS pages the
+  // website footer links to, opened in the existing info reader.
+  // ---------------------------------------------------------------------------
+  ListTile policy(String title, String slug, String icon) => ListTile(
+        title: title,
+        leadingIcon: icon,
+        trailingIcon: 'chevron_right',
+        onTap: [Navigate.to(ff.Pages.infoPage, params: {'slug': slug})],
+      );
+  final aboutPage = app.ensurePage(
+    'About',
+    route: '/about',
+    description: 'App version, policies and who made SoleCraftPH.',
+    body: Scaffold(
+      appBar: AppBar(title: 'About'),
+      body: Column(
+        scrollable: true,
+        crossAxis: CrossAxis.stretch,
+        spacing: 12,
+        padding: 16,
+        children: [
+          Text('SoleCraftPH', style: Styles.headlineMedium),
+          Text(
+            'Footwear, done right. Shop athletic, lifestyle and formal shoes, '
+            'delivered anywhere in the Philippines.',
+            style: Styles.bodyMedium,
+            color: Colors.secondaryText,
+          ),
+          Text(
+            'Version 1.0.0',
+            style: Styles.bodySmall,
+            color: Colors.secondaryText,
+          ),
+          Text('Policies', style: Styles.titleSmall),
+          policy('Terms & Conditions', 'terms', 'description'),
+          policy('Privacy Policy', 'privacy', 'privacy_tip'),
+          policy('Return & Refund Policy', 'returns', 'assignment_return'),
+          Text('More', style: Styles.titleSmall),
+          policy('About us', 'about', 'storefront'),
+          policy('FAQs', 'faq', 'help_outline'),
+          ListTile(
+            title: 'Contact support',
+            leadingIcon: 'mail_outline',
+            trailingIcon: 'chevron_right',
+            onTap: [Navigate.to(ff.Pages.help)],
+          ),
+          ListTile(
+            title: 'Developers',
+            leadingIcon: 'code',
+            trailingIcon: 'chevron_right',
+            onTap: [Navigate.to(ff.Pages.developers)],
+          ),
+          Text(
+            '© 2026 SoleCraftPH. All rights reserved.',
+            style: Styles.bodySmall,
+            color: Colors.secondaryText,
+          ),
+        ],
+      ),
+    ),
+  );
+  app.editPage(ff.Pages.account, (page) {
+    if (!ff.Pages.account.widgets.all.any((w) => w.name == 'accountAboutTile')) {
+      page.ensureInsertedAfter(
+        ff.Pages.account.widgets.byKey('ListTile_d4kufkk7').single, // Help & Info
+        ListTile(
+          title: 'About SoleCraftPH',
+          leadingIcon: 'info_outline',
+          name: 'accountAboutTile',
+          onTap: [Navigate.to(aboutPage)],
+        ),
+      );
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // Profile: Delete account, under Change password. Confirmed inline, like
+  // Cancel order: the first tap only asks, the second calls the server.
+  // ---------------------------------------------------------------------------
+  app.editPageState(ff.Pages.profile, (state) {
+    state.ensureField('confirmDelete', bool_.withDefault(false));
+  });
+  if (ff.Pages.profile.widgets.all.any((w) => w.name == 'pfDeleteAsk')) return;
+  app.editPage(ff.Pages.profile, (page) {
+    final anchor = ff.Pages.profile.widgets.byKey('Button_7s53ar74').single; // Change password
+    // Confirm row first, then the ask button after the same anchor, so the
+    // button sits above it: only existing widgets can be anchors.
+    page.ensureInsertedAfter(
+      anchor,
+      Container(
+        name: 'pfDeleteConfirm',
+        visible: State('confirmDelete'),
+        color: Colors.secondaryBackground,
+        borderRadius: 18,
+        padding: 16,
+        child: Column(
+          crossAxis: CrossAxis.stretch,
+          spacing: 10,
+          children: [
+            Text(
+              'Delete your account? Your profile, saved addresses, wishlist and '
+              'notifications are removed and you are signed out. Past orders '
+              'stay on record for the shop. This cannot be undone.',
+              style: Styles.bodyMedium,
+            ),
+            Button(
+              'Yes, delete my account',
+              name: 'pfDeleteYes',
+              width: double.infinity,
+              height: 50,
+              borderRadius: 25,
+              color: Colors.secondary,
+              textColor: Colors.secondaryBackground,
+              onTap: [
+                ApiCall(
+                  deleteAccount,
+                  outputAs: 'deleteRes',
+                  params: {'token': AppState(ff.AppState.authToken)},
+                  onSuccess: (res) => [
+                    SetState('confirmDelete', false),
+                    If(
+                      res['ok'],
+                      then: [
+                        UpdateAppState.set(ff.AppState.authToken, ''),
+                        UpdateAppState.set(ff.AppState.signedIn, false),
+                        UpdateAppState.set(ff.AppState.userId, 0),
+                        UpdateAppState.set(ff.AppState.username, ''),
+                        UpdateAppState.set(ff.AppState.userEmail, ''),
+                        UpdateAppState.set(ff.AppState.userFullName, ''),
+                        UpdateAppState.set(ff.AppState.userPhone, ''),
+                        UpdateAppState.set(ff.AppState.userAddress, ''),
+                        UpdateAppState.set(ff.AppState.userRole, ''),
+                        UpdateAppState.set(ff.AppState.isAdmin, false),
+                        Snackbar(res['message']),
+                        Navigate.to(ff.Pages.shop),
+                      ],
+                      orElse: [Snackbar(res['message'])],
+                    ),
+                  ],
+                  onFailure: [
+                    Snackbar(
+                      'Could not reach SoleCraftPH. Check your connection and try again.',
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            Button(
+              'Keep my account',
+              name: 'pfDeleteNo',
+              width: double.infinity,
+              height: 44,
+              variant: ButtonVariant.text,
+              textColor: Colors.primaryText,
+              onTap: [SetState('confirmDelete', false)],
+            ),
+          ],
+        ),
+      ),
+    );
+    page.ensureInsertedAfter(
+      anchor,
+      Button(
+        'Delete account',
+        name: 'pfDeleteAsk',
+        width: double.infinity,
+        height: 44,
+        variant: ButtonVariant.text,
+        textColor: Colors.accent1,
+        visible: Not(State('confirmDelete')),
+        onTap: [SetState('confirmDelete', true)],
+      ),
+    );
+  });
 }
 
 // -----------------------------------------------------------------------------
@@ -6045,6 +6240,7 @@ final _allPages = <ProjectPageHandle>[
   ff.Pages.signIn,
   ff.Pages.register,
   ff.Pages.forgotPassword,
+  ff.Pages.about,
 ];
 
 /// The four bottom-nav tabs: large left-aligned title, no back arrow.

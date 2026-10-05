@@ -3,6 +3,7 @@
 library;
 
 import 'package:flutterflow_ai/flutterflow_ai.dart' as ffai;
+import 'pages/about.dart' show aboutHandle;
 import 'pages/account.dart' show accountHandle;
 import 'pages/addresses.dart' show addressesHandle;
 import 'pages/bag.dart' show bagHandle;
@@ -25,6 +26,7 @@ import 'pages/sign_in.dart' show signInHandle;
 import 'pages/wishlist.dart' show wishlistHandle;
 
 abstract final class Pages {
+  static final about = aboutHandle;
   static final account = accountHandle;
   static final addresses = addressesHandle;
   static final bag = bagHandle;
@@ -46,6 +48,7 @@ abstract final class Pages {
   static final signIn = signInHandle;
   static final wishlist = wishlistHandle;
   static final all = <ffai.ProjectPageHandle>[
+    about,
     account,
     addresses,
     bag,

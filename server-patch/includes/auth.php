@@ -252,6 +252,47 @@ function user_delete(int $id): void
     $stmt->execute([$id]);
 }
 
+/**
+ * A customer deletes their own account (website profile and the app).
+ *
+ * Anonymised rather than removed: orders.user_id has no ON DELETE, and the
+ * orders are the shop's sales records. Everything else personal goes — saved
+ * addresses, bag, wishlist, notifications, phones — and the user row keeps no
+ * name, email, phone or address, a password nobody knows, and 'suspended' so
+ * it can never sign in. The email is freed, so the person can register again.
+ */
+function auth_delete_own_account(int $userId): bool
+{
+    $user = user_find($userId);
+    if (!$user || ($user['role'] ?? '') === 'admin') {
+        return false;
+    }
+
+    $db = db();
+    $db->beginTransaction();
+    try {
+        foreach (['api_tokens', 'addresses', 'device_tokens', 'wishlists',
+                  'cart_items', 'notifications', 'password_resets'] as $table) {
+            $db->prepare("DELETE FROM {$table} WHERE user_id = ?")->execute([$userId]);
+        }
+        $db->prepare(
+            "UPDATE users SET username = ?, email = ?, full_name = NULL, phone = NULL,
+                    address = NULL, password_hash = ?, status = 'suspended'
+             WHERE id = ?"
+        )->execute([
+            'deleted_' . $userId,
+            'deleted_' . $userId . '@deleted.invalid',
+            password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT),
+            $userId,
+        ]);
+        $db->commit();
+    } catch (Throwable $e) {
+        $db->rollBack();
+        throw $e;
+    }
+    return true;
+}
+
 /* ---------------------------------------------------------------------------
  * Mobile app: bearer-token auth (additive — nothing above this line changed).
  *

@@ -16,6 +16,8 @@
         <a href="<?= BASE_PATH ?>/page.php?slug=about">About Us</a>
         <a href="<?= BASE_PATH ?>/page.php?slug=faq">FAQs</a>
         <a href="<?= BASE_PATH ?>/page.php?slug=privacy">Privacy Policy</a>
+        <a href="<?= BASE_PATH ?>/page.php?slug=terms">Terms &amp; Conditions</a>
+        <a href="<?= BASE_PATH ?>/page.php?slug=returns">Returns &amp; Refunds</a>
         <a href="<?= BASE_PATH ?>/developers.php">The Developers</a>
       </div>
       <div class="foot__col">

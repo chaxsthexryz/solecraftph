@@ -5,6 +5,7 @@
  *   GET  /api/profile.php                  -> the signed-in user's details
  *   POST /api/profile.php?action=update    {full_name, phone, address}
  *   POST /api/profile.php?action=password  {current_password, new_password}
+ *   POST /api/profile.php?action=delete    deletes the account -> {ok, message}
  *
  * Bearer-authenticated throughout: a profile belongs to exactly one account and
  * there is no reason to reach it any other way.
@@ -129,5 +130,18 @@ if ($action === 'password') {
     exit;
 }
 
+// The app asks "are you sure?" before calling this. Always a 200 with
+// {ok, message}: the app only reads successful bodies.
+if ($action === 'delete') {
+    $ok = auth_delete_own_account($userId);
+    echo json_encode([
+        'ok'      => $ok,
+        'message' => $ok
+            ? 'Your account has been deleted.'
+            : 'This account cannot be deleted here. Contact us from Help.',
+    ]);
+    exit;
+}
+
 http_response_code(422);
-echo json_encode(['error' => 'Unknown action. Use ?action=update or ?action=password.']);
+echo json_encode(['error' => 'Unknown action. Use ?action=update, ?action=password or ?action=delete.']);
