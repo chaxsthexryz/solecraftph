@@ -4,6 +4,7 @@
  * GET  /api/orders.php?id=1  -> fetch a single order + items
  * POST /api/orders.php       -> create an order
  * POST /api/orders.php?action=cancel -> customer cancels a pending order ({id})
+ * POST /api/orders.php?action=return -> customer requests a return ({id, reason, details})
  *      body: { "customer": {name,email,phone,address,payment_method},
  *               "items": { "<product_id>|<size>": {"product_id":1,"size":"9","qty":1}, ... } }
  *
@@ -16,6 +17,7 @@
 require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/order_service.php';
+require_once __DIR__ . '/../includes/return_service.php';
 require_once __DIR__ . '/../includes/cart.php';
 require_once __DIR__ . '/../includes/settings_service.php';
 
@@ -64,8 +66,44 @@ if ($method === 'GET') {
     // The tracking history the website shows on order_detail.php. Cheap enough
     // to always include — an order has a handful of status rows, not hundreds.
     $order['status_history'] = order_status_history($id);
+    $order['return_status']  = return_status_for_order($id);
 
     echo json_encode($order);
+    exit;
+}
+
+/* ---------------------------------------------------------------------------
+ * POST /api/orders.php?action=return  body: {"id": 56, "reason": "...", "details": "..."}
+ *
+ * The customer asking to return a shipped or delivered order. Bearer only and
+ * always a 200 with {ok, message, order}, like cancel below.
+ * ------------------------------------------------------------------------- */
+if ($method === 'POST' && ($_GET['action'] ?? '') === 'return') {
+    $viewerId = auth_user_id_from_bearer_token();
+    $input    = json_decode(file_get_contents('php://input') ?: '', true);
+    $input    = is_array($input) ? $input : [];
+    $id       = (int) ($input['id'] ?? 0);
+
+    $error = $viewerId === null
+        ? 'Please sign in again.'
+        : return_request_by_customer(
+            $id,
+            (int) $viewerId,
+            trim((string) ($input['reason'] ?? '')),
+            trim((string) ($input['details'] ?? ''))
+        );
+
+    $order = $error === null ? order_find($id) : null;
+    if ($order !== null) {
+        $order['status_history'] = order_status_history($id);
+        $order['return_status']  = return_status_for_order($id);
+    }
+
+    echo json_encode([
+        'ok'      => $error === null,
+        'message' => $error ?? 'Return requested. We will let you know once it is reviewed.',
+        'order'   => $order,
+    ]);
     exit;
 }
 

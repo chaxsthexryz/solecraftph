@@ -367,7 +367,60 @@ function order_update_status(int $orderId, string $status, string $note = '', ?s
                 ($trackingNumber ? ' Tracking #: ' . $trackingNumber : '')
         );
     }
+
+    // Email too: push never reaches a sideloaded iPhone, and guests have no
+    // app at all. 'pending' is skipped — order placement sends its own email.
+    // Same rule as the confirmation: a mail failure never undoes the change.
+    if ($status !== $from && $status !== 'pending') {
+        try {
+            order_send_status_email($order, $status, $note, $trackingNumber);
+        } catch (Throwable $mailError) {
+            require_once __DIR__ . '/mail_service.php';
+            mail_log('ORDER   status email failed for #' . $orderId . ': ' . $mailError->getMessage());
+        }
+    }
     return true;
+}
+
+/** "Your order shipped" and friends, one email per status change. */
+function order_send_status_email(array $order, string $status, string $note, ?string $trackingNumber): void
+{
+    require_once __DIR__ . '/mail_service.php';
+
+    $email = trim((string) ($order['customer_email'] ?? ''));
+    if ($email === '') {
+        return;
+    }
+    $reference = '#' . str_pad((string) $order['id'], 6, '0', STR_PAD_LEFT);
+
+    $copy = [
+        'processing' => ['is being prepared', 'We are packing your order',
+            'Your order is confirmed and we are getting it ready to ship.'],
+        'shipped'    => ['is on its way', 'Your order is on its way',
+            'Your shoes have left our store and are heading to you.'],
+        'completed'  => ['was delivered', 'Delivered — enjoy your shoes',
+            'Your order is marked as delivered. Loving them? Leave a review on the product page.'],
+        'cancelled'  => ['was cancelled', 'Your order was cancelled',
+            'This order has been cancelled. If you paid online, the refund goes back to the same account.'],
+    ];
+    if (!isset($copy[$status])) {
+        return;
+    }
+    [$subject, $heading, $body] = $copy[$status];
+
+    $tracking = $trackingNumber ?: (string) ($order['tracking_number'] ?? '');
+
+    mail_send(
+        $email,
+        'Your SoleCraftPH order ' . $reference . ' ' . $subject,
+        '<h1 style="font-size:22px;margin:0 0 12px;">' . $heading . '</h1>'
+        . '<p style="margin:0;">Order ' . $reference . '. ' . $body . '</p>'
+        . ($status === 'shipped' && $tracking !== ''
+            ? '<p style="margin:12px 0 0;">Tracking number: <b>' . htmlspecialchars($tracking) . '</b></p>'
+            : '')
+        . ($note !== '' ? '<p style="margin:12px 0 0;color:#8A8578;">Note: ' . htmlspecialchars($note) . '</p>' : '')
+        . mail_button('View your order', mail_site_url() . '/order_detail.php?id=' . (int) $order['id'])
+    );
 }
 
 /**

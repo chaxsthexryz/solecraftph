@@ -40,14 +40,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cance
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'request_return') {
-    $reason  = trim($_POST['reason'] ?? '');
-    $details = trim($_POST['details'] ?? '');
-    if ($reason === '') {
-        $error = 'Please choose a reason for your return.';
-    } elseif (!$canReturn) {
-        $error = 'This order is not eligible for a return request.';
+    $returnError = return_request_by_customer(
+        $orderId,
+        (int) $userId,
+        trim($_POST['reason'] ?? ''),
+        trim($_POST['details'] ?? '')
+    );
+    if ($returnError !== null) {
+        $error = $returnError;
     } else {
-        return_create($orderId, $userId, $reason, $details);
         $success = 'Your return request has been submitted. Our team will review it shortly.';
         $canReturn = false;
     }

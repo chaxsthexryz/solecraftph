@@ -322,15 +322,8 @@ if ($action === 'forgot' && $method === 'POST') {
         exit;
     }
 
-    // Unthrottled, this endpoint is a way to flood any address with mail sent
-    // from our own SMTP account — the reputational damage lands on us, not on
-    // whoever fired it. The answer stays identical either way, so a throttled
-    // caller still cannot use it to discover whether an account exists.
-    require_once __DIR__ . '/../includes/login_throttle.php';
-    if (throttle_delay('forgot') === 0) {
-        throttle_record('forgot');
-        password_reset_request($email);
-    }
+    // Throttled inside password_reset_request, shared with the website form.
+    password_reset_request($email);
 
     echo json_encode([
         'ok'      => true,

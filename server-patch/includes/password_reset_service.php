@@ -28,6 +28,16 @@ const PASSWORD_RESET_TTL_MINUTES = 60;
  */
 function password_reset_request(string $email): void
 {
+    // Unthrottled, this is a way to flood any inbox with mail from our own SMTP
+    // account. Counted here so the website form and the API share one limit.
+    // A throttled request returns like any other, so it still reveals nothing.
+    require_once __DIR__ . '/login_throttle.php';
+    if (throttle_delay('forgot') > 0) {
+        mail_log('RESET   throttled for ' . login_client_ip());
+        return;
+    }
+    throttle_record('forgot');
+
     $stmt = db()->prepare(
         "SELECT id, username, email FROM users
          WHERE email = ? AND status = 'active' LIMIT 1"

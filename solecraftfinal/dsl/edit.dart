@@ -460,20 +460,10 @@ void buildStarterEditFlow(App app) {
     'created_at': string,
   }, description: 'One entry in an order\'s tracking history.');
 
-  final orderFull = app.struct('OrderFull', {
-    'id': int_,
-    'created_at': string,
-    'customer_name': string,
-    'customer_phone': string,
-    'customer_address': string,
-    'payment_method': string,
-    'payment_status': string,
-    'status': string,
-    'tracking_number': string,
-    'total_amount': string,
-    'items': listOf(orderLine),
-    'status_history': listOf(orderEvent),
-  }, description: 'A single order with its lines and tracking history.');
+  // A single order with its lines and tracking history. The existing struct,
+  // not app.struct(...): return_status was added to it later (see ReturnOrder
+  // below), and re-declaring a struct throws on any field mismatch.
+  final orderFull = ff.Structs.orderFull;
 
   final getOrderDetail = Endpoint.get(
     'GetOrderDetail',
@@ -529,6 +519,40 @@ void buildStarterEditFlow(App app) {
     body: const {'email': '<email>'},
     response: okMessage,
   );
+
+  // Return request on a shipped or delivered order. Same {ok, message, order}
+  // answer as cancel, so it reuses CancelResult.
+  final returnOrder = Endpoint.post(
+    'ReturnOrder',
+    '/orders.php?action=return',
+    variables: {
+      'token': string,
+      'id': int_,
+      'reason': string,
+      'details': string,
+    },
+    headers: {'Authorization': 'Bearer [token]'},
+    body: const {'id': '<id>', 'reason': '<reason>', 'details': '<details>'},
+    response: cancelResult,
+  );
+  // api/orders.php now says whether the order has a return request. Guarded:
+  // addDataStructField throws on a rerun.
+  app.raw((project) {
+    if (findDataStructField(
+          project,
+          structName: 'OrderFull',
+          fieldName: 'return_status',
+        ) ==
+        null) {
+      addDataStructField(
+        project,
+        structName: 'OrderFull',
+        fieldName: 'return_status',
+        type: FFDataTypeV2(scalarType: FFBaseDataType.String),
+        description: 'requested / approved / rejected / refunded, or empty.',
+      );
+    }
+  });
 
   // --- Profile ---------------------------------------------------------------
   final profileStruct = app.struct('Profile', {
@@ -1774,6 +1798,7 @@ return (rows ?? <AddressRowStruct>[]).isEmpty;
       cancelOrder,
       googleLogin,
       forgotPassword,
+      returnOrder,
       getProfile,
       updateProfile,
       changePassword,
@@ -5823,6 +5848,169 @@ return 'https://snow-jellyfish-553645.hostingersite.com/assets/icons/icon-512.pn
   _phoneBugFixes(app);
   _cancelOrderAndSoldOutSizes(app, cancelOrder: cancelOrder);
   _sizeTileAndCheckoutNameFixes(app);
+  _returnRequest(app, returnOrder: returnOrder);
+}
+
+// -----------------------------------------------------------------------------
+// Feature: request a return from Order detail, like the website's order page
+// -----------------------------------------------------------------------------
+
+void _returnRequest(App app, {required Endpoint returnOrder}) {
+  final order = State(ff.Pages.orderDetail.state.order);
+  final canRequestReturn = app.customFunction(
+    'canRequestReturn',
+    args: {'status': string, 'returnStatus': string},
+    returns: bool_,
+    code: r'''
+return (status == 'shipped' || status == 'completed') &&
+    (returnStatus ?? '').isEmpty;
+''',
+    description: 'Shipped or delivered, and no return asked for yet.',
+  );
+  final returnStatusLabel = app.customFunction(
+    'returnStatusLabel',
+    args: {'returnStatus': string},
+    returns: string,
+    code: r'''
+switch (returnStatus ?? '') {
+  case 'requested':
+    return 'Return requested. We are reviewing it and will let you know.';
+  case 'approved':
+    return 'Return approved. We will contact you about sending the shoes back.';
+  case 'rejected':
+    return 'Return not approved. Contact us from Help if you have questions.';
+  case 'refunded':
+    return 'Refunded. The money goes back the way you paid.';
+  default:
+    return '';
+}
+''',
+    description: 'What the customer should read about their return.',
+  );
+  final statusLabel = CustomFunction(
+    returnStatusLabel,
+    args: {'returnStatus': order['return_status']},
+  );
+
+  final submitActions = <DslAction>[
+    ApiCall(
+      returnOrder,
+      outputAs: 'returnRes',
+      params: {
+        'token': AppState(ff.AppState.authToken),
+        'id': order['id'],
+        'reason': WidgetState('returnReason', WidgetStateProperty.value),
+        'details': WidgetState('returnDetails', WidgetStateProperty.text),
+      },
+      onSuccess: (res) => [
+        If(
+          res['ok'],
+          then: [
+            SetState(ff.Pages.orderDetail.state.order, res['order']),
+            Snackbar(res['message']),
+          ],
+          orElse: [Snackbar(res['message'])],
+        ),
+      ],
+      onFailure: [
+        Snackbar(
+          'Could not reach SoleCraftPH. Check your connection and try again.',
+        ),
+      ],
+    ),
+  ];
+
+  // Two passes: WidgetState can only name a field that already exists on the
+  // page, so the button is wired on the run after the card is inserted.
+  final submit = ff.Pages.orderDetail.widgets.all
+      .where((w) => w.name == 'returnSubmit')
+      .firstOrNull;
+  if (submit != null) {
+    app.editPage(ff.Pages.orderDetail, (page) {
+      page.ensureActions(
+        page.findByKey(submit.key),
+        triggerType: FFActionTriggerType.ON_TAP,
+        actions: submitActions,
+      );
+    });
+    return;
+  }
+  app.editPage(ff.Pages.orderDetail, (page) {
+    // Status card first, then the form after the same anchor, so the form
+    // lands above it: only existing widgets can be anchors.
+    page.ensureInsertedAfter(
+      page.findByKey('Container_px07mwdw'), // cancelConfirmRow
+      Container(
+        name: 'returnStatusCard',
+        visible: Not(Equals(statusLabel, '')),
+        color: Colors.secondaryBackground,
+        borderRadius: 18,
+        padding: 16,
+        child: Column(
+          crossAxis: CrossAxis.stretch,
+          spacing: 6,
+          children: [
+            Text('Return', style: Styles.titleSmall),
+            Text(statusLabel, style: Styles.bodyMedium),
+          ],
+        ),
+      ),
+    );
+    page.ensureInsertedAfter(
+      page.findByKey('Container_px07mwdw'), // cancelConfirmRow
+      Container(
+        name: 'returnCard',
+        visible: CustomFunction(
+          canRequestReturn,
+          args: {
+            'status': order['status'],
+            'returnStatus': order['return_status'],
+          },
+        ),
+        color: Colors.secondaryBackground,
+        borderRadius: 18,
+        padding: 16,
+        child: Column(
+          crossAxis: CrossAxis.stretch,
+          spacing: 10,
+          children: [
+            Text('Request a return', style: Styles.titleSmall),
+            Text(
+              'Wrong size or something not right? Tell us why and we will review it.',
+              style: Styles.bodySmall,
+              color: Colors.secondaryText,
+            ),
+            Dropdown(
+              options: const [
+                'Wrong size',
+                'Item damaged / defective',
+                'Not as described',
+                'Changed my mind',
+                'Other',
+              ],
+              label: 'Reason',
+              hint: 'Choose a reason',
+              name: 'returnReason',
+            ),
+            TextField(
+              label: 'Details (optional)',
+              name: 'returnDetails',
+              maxLines: 3,
+            ),
+            Button(
+              'Submit return request',
+              name: 'returnSubmit',
+              width: double.infinity,
+              height: 50,
+              borderRadius: 25,
+              color: Colors.secondary,
+              textColor: Colors.secondaryBackground,
+            ),
+          ],
+        ),
+      ),
+    );
+  });
 }
 
 // -----------------------------------------------------------------------------
