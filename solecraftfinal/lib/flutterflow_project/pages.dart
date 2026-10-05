@@ -9,6 +9,7 @@ import 'pages/bag.dart' show bagHandle;
 import 'pages/checkout.dart' show checkoutHandle;
 import 'pages/confirmed.dart' show confirmedHandle;
 import 'pages/developers.dart' show developersHandle;
+import 'pages/forgot_password.dart' show forgotPasswordHandle;
 import 'pages/help.dart' show helpHandle;
 import 'pages/info_page.dart' show infoPageHandle;
 import 'pages/my_orders.dart' show myOrdersHandle;
@@ -30,6 +31,7 @@ abstract final class Pages {
   static final checkout = checkoutHandle;
   static final confirmed = confirmedHandle;
   static final developers = developersHandle;
+  static final forgotPassword = forgotPasswordHandle;
   static final help = helpHandle;
   static final infoPage = infoPageHandle;
   static final myOrders = myOrdersHandle;
@@ -50,6 +52,7 @@ abstract final class Pages {
     checkout,
     confirmed,
     developers,
+    forgotPassword,
     help,
     infoPage,
     myOrders,

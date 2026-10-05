@@ -516,6 +516,20 @@ void buildStarterEditFlow(App app) {
     response: googleAuthResult,
   );
 
+  // Forgot password: emails a reset link that opens on the website. Same
+  // answer whether or not the email has an account.
+  final okMessage = app.struct('OkMessage', {
+    'ok': bool_,
+    'message': string,
+  }, description: 'An {ok, message} answer from the API.');
+  final forgotPassword = Endpoint.post(
+    'ForgotPassword',
+    '/auth.php?action=forgot',
+    variables: {'email': string},
+    body: const {'email': '<email>'},
+    response: okMessage,
+  );
+
   // --- Profile ---------------------------------------------------------------
   final profileStruct = app.struct('Profile', {
     'id': int_,
@@ -1759,6 +1773,7 @@ return (rows ?? <AddressRowStruct>[]).isEmpty;
       getOrderDetail,
       cancelOrder,
       googleLogin,
+      forgotPassword,
       getProfile,
       updateProfile,
       changePassword,
@@ -2440,6 +2455,71 @@ return next;
           actions: googleActions,
         );
       }
+    });
+  }
+
+  // Forgot password: the app asks for the email; the emailed link opens the
+  // website's reset-password.php, which works for someone locked out of the app.
+  final forgotPasswordPage = app.ensurePage(
+    'ForgotPassword',
+    route: '/forgot-password',
+    description: 'Ask for a password reset link by email.',
+    body: Scaffold(
+      appBar: AppBar(title: 'Forgot password'),
+      body: Column(
+        scrollable: true,
+        crossAxis: CrossAxis.start,
+        spacing: 18,
+        padding: 16,
+        children: [
+          Text(
+            'Enter the email on your account and we will send you a link to choose a new password.',
+            style: Styles.bodyMedium,
+            color: Colors.secondaryText,
+          ),
+          TextField(label: 'Email', name: 'fpEmail', keyboard: Keyboard.email),
+          Button(
+            'Send reset link',
+            name: 'fpSend',
+            width: double.infinity,
+            height: 52,
+            borderRadius: 25,
+            onTap: [
+              ApiCall(
+                forgotPassword,
+                outputAs: 'forgotRes',
+                params: {
+                  'email': WidgetState('fpEmail', WidgetStateProperty.text),
+                },
+                onSuccess: (res) => [
+                  Snackbar(res['message']),
+                  If(res['ok'], then: [const NavigateBack()]),
+                ],
+                onFailure: [
+                  Snackbar('Could not reach SoleCraftPH. Check your connection.'),
+                ],
+              ),
+            ],
+          ),
+          Text(
+            'The link opens in your browser and works for an hour. After you choose a new password, sign in here with it.',
+            style: Styles.bodySmall,
+            color: Colors.secondaryText,
+          ),
+        ],
+      ),
+    ),
+  );
+  if (!ff.Pages.signIn.widgets.all.any((w) => w.name == 'forgotLink')) {
+    app.editPage(ff.Pages.signIn, (page) {
+      page.ensureInsertedAfter(
+        ff.Pages.signIn.widgets.byKey('TextField_d3wwv68m').single, // siPassword
+        Button(
+          'Forgot password?',
+          name: 'forgotLink',
+          onTap: [Navigate.to(forgotPasswordPage)],
+        ),
+      );
     });
   }
 
@@ -5776,6 +5856,7 @@ final _allPages = <ProjectPageHandle>[
   ff.Pages.infoPage,
   ff.Pages.signIn,
   ff.Pages.register,
+  ff.Pages.forgotPassword,
 ];
 
 /// The four bottom-nav tabs: large left-aligned title, no back arrow.
@@ -5807,6 +5888,7 @@ const _primaryButtons = {
   'Button_jfnhj8yy', // Shoe Details: Add to Bag
   'Button_sv4216kt', // Sign in: Sign in
   'Button_vu4f5z6e', // Addresses: Save address
+  'Button_j7p8f0xg', // Forgot password: Send reset link
 };
 
 /// The quiet capsule: mist fill, ink label. A real second option.
@@ -5832,6 +5914,7 @@ const _linkButtons = {
   'Button_zph5u7sa', // Notifications: Mark all read
   'Button_styxuh7j', // Register: Already have an account? Sign in
   'Button_f6bwzfs0', // Sign in: New here? Create an account
+  'Button_c5xvs86e', // Sign in: Forgot password?
 };
 
 FFColorValue _themeColor(FFColor_ThemeColor slot) =>

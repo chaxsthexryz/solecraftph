@@ -305,8 +305,9 @@ if ($action === 'logout' && $method === 'POST') {
  *
  * Emails a reset link. Answers identically whether or not the address has an
  * account — otherwise this endpoint becomes a way to enumerate your customers.
- * The link lands on the website; there is no in-app reset screen, because a
+ * The link lands on the website; the app only asks for the email, because a
  * password reset should be reachable by someone who cannot get into the app.
+ * Always a 200 with {ok, message} — the app only reads successful bodies.
  * ------------------------------------------------------------------------- */
 if ($action === 'forgot' && $method === 'POST') {
     require_once __DIR__ . '/../includes/password_reset_service.php';
@@ -314,8 +315,11 @@ if ($action === 'forgot' && $method === 'POST') {
     $input = auth_api_body();
     $email = trim((string) ($input['email'] ?? ''));
 
+    // A 200 with ok:false rather than a 422: the app only reads successful
+    // bodies, and "that is not an email" is an answer to show.
     if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        auth_api_error('Please enter a valid email address.', 422);
+        echo json_encode(['ok' => false, 'message' => 'Please enter a valid email address.']);
+        exit;
     }
 
     // Unthrottled, this endpoint is a way to flood any address with mail sent
@@ -329,6 +333,7 @@ if ($action === 'forgot' && $method === 'POST') {
     }
 
     echo json_encode([
+        'ok'      => true,
         'message' => 'If that email has an account, a reset link is on its way.',
     ]);
     exit;

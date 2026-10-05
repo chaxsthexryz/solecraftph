@@ -108,9 +108,19 @@ abstract final class SignInWidgets {
                 ],
               ),
               ffai.ProjectWidgetHandle(
-                key: "Button_sv4216kt",
+                key: "Button_c5xvs86e",
                 type: "Button",
                 path: "SignIn.body[0].children[4]",
+                name: "forgotLink",
+                text: "Forgot password?",
+                triggers: const <String>[
+                  "ON_TAP",
+                ],
+              ),
+              ffai.ProjectWidgetHandle(
+                key: "Button_sv4216kt",
+                type: "Button",
+                path: "SignIn.body[0].children[5]",
                 name: "Button",
                 text: "Sign in",
                 triggers: const <String>[
@@ -120,13 +130,13 @@ abstract final class SignInWidgets {
               ffai.ProjectWidgetHandle(
                 key: "ProgressBar_4xx538ti",
                 type: "ProgressBar",
-                path: "SignIn.body[0].children[5]",
+                path: "SignIn.body[0].children[6]",
                 name: "ProgressBar",
               ),
               ffai.ProjectWidgetHandle(
                 key: "Button_skz5qa5n",
                 type: "Button",
-                path: "SignIn.body[0].children[6]",
+                path: "SignIn.body[0].children[7]",
                 name: "googleSignIn",
                 text: "Continue with Google",
                 triggers: const <String>[
@@ -136,7 +146,7 @@ abstract final class SignInWidgets {
               ffai.ProjectWidgetHandle(
                 key: "Button_f6bwzfs0",
                 type: "Button",
-                path: "SignIn.body[0].children[7]",
+                path: "SignIn.body[0].children[8]",
                 name: "Button",
                 text: "New here? Create an account",
                 triggers: const <String>[

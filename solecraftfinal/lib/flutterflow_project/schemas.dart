@@ -181,6 +181,14 @@ abstract final class Structs {
     },
     description: ffai.generatedProjectStructDescription,
   );
+  static final ffai.StructHandle okMessage = ffai.StructHandle(
+    "OkMessage",
+    <String, ffai.DslType>{
+      "message": ffai.string,
+      "ok": ffai.bool_,
+    },
+    description: ffai.generatedProjectStructDescription,
+  );
   static final ffai.StructHandle orderCreated = ffai.StructHandle(
     "OrderCreated",
     <String, ffai.DslType>{
@@ -381,6 +389,7 @@ abstract final class Structs {
     myOrdersResponse,
     notificationList,
     notificationRow,
+    okMessage,
     orderCreated,
     orderEvent,
     orderFull,
