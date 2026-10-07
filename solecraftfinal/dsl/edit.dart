@@ -6013,6 +6013,13 @@ void _sortFilter(App app) {
         }
         node.generatorVariable.variable = v;
       });
+      // Its job is done, and `visible: false` did not hide it: the shop
+      // showed every shoe name above the grid. The grid keeps the source.
+      page.ensureRemoved(
+        page.findByKey(
+          ff.Pages.shop.widgets.all.firstWhere((w) => w.name == 'shopViewProbeBox').key,
+        ),
+      );
     });
   }
 }
