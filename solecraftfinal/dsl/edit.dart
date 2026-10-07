@@ -6511,6 +6511,12 @@ return pesoN(t < 0 ? 0 : t);
     });
   } else {
     app.editPage(ff.Pages.checkout, (page) {
+      // A full-width button beside an Expanded field has no width to take, so
+      // the whole row failed to lay out and left a blank gap on Checkout.
+      page.update(
+        page.findByKey(voucherRow.key),
+        (patch) => patch.size(width: 96, height: 48),
+      );
       page.ensureActions(
         page.findByKey(voucherRow.key),
         triggerType: FFActionTriggerType.ON_TAP,
