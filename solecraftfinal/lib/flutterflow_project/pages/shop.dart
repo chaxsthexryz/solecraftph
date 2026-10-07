@@ -292,19 +292,19 @@ abstract final class ShopWidgets {
                 ],
               ),
               ffai.ProjectWidgetHandle(
-                key: "Container_5psvmj3w",
+                key: "Container_fnoj2gmh",
                 type: "Container",
                 path: "Shop.body[0].children[4]",
                 name: "subcategoryRow",
                 children: <ffai.ProjectWidgetHandle>[
                   ffai.ProjectWidgetHandle(
-                    key: "ListView_nl073pdf",
+                    key: "ListView_zxw25pl7",
                     type: "ListView",
                     path: "Shop.body[0].children[4].children[0]",
                     name: "subcategoryList",
                     children: <ffai.ProjectWidgetHandle>[
                       ffai.ProjectWidgetHandle(
-                        key: "Container_9eiout3g",
+                        key: "Container_x5txbl23",
                         type: "Container",
                         path: "Shop.body[0].children[4].children[0].children[0]",
                         name: "subcategoryChip",
@@ -313,7 +313,7 @@ abstract final class ShopWidgets {
                         ],
                         children: <ffai.ProjectWidgetHandle>[
                           ffai.ProjectWidgetHandle(
-                            key: "Container_l92cc8by",
+                            key: "Container_wqamycsj",
                             type: "Container",
                             path: "Shop.body[0].children[4].children[0].children[0].children[0]",
                             name: "CatChip",
@@ -326,9 +326,45 @@ abstract final class ShopWidgets {
                 ],
               ),
               ffai.ProjectWidgetHandle(
+                key: "Container_4xput5f8",
+                type: "Container",
+                path: "Shop.body[0].children[5]",
+                name: "shopViewProbeBox",
+                children: <ffai.ProjectWidgetHandle>[
+                  ffai.ProjectWidgetHandle(
+                    key: "ListView_y58uorgc",
+                    type: "ListView",
+                    path: "Shop.body[0].children[5].children[0]",
+                    name: "shopViewProbe",
+                    children: <ffai.ProjectWidgetHandle>[
+                      ffai.ProjectWidgetHandle(
+                        key: "Text_1y94eu25",
+                        type: "Text",
+                        path: "Shop.body[0].children[5].children[0].children[0]",
+                        name: "Text",
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              ffai.ProjectWidgetHandle(
+                key: "Container_05b78yme",
+                type: "Container",
+                path: "Shop.body[0].children[6]",
+                name: "sortFilterBar",
+                children: <ffai.ProjectWidgetHandle>[
+                  ffai.ProjectWidgetHandle(
+                    key: "Container_j6occexy",
+                    type: "Container",
+                    path: "Shop.body[0].children[6].children[0]",
+                    name: "sortFilterBarWidget",
+                  ),
+                ],
+              ),
+              ffai.ProjectWidgetHandle(
                 key: "GridView_ilvt3kls",
                 type: "GridView",
-                path: "Shop.body[0].children[5]",
+                path: "Shop.body[0].children[7]",
                 name: "GridView",
                 triggers: const <String>[
                   "ON_PULL_TO_REFRESH",
@@ -337,7 +373,7 @@ abstract final class ShopWidgets {
                   ffai.ProjectWidgetHandle(
                     key: "Container_vzkzbk79",
                     type: "Container",
-                    path: "Shop.body[0].children[5].children[0]",
+                    path: "Shop.body[0].children[7].children[0]",
                     name: "ShoeCardTap",
                     triggers: const <String>[
                       "ON_TAP",
@@ -346,7 +382,7 @@ abstract final class ShopWidgets {
                       ffai.ProjectWidgetHandle(
                         key: "Container_er1fj8un",
                         type: "Container",
-                        path: "Shop.body[0].children[5].children[0].children[0]",
+                        path: "Shop.body[0].children[7].children[0].children[0]",
                         name: "ShoeCard",
                         componentName: "ShoeCard",
                       ),

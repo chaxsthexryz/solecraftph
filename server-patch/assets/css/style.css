@@ -354,3 +354,25 @@ footer{padding:60px 0 0;margin-top:40px;}
 .lightbox__close{position:absolute;top:14px;right:18px;background:none;border:none;color:#fff;font-size:38px;cursor:pointer;}
 .lightbox__hint{position:absolute;bottom:14px;left:0;right:0;text-align:center;color:#bbb;font-size:12px;}
 @media(max-width:640px){.gallery__thumb{width:60px;height:60px;}.lightbox__nav{width:36px;height:36px;font-size:22px;}}
+
+/* Shop SORT / FILTER bar */
+.shopbar{display:flex;align-items:center;gap:26px;border-top:1px solid var(--stone);border-bottom:1px solid var(--stone);padding:12px 0;margin-bottom:28px;position:relative;}
+.shopbar__menu{position:relative;}
+.shopbar__menu summary{list-style:none;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center;gap:6px;user-select:none;}
+.shopbar__menu summary::-webkit-details-marker{display:none;}
+.shopbar__panel{position:absolute;top:calc(100% + 12px);left:0;z-index:50;background:var(--paper);border:1px solid var(--ink);min-width:220px;padding:8px 0;display:flex;flex-direction:column;}
+.shopbar__opt{padding:10px 18px;font-size:14px;}
+.shopbar__opt:hover{background:var(--stone);}
+.shopbar__opt.is-on{font-weight:700;}
+.shopbar__opt.is-on::after{content:" ✓";}
+.shopbar__panel--filter{min-width:320px;padding:16px 18px;}
+.shopbar__label{font-size:12px;color:var(--gray);margin:10px 0 8px;}
+.shopbar__chips{display:flex;flex-wrap:wrap;gap:8px;}
+.shopbar__chip input{position:absolute;opacity:0;pointer-events:none;}
+.shopbar__chip span{display:inline-block;border:1px solid var(--stone);border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer;}
+.shopbar__chip input:checked + span{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+.shopbar__chip input:focus-visible + span{outline:2px solid var(--blaze);outline-offset:2px;}
+.shopbar__actions{display:flex;gap:10px;margin-top:18px;}
+.shopbar__actions .btn--solid{flex:1;justify-content:center;}
+.shopbar__count{margin-left:auto;font-size:13px;color:var(--gray);}
+@media(max-width:640px){.shopbar__panel--filter{position:fixed;left:16px;right:16px;top:auto;bottom:16px;min-width:0;}}

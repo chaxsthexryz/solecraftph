@@ -5917,7 +5917,406 @@ return 'https://snow-jellyfish-553645.hostingersite.com/assets/icons/icon-512.pn
   _returnRequest(app, returnOrder: returnOrder);
   _aboutAndDeleteAccount(app, deleteAccount: deleteAccount);
   _shopExtras(app, checkVoucher: checkVoucher);
+  _sortFilter(app);
 }
+
+// -----------------------------------------------------------------------------
+// Feature: SORT / FILTER bar on Shop (same options as the website's)
+// -----------------------------------------------------------------------------
+//
+// The choices live in app state, so the bar's sheets can set them and the grid
+// follows. The grid was built in the FlutterFlow editor and the SDK has no way
+// to rebind a list's source, so a hidden ListView ("shopViewProbe") is compiled
+// with the source we want — shopView(shoes, …) — and on the next run its
+// compiled source is copied onto the grid. The grid keeps its own item
+// template and pull-to-refresh.
+
+void _sortFilter(App app) {
+  app.state('shopSort', string.withDefault('featured'), description: 'Shop sort: featured, newest, price_asc, price_desc, rating.');
+  app.state('shopSize', string.withDefault(''), description: 'Shop filter: US size, or empty for any.');
+  app.state('shopPrice', string.withDefault(''), description: 'Shop filter: under5, 5to8, over8, or empty.');
+  app.state('shopSale', bool_.withDefault(false), description: 'Shop filter: on sale only.');
+  app.state('shopInStock', bool_.withDefault(false), description: 'Shop filter: in stock only.');
+
+  final shopView = app.customFunction(
+    'shopView',
+    args: {
+      'shoes': listOf(ff.Structs.shoe),
+      'sort': string,
+      'size': string,
+      'price': string,
+      'sale': bool_,
+      'inStock': bool_,
+    },
+    returns: listOf(ff.Structs.shoe),
+    code: _shopViewCode,
+    description: 'The shop grid after the SORT / FILTER choices.',
+  );
+  final bar = _customWidget(
+    app,
+    'ShopSortFilterBar',
+    parameters: {'shoes': listOf(ff.Structs.shoe)},
+    code: _shopSortFilterBarCode,
+    description: 'SORT / FILTER bar with its two sheets and the item count.',
+  );
+  final shoes = State(ff.Pages.shop.state.shoes);
+
+  final hasBar = ff.Pages.shop.widgets.all.any((w) => w.name == 'sortFilterBar');
+  final probe = ff.Pages.shop.widgets.all
+      .where((w) => w.name == 'shopViewProbe')
+      .firstOrNull;
+  if (!hasBar) {
+    app.editPage(ff.Pages.shop, (page) {
+      page.ensureInsertedBefore(
+        ff.Pages.shop.widgets.byKey('GridView_ilvt3kls').single,
+        Container(
+          name: 'sortFilterBar',
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: bar(name: 'sortFilterBarWidget', shoes: shoes),
+        ),
+      );
+      page.ensureInsertedBefore(
+        ff.Pages.shop.widgets.byKey('GridView_ilvt3kls').single,
+        Container(
+          name: 'shopViewProbeBox',
+          visible: false,
+          child: ListView(
+            name: 'shopViewProbe',
+            shrinkWrap: true,
+            source: CustomFunction(
+              shopView,
+              args: {
+                'shoes': shoes,
+                'sort': AppState('shopSort'),
+                'size': AppState('shopSize'),
+                'price': AppState('shopPrice'),
+                'sale': AppState('shopSale'),
+                'inStock': AppState('shopInStock'),
+              },
+            ),
+            itemBuilder: (item) => Text(item['name']),
+          ),
+        ),
+      );
+    });
+  } else if (probe != null) {
+    app.editPage(ff.Pages.shop, (page) {
+      FFVariable? source;
+      page.mutateNode(page.findByKey(probe.key), (node) {
+        source = node.generatorVariable.variable.deepCopy();
+      });
+      page.mutateNode(page.findByKey('GridView_ilvt3kls'), (node) {
+        final v = source;
+        if (v == null) return;
+        if (v.hasNodeKeyRef() && v.nodeKeyRef.key == probe.key) {
+          v.nodeKeyRef = FFNodeKeyReference(key: 'GridView_ilvt3kls');
+        }
+        node.generatorVariable.variable = v;
+      });
+    });
+  }
+}
+
+const _shopViewCode = r'''
+double priceOf(ShoeStruct s) =>
+    double.tryParse(s.salePrice) ?? double.tryParse(s.price) ?? 0;
+final out = (shoes ?? const <ShoeStruct>[]).where((s) {
+  final want = size ?? '';
+  if (want.isNotEmpty && !s.availableSizes.contains(want)) return false;
+  final p = priceOf(s);
+  switch (price ?? '') {
+    case 'under5':
+      if (p >= 5000) return false;
+      break;
+    case '5to8':
+      if (p < 5000 || p > 8000) return false;
+      break;
+    case 'over8':
+      if (p <= 8000) return false;
+      break;
+  }
+  if ((sale ?? false) && double.tryParse(s.salePrice) == null) return false;
+  if ((inStock ?? false) && s.stock < 1) return false;
+  return true;
+}).toList();
+switch (sort ?? '') {
+  case 'newest':
+    out.sort((a, b) => b.id.compareTo(a.id));
+    break;
+  case 'price_asc':
+    out.sort((a, b) => priceOf(a).compareTo(priceOf(b)));
+    break;
+  case 'price_desc':
+    out.sort((a, b) => priceOf(b).compareTo(priceOf(a)));
+    break;
+  case 'rating':
+    out.sort((a, b) => b.avgRating.compareTo(a.avgRating));
+    break;
+}
+return out;
+''';
+
+const _shopSortFilterBarCode = r'''
+/// The YoungLA-style bar: SORT ⌄ and FILTER open bottom sheets; the choices
+/// are app state, which the grid (through shopView) follows.
+class ShopSortFilterBar extends StatelessWidget {
+  const ShopSortFilterBar({super.key, this.width, this.height, this.shoes});
+
+  final double? width;
+  final double? height;
+  final List<ShoeStruct>? shoes;
+
+  static const _sorts = [
+    ('featured', 'Featured'),
+    ('newest', 'Newest'),
+    ('price_asc', 'Price: low to high'),
+    ('price_desc', 'Price: high to low'),
+    ('rating', 'Top rated'),
+  ];
+  static const _sizes = ['7', '8', '9', '10', '11', '12'];
+  static const _prices = [
+    ('under5', 'Under ₱5k'),
+    ('5to8', '₱5k–8k'),
+    ('over8', 'Over ₱8k'),
+  ];
+
+  int _count(FFAppState s, String size, String price, bool sale, bool inStock) =>
+      shopView(shoes, s.shopSort, size, price, sale, inStock)?.length ?? 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    return ListenableBuilder(
+      listenable: FFAppState(),
+      builder: (context, _) {
+        final s = FFAppState();
+        final active = (s.shopSize.isNotEmpty ? 1 : 0) +
+            (s.shopPrice.isNotEmpty ? 1 : 0) +
+            (s.shopSale ? 1 : 0) +
+            (s.shopInStock ? 1 : 0);
+        final label = TextStyle(
+          fontSize: 13,
+          letterSpacing: 1.2,
+          fontWeight: FontWeight.w600,
+          color: theme.primaryText,
+        );
+        final n = _count(s, s.shopSize, s.shopPrice, s.shopSale, s.shopInStock);
+        return Container(
+          width: width ?? double.infinity,
+          height: 46,
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: theme.alternate),
+              bottom: BorderSide(color: theme.alternate),
+            ),
+          ),
+          child: Row(
+            children: [
+              InkWell(
+                onTap: () => _openSort(context),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Row(children: [
+                    Text('SORT', style: label),
+                    const SizedBox(width: 2),
+                    Icon(Icons.keyboard_arrow_down, size: 20, color: theme.primaryText),
+                  ]),
+                ),
+              ),
+              const SizedBox(width: 22),
+              InkWell(
+                onTap: () => _openFilter(context),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Row(children: [
+                    Text(active > 0 ? 'FILTER ($active)' : 'FILTER', style: label),
+                    const SizedBox(width: 6),
+                    Icon(Icons.tune, size: 18, color: theme.primaryText),
+                  ]),
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '$n ${n == 1 ? 'item' : 'items'}',
+                style: TextStyle(fontSize: 13, color: theme.secondaryText),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _header(BuildContext context, String title) {
+    final theme = FlutterFlowTheme.of(context);
+    return Row(children: [
+      Text(
+        title,
+        style: TextStyle(
+          fontSize: 14,
+          letterSpacing: 1.2,
+          fontWeight: FontWeight.w600,
+          color: theme.primaryText,
+        ),
+      ),
+      const Spacer(),
+      IconButton(
+        icon: Icon(Icons.close, color: theme.primaryText),
+        onPressed: () => Navigator.pop(context),
+      ),
+    ]);
+  }
+
+  void _openSort(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: theme.secondaryBackground,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 8, 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _header(ctx, 'SORT BY'),
+              for (final o in _sorts)
+                ListTile(
+                  contentPadding: const EdgeInsets.only(right: 12),
+                  title: Text(o.$2, style: TextStyle(fontSize: 15, color: theme.primaryText)),
+                  trailing: FFAppState().shopSort == o.$1
+                      ? Icon(Icons.check, color: theme.primaryText)
+                      : null,
+                  onTap: () {
+                    FFAppState().update(() => FFAppState().shopSort = o.$1);
+                    Navigator.pop(ctx);
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openFilter(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    final s = FFAppState();
+    var size = s.shopSize;
+    var price = s.shopPrice;
+    var sale = s.shopSale;
+    var inStock = s.shopInStock;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: theme.secondaryBackground,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          Widget chip(String text, bool on, VoidCallback tap) => ChoiceChip(
+                label: Text(text),
+                selected: on,
+                showCheckmark: false,
+                onSelected: (_) => setSheet(tap),
+                selectedColor: theme.primaryText,
+                backgroundColor: theme.secondaryBackground,
+                labelStyle: TextStyle(
+                  fontSize: 13,
+                  color: on ? theme.secondaryBackground : theme.primaryText,
+                ),
+                shape: StadiumBorder(
+                  side: BorderSide(color: on ? theme.primaryText : theme.alternate),
+                ),
+              );
+          Widget group(String title, List<Widget> chips) => Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: TextStyle(fontSize: 13, color: theme.secondaryText)),
+                    const SizedBox(height: 8),
+                    Wrap(spacing: 8, runSpacing: 8, children: chips),
+                  ],
+                ),
+              );
+          final n = _count(s, size, price, sale, inStock);
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _header(ctx, 'FILTER'),
+                  group('Size (US)', [
+                    for (final z in _sizes)
+                      chip(z, size == z, () => size = size == z ? '' : z),
+                  ]),
+                  group('Price', [
+                    for (final p in _prices)
+                      chip(p.$2, price == p.$1, () => price = price == p.$1 ? '' : p.$1),
+                  ]),
+                  group('Show', [
+                    chip('On sale', sale, () => sale = !sale),
+                    chip('In stock only', inStock, () => inStock = !inStock),
+                  ]),
+                  const SizedBox(height: 20),
+                  Row(children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => setSheet(() {
+                          size = '';
+                          price = '';
+                          sale = false;
+                          inStock = false;
+                        }),
+                        style: OutlinedButton.styleFrom(
+                          shape: const StadiumBorder(),
+                          minimumSize: const Size(0, 48),
+                          foregroundColor: theme.primaryText,
+                          side: BorderSide(color: theme.alternate),
+                        ),
+                        child: const Text('Clear'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 2,
+                      child: FilledButton(
+                        onPressed: () {
+                          FFAppState().update(() {
+                            s.shopSize = size;
+                            s.shopPrice = price;
+                            s.shopSale = sale;
+                            s.shopInStock = inStock;
+                          });
+                          Navigator.pop(ctx);
+                        },
+                        style: FilledButton.styleFrom(
+                          shape: const StadiumBorder(),
+                          minimumSize: const Size(0, 48),
+                          backgroundColor: theme.primaryText,
+                          foregroundColor: theme.secondaryBackground,
+                        ),
+                        child: Text('Show $n ${n == 1 ? 'shoe' : 'shoes'}'),
+                      ),
+                    ),
+                  ]),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+''';
 
 // -----------------------------------------------------------------------------
 // Feature: star ratings on shop cards, a 3-photo gallery with full-screen pinch

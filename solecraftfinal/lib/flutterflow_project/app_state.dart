@@ -71,6 +71,36 @@ abstract final class AppState {
     typeName: "List<String>",
     persisted: false,
   );
+  static const shopInStock = ffai.ProjectAppStateFieldHandle(
+    name: "shopInStock",
+    key: "c7uxjsgc",
+    typeName: "Boolean",
+    persisted: false,
+  );
+  static const shopPrice = ffai.ProjectAppStateFieldHandle(
+    name: "shopPrice",
+    key: "9ddfjjx2",
+    typeName: "String",
+    persisted: false,
+  );
+  static const shopSale = ffai.ProjectAppStateFieldHandle(
+    name: "shopSale",
+    key: "xm99jr3r",
+    typeName: "Boolean",
+    persisted: false,
+  );
+  static const shopSize = ffai.ProjectAppStateFieldHandle(
+    name: "shopSize",
+    key: "jxk1fhu9",
+    typeName: "String",
+    persisted: false,
+  );
+  static const shopSort = ffai.ProjectAppStateFieldHandle(
+    name: "shopSort",
+    key: "vrh5x5zo",
+    typeName: "String",
+    persisted: false,
+  );
   static const signedIn = ffai.ProjectAppStateFieldHandle(
     name: "signedIn",
     key: "w9gopo6y",
@@ -137,6 +167,11 @@ abstract final class AppState {
     payGcash,
     pinConfirmed,
     shopCategories,
+    shopInStock,
+    shopPrice,
+    shopSale,
+    shopSize,
+    shopSort,
     signedIn,
     taxonomy,
     userAddress,

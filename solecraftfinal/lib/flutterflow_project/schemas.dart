@@ -472,6 +472,7 @@ abstract final class CustomCode {
     "ratingLabel",
     "returnStatusLabel",
     "shippingLabel",
+    "shopView",
     "sizeLabel",
     "sizeSellable",
     "starLabel",
@@ -492,6 +493,7 @@ abstract final class CustomCode {
     "DevAvatar",
     "PinMap",
     "ShoeGallery",
+    "ShopSortFilterBar",
     "TileImage",
   ];
 }

@@ -37,6 +37,30 @@ if ($search !== '') {
     $products = product_list($category ?: null, $subcategory ?: null);
 }
 $ratings = product_ratings(array_column($products, 'id'));
+
+// Sort and filter (the SORT / FILTER bar above the grid).
+$shopFilter = [
+    'sort'    => isset(PRODUCT_SORTS[$_GET['sort'] ?? '']) ? $_GET['sort'] : 'featured',
+    'size'    => preg_match('/^(7|8|9|10|11|12)$/', (string) ($_GET['size'] ?? '')) ? $_GET['size'] : '',
+    'price'   => isset(PRODUCT_PRICE_BANDS[$_GET['price'] ?? '']) ? $_GET['price'] : '',
+    'sale'    => !empty($_GET['sale']),
+    'instock' => !empty($_GET['instock']),
+];
+$products = product_filter_sort($products, $shopFilter, $ratings);
+$activeFilters = ($shopFilter['size'] !== '') + ($shopFilter['price'] !== '') + $shopFilter['sale'] + $shopFilter['instock'];
+/** This page's URL with some sort/filter values changed; empty values drop out. */
+$shopUrl = function (array $change) use ($search, $category, $subcategory, $shopFilter): string {
+    $q = array_merge(
+        ['q' => $search, 'category' => $category, 'subcategory' => $subcategory],
+        $shopFilter,
+        $change
+    );
+    if (($q['sort'] ?? '') === 'featured') {
+        unset($q['sort']);
+    }
+    $q = array_filter($q, fn ($v) => $v !== '' && $v !== false && $v !== null);
+    return BASE_PATH . '/index.php' . ($q ? '?' . http_build_query(array_map(fn ($v) => $v === true ? 1 : $v, $q)) : '');
+};
 $categories = product_categories();
 $subcategoryMap = product_subcategory_map($category ?: null);
 $subcategoriesForCategory = $category !== '' ? ($subcategoryMap[$category] ?? []) : [];
@@ -379,6 +403,55 @@ if ($fadeCount > 1) {
           Narrow by category to see the rest.
         <?php endif; ?>
       </p>
+    </div>
+
+    <div class="shopbar">
+      <details class="shopbar__menu">
+        <summary>Sort <span aria-hidden="true">&#8964;</span></summary>
+        <div class="shopbar__panel">
+          <?php foreach (PRODUCT_SORTS as $key => $label): ?>
+            <a href="<?= htmlspecialchars($shopUrl(['sort' => $key])) ?>" class="shopbar__opt<?= $shopFilter['sort'] === $key ? ' is-on' : '' ?>"><?= htmlspecialchars($label) ?></a>
+          <?php endforeach; ?>
+        </div>
+      </details>
+      <details class="shopbar__menu">
+        <summary>Filter<?= $activeFilters ? ' (' . $activeFilters . ')' : '' ?>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+        </summary>
+        <form class="shopbar__panel shopbar__panel--filter" method="get" action="<?= BASE_PATH ?>/index.php">
+          <?php foreach (['q' => $search, 'category' => $category, 'subcategory' => $subcategory] as $k => $v): ?>
+            <?php if ($v !== ''): ?><input type="hidden" name="<?= $k ?>" value="<?= htmlspecialchars($v) ?>"><?php endif; ?>
+          <?php endforeach; ?>
+          <?php if ($shopFilter['sort'] !== 'featured'): ?><input type="hidden" name="sort" value="<?= htmlspecialchars($shopFilter['sort']) ?>"><?php endif; ?>
+
+          <p class="shopbar__label">Size (US)</p>
+          <div class="shopbar__chips">
+            <?php foreach (['' => 'Any', '7' => '7', '8' => '8', '9' => '9', '10' => '10', '11' => '11', '12' => '12'] as $val => $lbl): ?>
+              <label class="shopbar__chip"><input type="radio" name="size" value="<?= $val ?>"<?= $shopFilter['size'] === (string) $val ? ' checked' : '' ?>><span><?= $lbl ?></span></label>
+            <?php endforeach; ?>
+          </div>
+
+          <p class="shopbar__label">Price</p>
+          <div class="shopbar__chips">
+            <label class="shopbar__chip"><input type="radio" name="price" value=""<?= $shopFilter['price'] === '' ? ' checked' : '' ?>><span>Any</span></label>
+            <?php foreach (PRODUCT_PRICE_BANDS as $val => $band): ?>
+              <label class="shopbar__chip"><input type="radio" name="price" value="<?= $val ?>"<?= $shopFilter['price'] === $val ? ' checked' : '' ?>><span><?= htmlspecialchars($band[0]) ?></span></label>
+            <?php endforeach; ?>
+          </div>
+
+          <p class="shopbar__label">Show</p>
+          <div class="shopbar__chips">
+            <label class="shopbar__chip"><input type="checkbox" name="sale" value="1"<?= $shopFilter['sale'] ? ' checked' : '' ?>><span>On sale</span></label>
+            <label class="shopbar__chip"><input type="checkbox" name="instock" value="1"<?= $shopFilter['instock'] ? ' checked' : '' ?>><span>In stock only</span></label>
+          </div>
+
+          <div class="shopbar__actions">
+            <a class="btn btn--sm" href="<?= htmlspecialchars($shopUrl(['size' => '', 'price' => '', 'sale' => false, 'instock' => false])) ?>">Clear</a>
+            <button type="submit" class="btn btn--solid btn--sm">Show results</button>
+          </div>
+        </form>
+      </details>
+      <span class="shopbar__count"><?= count($products) ?> item<?= count($products) === 1 ? '' : 's' ?></span>
     </div>
 
     <?php if (empty($products)): ?>

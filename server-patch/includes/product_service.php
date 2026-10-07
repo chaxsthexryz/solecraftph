@@ -360,6 +360,65 @@ function product_ratings(array $productIds): array
     return $out;
 }
 
+/** Shop sort options, in menu order. */
+const PRODUCT_SORTS = [
+    'featured'   => 'Featured',
+    'newest'     => 'Newest',
+    'price_asc'  => 'Price: low to high',
+    'price_desc' => 'Price: high to low',
+    'rating'     => 'Top rated',
+];
+/** Shop price bands: key => [label, min, max]. */
+const PRODUCT_PRICE_BANDS = [
+    'under5' => ['Under ₱5k', 0, 4999.99],
+    '5to8'   => ['₱5k–8k', 5000, 8000],
+    'over8'  => ['Over ₱8k', 8000.01, PHP_FLOAT_MAX],
+];
+
+/**
+ * The shop grid's sort and filter, applied to an already-fetched list.
+ * $f: sort, size, price (a PRODUCT_PRICE_BANDS key), sale (bool), instock (bool).
+ * The app does the same in its shopView custom function.
+ */
+function product_filter_sort(array $products, array $f, array $ratings): array
+{
+    $band = PRODUCT_PRICE_BANDS[$f['price'] ?? ''] ?? null;
+    $size = (string) ($f['size'] ?? '');
+    $out = array_values(array_filter($products, function (array $p) use ($f, $band, $size): bool {
+        $price = product_display_price($p);
+        if ($band && ($price < $band[1] || $price > $band[2])) {
+            return false;
+        }
+        if (!empty($f['sale']) && $p['sale_price'] === null) {
+            return false;
+        }
+        if (!empty($f['instock']) && (int) $p['stock'] < 1) {
+            return false;
+        }
+        if ($size !== '' && !in_array($size, product_available_sizes((int) $p['id']), true)) {
+            return false;
+        }
+        return true;
+    }));
+
+    $rating = fn (array $p) => $ratings[(int) $p['id']]['avg'] ?? 0;
+    switch ($f['sort'] ?? 'featured') {
+        case 'newest':
+            usort($out, fn ($a, $b) => strcmp((string) $b['created_at'], (string) $a['created_at']));
+            break;
+        case 'price_asc':
+            usort($out, fn ($a, $b) => product_display_price($a) <=> product_display_price($b));
+            break;
+        case 'price_desc':
+            usort($out, fn ($a, $b) => product_display_price($b) <=> product_display_price($a));
+            break;
+        case 'rating':
+            usort($out, fn ($a, $b) => $rating($b) <=> $rating($a));
+            break;
+    }
+    return $out;
+}
+
 function product_display_price(array $product): float
 {
     return $product['sale_price'] !== null ? (float) $product['sale_price'] : (float) $product['price'];
