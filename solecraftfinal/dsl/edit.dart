@@ -5918,7 +5918,371 @@ return 'https://snow-jellyfish-553645.hostingersite.com/assets/icons/icon-512.pn
   _aboutAndDeleteAccount(app, deleteAccount: deleteAccount);
   _shopExtras(app, checkVoucher: checkVoucher);
   _sortFilter(app);
+  _shopHero(app);
 }
+
+// -----------------------------------------------------------------------------
+// Feature: top of Shop — greeting, promo slides, voucher strip
+// -----------------------------------------------------------------------------
+//
+// One custom widget between the search box and the category chips. It loads
+// /api/home.php itself (slides from Admin → Banners, or catalogue slides when
+// there are none, plus the first usable voucher), and folds away while the
+// grid scrolls so the shoes keep the screen.
+
+void _shopHero(App app) {
+  final hero = _customWidget(
+    app,
+    'ShopHero',
+    parameters: const <String, DslType>{},
+    code: _shopHeroCode,
+    description: 'Greeting, swipeable promo slides and the voucher strip at the top of Shop.',
+  );
+  if (ff.Pages.shop.widgets.all.any((w) => w.name == 'shopHero')) return;
+  app.editPage(ff.Pages.shop, (page) {
+    page.ensureInsertedBefore(
+      ff.Pages.shop.widgets.byKey('Container_w56b0wzf').single,
+      Container(name: 'shopHero', child: hero(name: 'shopHeroWidget')),
+    );
+  });
+}
+
+const _shopHeroCode = r'''
+import 'dart:async';
+
+import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
+
+/// Top of Shop: greeting, promo slides and the voucher strip. Folds away
+/// while the grid scrolls — the Scaffold's ScrollNotificationObserver relays
+/// the grid's scrolling — and comes back at the top.
+class ShopHero extends StatefulWidget {
+  const ShopHero({super.key, this.width, this.height});
+
+  final double? width;
+  final double? height;
+
+  @override
+  State<ShopHero> createState() => _ShopHeroState();
+}
+
+class _ShopHeroState extends State<ShopHero> {
+  static const _url =
+      'https://snow-jellyfish-553645.hostingersite.com/api/home.php';
+
+  // Kept across visits so coming back to Shop does not flash empty.
+  static List<Map<String, dynamic>> _slides = const [];
+  static Map<String, dynamic>? _voucher;
+
+  final _pages = PageController();
+  Timer? _timer;
+  int _page = 0;
+  bool _folded = false;
+  ScrollNotificationObserverState? _observer;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+    _timer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted || _slides.length < 2 || !_pages.hasClients) return;
+      _pages.animateToPage(
+        (_page + 1) % _slides.length,
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _observer?.removeListener(_onScroll);
+    _observer = ScrollNotificationObserver.maybeOf(context);
+    _observer?.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _observer?.removeListener(_onScroll);
+    _timer?.cancel();
+    _pages.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    try {
+      final r = await http
+          .get(Uri.parse(_url))
+          .timeout(const Duration(seconds: 12));
+      if (r.statusCode != 200) return;
+      final body = jsonDecode(r.body) as Map<String, dynamic>;
+      final slides = ((body['banners'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((m) => Map<String, dynamic>.from(m))
+          .toList();
+      final v = body['voucher'];
+      if (!mounted) return;
+      setState(() {
+        _slides = slides;
+        _voucher = v is Map ? Map<String, dynamic>.from(v) : null;
+      });
+    } catch (_) {
+      // Offline: the hero just keeps whatever it last showed.
+    }
+  }
+
+  void _onScroll(ScrollNotification n) {
+    if (n.metrics.axis != Axis.vertical) return;
+    bool? fold;
+    if (n is ScrollUpdateNotification) {
+      if (n.metrics.pixels > 40) fold = true;
+      if (n.metrics.pixels <= 4) fold = false;
+    }
+    // Android does not scroll past the top; a pull there means "show it".
+    if (n is OverscrollNotification && n.overscroll < 0) fold = false;
+    if (fold != null && fold != _folded) setState(() => _folded = fold!);
+  }
+
+  String get _hello {
+    final s = FFAppState();
+    final full = s.userFullName.trim();
+    final name = full.isNotEmpty ? full.split(' ').first : s.username.trim();
+    final h = DateTime.now().hour;
+    final part =
+        h < 12 ? 'Good morning' : (h < 18 ? 'Good afternoon' : 'Good evening');
+    return s.signedIn && name.isNotEmpty ? '$part, $name' : part;
+  }
+
+  void _open(Map<String, dynamic> slide) {
+    final id = (slide['product_id'] as num?)?.toInt() ?? 0;
+    if (id <= 0) return;
+    context.pushNamed(
+      'ShoeDetails',
+      queryParameters: {'id': serializeParam(id, ParamType.int)}.withoutNulls,
+    );
+  }
+
+  void _copyVoucher(String code) {
+    Clipboard.setData(ClipboardData(text: code));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$code copied. Paste it at checkout.')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = FlutterFlowTheme.of(context);
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+      alignment: Alignment.topCenter,
+      child: _folded
+          ? const SizedBox(width: double.infinity)
+          : Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _hello,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.4,
+                      color: t.primaryText,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Find your next pair.',
+                    style: TextStyle(fontSize: 14, color: t.secondaryText),
+                  ),
+                  if (_slides.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 156,
+                      child: PageView.builder(
+                        controller: _pages,
+                        itemCount: _slides.length,
+                        onPageChanged: (i) => setState(() => _page = i),
+                        itemBuilder: (_, i) => _slide(t, _slides[i]),
+                      ),
+                    ),
+                    if (_slides.length > 1) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          for (var i = 0; i < _slides.length; i++)
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              margin: const EdgeInsets.symmetric(horizontal: 3),
+                              width: i == _page ? 18 : 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: i == _page ? t.primaryText : t.alternate,
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ],
+                  if (_voucher != null) ...[
+                    const SizedBox(height: 12),
+                    _voucherStrip(t, _voucher!),
+                  ],
+                ],
+              ),
+            ),
+    );
+  }
+
+  Widget _slide(FlutterFlowTheme t, Map<String, dynamic> s) {
+    final image = s['image'] as String?;
+    final photo = s['photo'] as String?;
+    final tappable = ((s['product_id'] as num?)?.toInt() ?? 0) > 0;
+    return GestureDetector(
+      onTap: () => _open(s),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          color: t.primary,
+          child: image != null && image.isNotEmpty
+              ? Image.network(image, fit: BoxFit.cover, width: double.infinity)
+              : Row(
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(18, 14, 8, 14),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'SOLECRAFTPH',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.6,
+                                color: t.secondary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${s['title'] ?? ''}',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                height: 1.1,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.3,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${s['subtitle'] ?? ''}',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.white70,
+                              ),
+                            ),
+                            if (tappable) ...[
+                              const SizedBox(height: 10),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  'Shop now',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: t.primary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (photo != null && photo.isNotEmpty)
+                      Container(
+                        width: 128,
+                        margin: const EdgeInsets.fromLTRB(0, 12, 12, 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: Image.network(photo, fit: BoxFit.cover),
+                      ),
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
+
+  Widget _voucherStrip(FlutterFlowTheme t, Map<String, dynamic> v) {
+    final code = '${v['code'] ?? ''}';
+    return InkWell(
+      onTap: () => _copyVoucher(code),
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: t.secondary.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: t.secondary.withOpacity(0.35)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.local_offer_outlined, size: 20, color: t.secondary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: code,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    TextSpan(text: '  ·  ${v['label'] ?? ''}'),
+                  ],
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 13, color: t.primaryText),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'COPY',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1,
+                color: t.secondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+''';
 
 // -----------------------------------------------------------------------------
 // Feature: SORT / FILTER bar on Shop (same options as the website's)
