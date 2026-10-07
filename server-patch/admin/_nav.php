@@ -14,6 +14,7 @@ $__adminUnread = notification_unread_count_for_admins();
   <a href="reports.php" class="<?= $active === 'reports' ? 'active' : '' ?>">Reports</a>
   <a href="cms.php" class="<?= $active === 'cms' ? 'active' : '' ?>">Content</a>
   <a href="banners.php" class="<?= $active === 'banners' ? 'active' : '' ?>">Banners</a>
+  <a href="vouchers.php" class="<?= $active === 'vouchers' ? 'active' : '' ?>">Vouchers</a>
   <a href="settings.php" class="<?= $active === 'settings' ? 'active' : '' ?>">Settings</a>
   <a href="messages.php" class="<?= $active === 'messages' ? 'active' : '' ?>">Messages</a>
   <a href="notifications.php" class="<?= $active === 'notifications' ? 'active' : '' ?>">Notifications<?= $__adminUnread > 0 ? ' <span class="notif-dot"></span>' : '' ?></a>

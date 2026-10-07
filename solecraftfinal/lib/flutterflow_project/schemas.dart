@@ -308,13 +308,16 @@ abstract final class Structs {
     "Shoe",
     <String, ffai.DslType>{
       "available_sizes": ffai.listOf(ffai.string),
+      "avg_rating": ffai.double_,
       "badge": ffai.string,
       "category": ffai.string,
       "description": ffai.string,
       "id": ffai.int_,
       "image": ffai.string,
+      "images": ffai.listOf(ffai.string),
       "name": ffai.string,
       "price": ffai.string,
+      "review_count": ffai.int_,
       "sale_price": ffai.string,
       "stock": ffai.int_,
       "subcategory": ffai.string,
@@ -344,6 +347,16 @@ abstract final class Structs {
     <String, ffai.DslType>{
       "category": ffai.string,
       "subcategory": ffai.string,
+    },
+    description: ffai.generatedProjectStructDescription,
+  );
+  static final ffai.StructHandle voucherQuote = ffai.StructHandle(
+    "VoucherQuote",
+    <String, ffai.DslType>{
+      "code": ffai.string,
+      "discount": ffai.double_,
+      "message": ffai.string,
+      "ok": ffai.bool_,
     },
     description: ffai.generatedProjectStructDescription,
   );
@@ -405,6 +418,7 @@ abstract final class Structs {
     storeSettings,
     taxonomyList,
     taxonomyRow,
+    voucherQuote,
     wishlist,
     wishlistFlag,
     wishlistToggled,
@@ -431,6 +445,7 @@ abstract final class CustomCode {
     "bumpQty",
     "canRequestReturn",
     "cartLines",
+    "checkoutTotal",
     "cleanAddress",
     "countText",
     "defaultAddressField",
@@ -443,6 +458,7 @@ abstract final class CustomCode {
     "linePrice",
     "lineSub",
     "listStillHas",
+    "minusPeso",
     "niceDate",
     "orderHeadline",
     "orderItems",
@@ -458,6 +474,7 @@ abstract final class CustomCode {
     "shippingLabel",
     "sizeLabel",
     "sizeSellable",
+    "starLabel",
     "starOn",
     "subcategoriesOf",
     "textOr",
@@ -474,6 +491,7 @@ abstract final class CustomCode {
   static const widgets = <String>[
     "DevAvatar",
     "PinMap",
+    "ShoeGallery",
     "TileImage",
   ];
 }

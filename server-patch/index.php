@@ -36,6 +36,7 @@ if ($search !== '') {
 } else {
     $products = product_list($category ?: null, $subcategory ?: null);
 }
+$ratings = product_ratings(array_column($products, 'id'));
 $categories = product_categories();
 $subcategoryMap = product_subcategory_map($category ?: null);
 $subcategoriesForCategory = $category !== '' ? ($subcategoryMap[$category] ?? []) : [];
@@ -407,6 +408,8 @@ if ($fadeCount > 1) {
             <div class="card__body">
               <div class="card__cat mono"><?= htmlspecialchars($p['category']) ?><?= !empty($p['subcategory']) ? ' · ' . htmlspecialchars($p['subcategory']) : '' ?></div>
               <div class="card__name"><a href="<?= BASE_PATH ?>/product.php?id=<?= $p['id'] ?>"><?= htmlspecialchars($p['name']) ?></a></div>
+              <?php $r = $ratings[(int) $p['id']] ?? null; ?>
+              <div class="card__rating"><?php if ($r): ?><span class="card__stars" aria-hidden="true">★</span> <?= number_format($r['avg'], 1) ?> <span class="card__reviews">(<?= $r['count'] ?>)</span><span class="sr-only"> stars from <?= $r['count'] ?> review<?= $r['count'] === 1 ? '' : 's' ?></span><?php else: ?><span class="card__reviews">No reviews yet</span><?php endif; ?></div>
               <div class="card__row">
                 <span class="card__price">
                   <?php if ($p['sale_price']): ?><s>₱<?= number_format($p['price'], 2) ?></s><?php endif; ?>

@@ -313,6 +313,53 @@ function product_image_url(array $product): ?string
     return $base . '/uploads/' . rawurlencode($product['image']);
 }
 
+/**
+ * The product's photos, main one first: the uploaded photo plus two close-ups
+ * cut from it by product_view.php. Site-relative URLs; empty with no photo.
+ */
+function product_gallery(array $product): array
+{
+    $main = product_image_url($product);
+    if ($main === null || preg_match('#^https?://#i', (string) $product['image'])) {
+        return $main === null ? [] : [$product['image']];
+    }
+    $base = defined('BASE_PATH') ? BASE_PATH : '';
+    $file = rawurlencode((string) $product['image']);
+    return [
+        $main,
+        $base . '/product_view.php?file=' . $file . '&v=2',
+        $base . '/product_view.php?file=' . $file . '&v=3',
+    ];
+}
+
+/**
+ * Approved-review average and count for many products in one query:
+ * [product_id => ['avg' => 4.5, 'count' => 12]]. Products with no reviews
+ * are absent.
+ */
+function product_ratings(array $productIds): array
+{
+    $ids = array_values(array_unique(array_map('intval', $productIds)));
+    if (!$ids) {
+        return [];
+    }
+    $marks = implode(',', array_fill(0, count($ids), '?'));
+    $stmt = db()->prepare(
+        "SELECT product_id, AVG(rating) AS avg_rating, COUNT(*) AS cnt
+         FROM product_reviews WHERE status = 'approved' AND product_id IN ($marks)
+         GROUP BY product_id"
+    );
+    $stmt->execute($ids);
+    $out = [];
+    foreach ($stmt->fetchAll() as $row) {
+        $out[(int) $row['product_id']] = [
+            'avg'   => round((float) $row['avg_rating'], 1),
+            'count' => (int) $row['cnt'],
+        ];
+    }
+    return $out;
+}
+
 function product_display_price(array $product): float
 {
     return $product['sale_price'] !== null ? (float) $product['sale_price'] : (float) $product['price'];

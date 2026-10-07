@@ -81,7 +81,7 @@ if (!$order) {
   </table>
 
   <div class="totals">
-    <div class="grand"><span>Total</span><span>₱<?= number_format($order['total_amount'], 2) ?></span></div>
+    <?php $ship = settings_shipping_for((float) $order['total_amount']); ?><div ><span>Shipping</span><span><?= $ship == 0 ? 'Free' : '₱' . number_format($ship, 2) ?></span></div><?php if ((float) ($order['discount_amount'] ?? 0) > 0): ?><div ><span>Voucher <?= htmlspecialchars((string) $order['voucher_code']) ?></span><span>−₱<?= number_format((float) $order['discount_amount'], 2) ?></span></div><?php endif; ?><div class="grand"><span>Total</span><span>₱<?= number_format(order_amount_due($order), 2) ?></span></div>
   </div>
 
   <button class="print-btn" onclick="window.print()">Print</button>

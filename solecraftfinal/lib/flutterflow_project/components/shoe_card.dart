@@ -16,6 +16,7 @@ final class ShoeCardComponentHandle extends ffai.ProjectComponentHandle<ShoeCard
           "badge": ffai.string,
           "imageUrl": ffai.string,
           "priceLabel": ffai.string,
+          "rating": ffai.string,
           "sub": ffai.string,
           "title": ffai.string,
         },
@@ -27,6 +28,7 @@ final class ShoeCardComponentHandle extends ffai.ProjectComponentHandle<ShoeCard
     Object? badge = ffai.kUnsetComponentArg,
     Object? imageUrl = ffai.kUnsetComponentArg,
     Object? priceLabel = ffai.kUnsetComponentArg,
+    Object? rating = ffai.kUnsetComponentArg,
     Object? sub = ffai.kUnsetComponentArg,
     Object? title = ffai.kUnsetComponentArg,
   }) {
@@ -37,6 +39,7 @@ final class ShoeCardComponentHandle extends ffai.ProjectComponentHandle<ShoeCard
         if (!ffai.isUnsetComponentArg(badge)) "badge": badge,
         if (!ffai.isUnsetComponentArg(imageUrl)) "imageUrl": imageUrl,
         if (!ffai.isUnsetComponentArg(priceLabel)) "priceLabel": priceLabel,
+        if (!ffai.isUnsetComponentArg(rating)) "rating": rating,
         if (!ffai.isUnsetComponentArg(sub)) "sub": sub,
         if (!ffai.isUnsetComponentArg(title)) "title": title,
       },
@@ -62,6 +65,12 @@ final class ShoeCardParams {
       const ffai.ProjectParamHandle(
         name: "priceLabel",
         key: "xpdh59fk",
+        typeName: "String",
+      );
+  ffai.ProjectParamHandle get rating =>
+      const ffai.ProjectParamHandle(
+        name: "rating",
+        key: "vxrwssfi",
         typeName: "String",
       );
   ffai.ProjectParamHandle get sub =>
@@ -171,9 +180,15 @@ abstract final class ShoeCardWidgets {
                           name: "Text",
                         ),
                         ffai.ProjectWidgetHandle(
-                          key: "Text_4z5ux1mq",
+                          key: "Text_en9857fk",
                           type: "Text",
                           path: "ShoeCard.children[0].children[0].children[1].children[0].children[2]",
+                          name: "cardRating",
+                        ),
+                        ffai.ProjectWidgetHandle(
+                          key: "Text_4z5ux1mq",
+                          type: "Text",
+                          path: "ShoeCard.children[0].children[0].children[1].children[0].children[3]",
                           name: "Text",
                         ),
                       ],

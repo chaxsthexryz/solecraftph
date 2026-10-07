@@ -54,7 +54,27 @@ function api_with_image_url(array $product): array
     // the app behaves exactly as before until the catalogue is counted.
     $product['available_sizes'] = product_available_sizes((int) $product['id']);
 
+    // Every photo, absolute: the gallery on Shoe details swipes through these.
+    $origin = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http')
+        . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
+    $product['images'] = array_map(
+        fn ($u) => preg_match('#^https?://#i', $u) ? $u : $origin . $u,
+        product_gallery(array_merge($product, ['image' => $raw]))
+    );
+
     return $product;
+}
+
+/** Adds avg_rating and review_count (0 when unreviewed) to each product. */
+function api_with_ratings(array $products): array
+{
+    $ratings = product_ratings(array_column($products, 'id'));
+    foreach ($products as &$p) {
+        $r = $ratings[(int) $p['id']] ?? ['avg' => 0, 'count' => 0];
+        $p['avg_rating']   = $r['avg'];
+        $p['review_count'] = $r['count'];
+    }
+    return $products;
 }
 
 $method = $_SERVER['REQUEST_METHOD'];
@@ -68,7 +88,7 @@ if ($method === 'GET') {
             echo json_encode(['error' => 'Product not found']);
             exit;
         }
-        echo json_encode(api_with_image_url($product));
+        echo json_encode(api_with_ratings([api_with_image_url($product)])[0]);
         exit;
     }
 
@@ -77,7 +97,7 @@ if ($method === 'GET') {
     $subcategory = trim($_GET['subcategory'] ?? '');
 
     $products = $q !== '' ? product_search($q) : product_list($category ?: null, $subcategory ?: null);
-    $products = array_map('api_with_image_url', $products);
+    $products = api_with_ratings(array_map('api_with_image_url', $products));
     echo json_encode(['count' => count($products), 'products' => $products]);
     exit;
 }

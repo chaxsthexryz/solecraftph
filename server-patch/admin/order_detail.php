@@ -131,7 +131,7 @@ require __DIR__ . '/_nav.php';
       </tbody>
     </table>
     </div>
-    <div class="cart-summary"><div class="cart-summary__box"><div class="cart-summary__row total"><span>Total</span><span>₱<?= number_format($order['total_amount'], 2) ?></span></div></div></div>
+    <div class="cart-summary"><div class="cart-summary__box"><?php $ship = settings_shipping_for((float) $order['total_amount']); ?><div class="cart-summary__row"><span>Shipping</span><span><?= $ship == 0 ? 'Free' : '₱' . number_format($ship, 2) ?></span></div><?php if ((float) ($order['discount_amount'] ?? 0) > 0): ?><div class="cart-summary__row"><span>Voucher <?= htmlspecialchars((string) $order['voucher_code']) ?></span><span>−₱<?= number_format((float) $order['discount_amount'], 2) ?></span></div><?php endif; ?><div class="cart-summary__row total"><span>Total</span><span>₱<?= number_format(order_amount_due($order), 2) ?></span></div></div></div>
 
     <div class="form-grid" style="margin-top:10px;">
       <div class="panel">

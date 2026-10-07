@@ -36,7 +36,31 @@ $prefill = [
     'address' => $_POST['address'] ?? ($chosen['address'] ?? ($currentUser['address'] ?? '')),
 ];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+// Voucher: Apply / Remove post here on their own and keep the code in the
+// session; the summary re-checks it on every load, and order_create checks it
+// once more when the order is placed.
+$voucherMessage = '';
+if (($_POST['voucher_action'] ?? '') === 'apply') {
+    $q = voucher_quote((string) ($_POST['voucher_code'] ?? ''), cart_total());
+    $voucherMessage = $q['message'];
+    if ($q['ok']) {
+        $_SESSION['voucher_code'] = $q['code'];
+    }
+} elseif (($_POST['voucher_action'] ?? '') === 'remove') {
+    unset($_SESSION['voucher_code']);
+}
+$voucher = null;
+if (!empty($_SESSION['voucher_code']) && $items) {
+    $voucher = voucher_quote($_SESSION['voucher_code'], cart_total());
+    if (!$voucher['ok']) {
+        $voucherMessage = $voucher['message'];
+        $voucher = null;
+        unset($_SESSION['voucher_code']);
+    }
+}
+$discount = $voucher ? $voucher['discount'] : 0.0;
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['voucher_action'])) {
     if (empty($items)) {
         $error = 'Your cart is empty.';
     } else {
@@ -67,7 +91,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'latitude'       => $chosen['latitude'] ?? '',
                     'longitude'      => $chosen['longitude'] ?? '',
                     'payment_method' => $payment,
+                    'voucher_code'   => $voucher['code'] ?? '',
                 ], $items);
+                unset($_SESSION['voucher_code']);
 
                 order_update_status($orderId, 'pending', 'Order placed.');
                 notification_notify_admins('New Order', 'Order #' . str_pad((string) $orderId, 6, '0', STR_PAD_LEFT) . ' placed by ' . $name . '.');
@@ -92,7 +118,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             settings_shipping_for(cart_total()),
                             [strtolower($payment)],
                             $origin . BASE_PATH . '/order_success.php?id=' . $orderId,
-                            $origin . BASE_PATH . '/checkout.php'
+                            $origin . BASE_PATH . '/checkout.php',
+                            $discount
                         );
                         order_set_checkout_session($orderId, $session['session_id']);
                         cart_clear();
@@ -175,7 +202,27 @@ require __DIR__ . '/includes/header.php';
         <div class="cart-summary__row"><span><?= htmlspecialchars($item['name']) ?> &times; <?= (int) $item['qty'] ?></span><span>₱<?= number_format($item['price'] * $item['qty'], 2) ?></span></div>
       <?php endforeach; ?>
       <div class="cart-summary__row"><span>Shipping</span><span><?= settings_shipping_for(cart_total()) == 0 ? 'Free' : '₱' . number_format(settings_shipping_for(cart_total()), 2) ?></span></div>
-      <div class="cart-summary__row total"><span>Total</span><span>₱<?= number_format(cart_total() + ($items ? settings_shipping_for(cart_total()) : 0), 2) ?></span></div>
+      <?php if ($voucher): ?>
+        <div class="cart-summary__row"><span>Voucher <?= htmlspecialchars($voucher['code']) ?></span><span>−₱<?= number_format($discount, 2) ?></span></div>
+      <?php endif; ?>
+      <div class="cart-summary__row total"><span>Total</span><span>₱<?= number_format(max(0, cart_total() + ($items ? settings_shipping_for(cart_total()) : 0) - $discount), 2) ?></span></div>
+
+      <?php if ($items): ?>
+      <form method="post" action="<?= BASE_PATH ?>/checkout.php<?= $chosen ? '?address=' . (int) $chosen['id'] : '' ?>" style="margin-top:18px;">
+        <?php if ($voucher): ?>
+          <input type="hidden" name="voucher_action" value="remove">
+          <button type="submit" class="btn btn--sm">Remove voucher</button>
+        <?php else: ?>
+          <input type="hidden" name="voucher_action" value="apply">
+          <label class="mono" for="voucher_code" style="display:block;margin-bottom:6px;">Voucher code</label>
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="voucher_code" name="voucher_code" placeholder="WELCOME10" autocomplete="off" style="flex:1;text-transform:uppercase;">
+            <button type="submit" class="btn btn--sm">Apply</button>
+          </div>
+        <?php endif; ?>
+        <?php if ($voucherMessage && !$voucher): ?><p style="margin-top:8px;font-size:13px;color:var(--blaze);"><?= htmlspecialchars($voucherMessage) ?></p><?php endif; ?>
+      </form>
+      <?php endif; ?>
     </div>
   </div>
 </section>

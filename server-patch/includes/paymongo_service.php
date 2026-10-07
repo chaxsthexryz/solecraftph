@@ -23,10 +23,22 @@ function paymongo_create_checkout_session(
     float $shippingFee,
     array $paymentMethodTypes,
     string $successUrl,
-    string $cancelUrl
+    string $cancelUrl,
+    float $discount = 0.0
 ): array {
     if (PAYMONGO_SECRET_KEY === '') {
         throw new RuntimeException('PayMongo is not configured (PAYMONGO_SECRET_KEY is empty).');
+    }
+
+    // PayMongo line items cannot be negative, so a voucher order is billed as
+    // one line for the discounted total.
+    if ($discount > 0) {
+        $due = $shippingFee - $discount;
+        foreach ($cartItems as $item) {
+            $due += $item['price'] * $item['qty'];
+        }
+        $cartItems   = [['name' => 'SoleCraftPH order #' . str_pad((string) $orderId, 6, '0', STR_PAD_LEFT), 'price' => max(0, $due), 'qty' => 1]];
+        $shippingFee = 0.0;
     }
 
     $lineItems = [];

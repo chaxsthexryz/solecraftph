@@ -530,6 +530,55 @@ void buildStarterEditFlow(App app) {
     response: okMessage,
   );
 
+  // Vouchers at checkout: Apply previews the discount; the order carries the
+  // code and api/orders.php re-checks it. A new CreateOrder endpoint rather
+  // than a new variable on CreateOrderPinned — endpoint shapes are
+  // create-if-missing and changing one throws on every rerun.
+  final voucherQuote = app.struct('VoucherQuote', {
+    'ok': bool_,
+    'message': string,
+    'code': string,
+    'discount': double_,
+  }, description: 'Answer from POST /orders.php?action=voucher.');
+  final checkVoucher = Endpoint.post(
+    'CheckVoucher',
+    '/orders.php?action=voucher',
+    variables: {'code': string, 'items': json},
+    body: const {'code': '<code>', 'items': '<items>'},
+    response: voucherQuote,
+  );
+  final createOrderVoucher = Endpoint.post(
+    'CreateOrderVoucher',
+    '/orders.php',
+    variables: {
+      'token': string,
+      'name': string,
+      'email': string,
+      'phone': string,
+      'address': string,
+      'payment': string,
+      'latitude': string,
+      'longitude': string,
+      'voucher': string,
+      'items': json,
+    },
+    headers: {'Authorization': 'Bearer [token]'},
+    body: const {
+      'customer': {
+        'name': '<name>',
+        'email': '<email>',
+        'phone': '<phone>',
+        'address': '<address>',
+        'payment_method': '<payment>',
+        'latitude': '<latitude>',
+        'longitude': '<longitude>',
+        'voucher_code': '<voucher>',
+      },
+      'items': '<items>',
+    },
+    response: ff.Structs.orderCreated,
+  );
+
   // Return request on a shipped or delivered order. Same {ok, message, order}
   // answer as cancel, so it reuses CancelResult.
   final returnOrder = Endpoint.post(
@@ -1810,6 +1859,8 @@ return (rows ?? <AddressRowStruct>[]).isEmpty;
       forgotPassword,
       returnOrder,
       deleteAccount,
+      checkVoucher,
+      createOrderVoucher,
       getProfile,
       updateProfile,
       changePassword,
@@ -3840,6 +3891,9 @@ return next;
     // customer typed their address by hand, or picked one with no pin.
     state.ensureField('pickedLat', string.withDefault(''));
     state.ensureField('pickedLng', string.withDefault(''));
+    // The applied voucher, set by Apply; empty / 0 when none.
+    state.ensureField('voucherCode', string.withDefault(''));
+    state.ensureField('discount', double_.withDefault(0));
   });
   // ---------------------------------------------------------------------------
   // 8b. Checkout — hand GCash / Card orders to PayMongo
@@ -3859,7 +3913,7 @@ return next;
         const ValidateForm('checkoutForm'),
         SetState(ff.Pages.checkout.state.placing, true),
         ApiCall(
-          createOrderPinned,
+          createOrderVoucher,
           outputAs: 'placeOrderRes',
           params: {
             'token': AppState(ff.AppState.authToken),
@@ -3870,6 +3924,7 @@ return next;
             'payment': State(ff.Pages.checkout.state.payMethod),
             'latitude': State('pickedLat'),
             'longitude': State('pickedLng'),
+            'voucher': State('voucherCode'),
             'items': CustomFunction(
               CustomFunctionHandle(
                 name: 'orderItems',
@@ -5861,7 +5916,465 @@ return 'https://snow-jellyfish-553645.hostingersite.com/assets/icons/icon-512.pn
   _sizeTileAndCheckoutNameFixes(app);
   _returnRequest(app, returnOrder: returnOrder);
   _aboutAndDeleteAccount(app, deleteAccount: deleteAccount);
+  _shopExtras(app, checkVoucher: checkVoucher);
 }
+
+// -----------------------------------------------------------------------------
+// Feature: star ratings on shop cards, a 3-photo gallery with full-screen pinch
+// zoom on Shoe details, and a voucher code at checkout
+// -----------------------------------------------------------------------------
+//
+// Two passes. The first run adds the Shoe fields (images, avg_rating,
+// review_count), the card's `rating` param and the voucher widgets; the second
+// binds them, because an expression can only name a field or widget that the
+// typed SDK already knows about.
+
+void _shopExtras(App app, {required Endpoint checkVoucher}) {
+  app.raw((project) {
+    for (final f in <(String, FFBaseDataType, bool, String)>[
+      ('images', FFBaseDataType.String, true, 'Photo URLs, main one first.'),
+      ('avg_rating', FFBaseDataType.Double, false, 'Average approved review rating.'),
+      ('review_count', FFBaseDataType.Integer, false, 'Number of approved reviews.'),
+    ]) {
+      if (findDataStructField(project, structName: 'Shoe', fieldName: f.$1) == null) {
+        addDataStructField(
+          project,
+          structName: 'Shoe',
+          fieldName: f.$1,
+          type: FFDataTypeV2(scalarType: f.$2),
+          isList: f.$3,
+          description: f.$4,
+        );
+      }
+    }
+  });
+  app.editComponentParams(ff.Components.shoeCard, (p) {
+    p.ensureParam('rating', string, description: '"★ 4.6 (12)", or empty.');
+  });
+
+  final starLabel = app.customFunction(
+    'starLabel',
+    args: {'average': double_, 'count': int_},
+    returns: string,
+    code: r'''
+final n = count ?? 0;
+if (n == 0) return '';
+return '★ ${(average ?? 0).toStringAsFixed(1)} ($n)';
+''',
+    description: 'Card rating: "★ 4.6 (12)", empty when unreviewed.',
+  );
+  final checkoutTotal = app.customFunction(
+    'checkoutTotal',
+    args: {'items': listOf(ff.Structs.bagItem), 'discount': double_},
+    returns: string,
+    code: r'''
+final t = (bagTotal(items) ?? 0) - (discount ?? 0);
+return pesoN(t < 0 ? 0 : t);
+''',
+    description: 'Order total after the voucher, in pesos.',
+  );
+  final minusPeso = app.customFunction(
+    'minusPeso',
+    args: {'amount': double_},
+    returns: string,
+    code: r'''return '−' + (pesoN(amount) ?? '');''',
+    description: 'A discount line: "−₱820.00".',
+  );
+  final shoeGallery = _customWidget(
+    app,
+    'ShoeGallery',
+    parameters: {
+      'images': listOf(string),
+      'fallbackUrl': string.withDefault(''),
+      'tileHeight': double_.withDefault(300),
+    },
+    code: _shoeGalleryCode,
+    description: 'Swipeable product photos; tap for full screen with pinch zoom.',
+  );
+
+  final pass2 = ff.Structs.shoe.fields.containsKey('avg_rating');
+  final bag = AppState(ff.AppState.bag);
+  final orderItems = CustomFunction(
+    CustomFunctionHandle(
+      name: 'orderItems',
+      args: {'items': listOf(ff.Structs.bagItem)},
+      returnType: json,
+    ),
+    args: {'items': bag},
+  );
+
+  // --- Shop card: the rating line under the subcategory ---------------------
+  if (!ff.Components.shoeCard.widgets.all.any((w) => w.name == 'cardRating')) {
+    app.editComponent(ff.Components.shoeCard, (c) {
+      c.ensureInsertedAfter(
+        c.findByKey('Text_4xy0b8zk'), // subcategory line
+        Text(
+          Param('rating'),
+          name: 'cardRating',
+          style: Styles.bodySmall,
+          color: Colors.hex(0xFFE8A317),
+          visible: Not(Equals(Param('rating'), '')),
+        ),
+      );
+    });
+  }
+  if (pass2) {
+    app.editPage(ff.Pages.shop, (page) {
+      page.setComponentParam(
+        page.findByKey('Container_er1fj8un'), // ShoeCard in the grid
+        'rating',
+        CustomFunction(
+          starLabel,
+          args: {
+            'average': ItemRef()['avg_rating'],
+            'count': ItemRef()['review_count'],
+          },
+        ),
+      );
+    });
+  }
+
+  // --- Shoe details: TileImage -> ShoeGallery ------------------------------
+  if (pass2 && !ff.Pages.shoeDetails.widgets.all.any((w) => w.name == 'heroGallery')) {
+    final shoe = State(ff.Pages.shoeDetails.state.shoe);
+    app.editPage(ff.Pages.shoeDetails, (page) {
+      page.ensureReplaced(
+        page.findByKey('Container_d5whpbey'), // heroTile
+        shoeGallery(
+          name: 'heroGallery',
+          images: shoe['images'],
+          fallbackUrl: CustomFunction(
+            CustomFunctionHandle(
+              name: 'imgUrl',
+              args: {'image': string, 'id': int_},
+              returnType: string,
+            ),
+            args: {'image': shoe['image'], 'id': shoe['id']},
+          ),
+          tileHeight: 300.0,
+        ),
+      );
+    });
+  }
+
+  // --- Checkout: voucher field, Apply, a discount row, the new total --------
+  final voucherRow = ff.Pages.checkout.widgets.all
+      .where((w) => w.name == 'voucherApply')
+      .firstOrNull;
+  if (voucherRow == null) {
+    app.editPage(ff.Pages.checkout, (page) {
+      // Discount row first, then the voucher field after the same anchor, so
+      // the field sits above it: only existing widgets can be anchors.
+      page.ensureInsertedAfter(
+        page.findByKey('Divider_26zla8m6'),
+        Row(
+          name: 'discountRow',
+          mainAxis: MainAxis.spaceBetween,
+          visible: Not(Equals(State('voucherCode'), '')),
+          children: [
+            Text('Voucher', style: Styles.bodyMedium, color: Colors.secondaryText),
+            Text(
+              CustomFunction(minusPeso, args: {'amount': State('discount')}),
+              name: 'discountText',
+              style: Styles.bodyMedium,
+              color: Colors.success,
+            ),
+          ],
+        ),
+      );
+      page.ensureInsertedAfter(
+        page.findByKey('Divider_26zla8m6'),
+        Row(
+          name: 'voucherRow',
+          spacing: 10,
+          children: [
+            Expanded(
+              TextField(label: 'Voucher code', name: 'coVoucher'),
+            ),
+            Button(
+              'Apply',
+              name: 'voucherApply',
+              height: 48,
+              borderRadius: 24,
+              color: Colors.secondaryBackground,
+              textColor: Colors.primaryText,
+            ),
+          ],
+        ),
+      );
+    });
+  } else {
+    app.editPage(ff.Pages.checkout, (page) {
+      page.ensureActions(
+        page.findByKey(voucherRow.key),
+        triggerType: FFActionTriggerType.ON_TAP,
+        actions: [
+          ApiCall(
+            checkVoucher,
+            outputAs: 'voucherRes',
+            params: {
+              'code': WidgetState('coVoucher', WidgetStateProperty.text),
+              'items': orderItems,
+            },
+            onSuccess: (res) => [
+              If(
+                res['ok'],
+                then: [
+                  SetState('voucherCode', res['code']),
+                  SetState('discount', res['discount']),
+                ],
+                orElse: [
+                  SetState('voucherCode', ''),
+                  SetState('discount', 0),
+                ],
+              ),
+              Snackbar(res['message']),
+            ],
+            onFailure: [
+              Snackbar('Could not check that voucher. Check your connection.'),
+            ],
+          ),
+        ],
+      );
+    });
+  }
+  // "Order total" now takes the voucher off. Replaced rather than rebound: the
+  // old text's binding did not yield to bindText.
+  if (!ff.Pages.checkout.widgets.all.any((w) => w.name == 'orderTotalText')) {
+    app.editPage(ff.Pages.checkout, (page) {
+      page.ensureReplaced(
+        page.findByKey('Text_hb4ipyla'),
+        Text(
+          CustomFunction(
+            checkoutTotal,
+            args: {'items': bag, 'discount': State('discount')},
+          ),
+          name: 'orderTotalText',
+          style: Styles.titleMedium,
+        ),
+      );
+    });
+  }
+}
+
+const _shoeGalleryCode = r'''
+import 'package:cached_network_image/cached_network_image.dart';
+
+/// The product photos on a mist tile, swipeable, with dots. Tap a photo for a
+/// full-screen viewer: swipe between photos, pinch or double-tap to zoom.
+class ShoeGallery extends StatefulWidget {
+  const ShoeGallery({
+    super.key,
+    this.width,
+    this.height,
+    this.images,
+    this.fallbackUrl,
+    this.tileHeight,
+  });
+
+  final double? width;
+  final double? height;
+  final List<String>? images;
+  final String? fallbackUrl;
+  final double? tileHeight;
+
+  @override
+  State<ShoeGallery> createState() => _ShoeGalleryState();
+}
+
+class _ShoeGalleryState extends State<ShoeGallery> {
+  int _page = 0;
+
+  List<String> get _urls {
+    final urls = (widget.images ?? const <String>[])
+        .where((u) => u.isNotEmpty)
+        .toList();
+    if (urls.isEmpty && (widget.fallbackUrl ?? '').isNotEmpty) {
+      urls.add(widget.fallbackUrl!);
+    }
+    return urls;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    final tile = theme.accent2;
+    final urls = _urls;
+    final h = widget.tileHeight ?? 300;
+    if (_page >= urls.length) _page = 0;
+    return SizedBox(
+      width: widget.width ?? double.infinity,
+      height: h + 24,
+      child: Column(
+        children: [
+          Container(
+            height: h,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: tile,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: urls.isEmpty
+                ? null
+                : PageView.builder(
+                    itemCount: urls.length,
+                    onPageChanged: (i) => setState(() => _page = i),
+                    itemBuilder: (context, i) => GestureDetector(
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          fullscreenDialog: true,
+                          builder: (_) => _ZoomViewer(urls: urls, start: i),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: CachedNetworkImage(
+                          imageUrl: urls[i],
+                          fit: BoxFit.contain,
+                          color: tile,
+                          colorBlendMode: BlendMode.multiply,
+                          fadeInDuration: Duration.zero,
+                        ),
+                      ),
+                    ),
+                  ),
+          ),
+          const SizedBox(height: 12),
+          if (urls.length > 1)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (var i = 0; i < urls.length; i++)
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    width: i == _page ? 18 : 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: i == _page ? theme.primaryText : theme.alternate,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ZoomViewer extends StatefulWidget {
+  const _ZoomViewer({required this.urls, required this.start});
+
+  final List<String> urls;
+  final int start;
+
+  @override
+  State<_ZoomViewer> createState() => _ZoomViewerState();
+}
+
+class _ZoomViewerState extends State<_ZoomViewer> {
+  late final PageController _pages = PageController(initialPage: widget.start);
+  late int _at = widget.start;
+
+  @override
+  void dispose() {
+    _pages.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Stack(
+        children: [
+          PageView.builder(
+            controller: _pages,
+            itemCount: widget.urls.length,
+            onPageChanged: (i) => setState(() => _at = i),
+            itemBuilder: (context, i) => _ZoomPage(url: widget.urls[i]),
+          ),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: IconButton(
+                icon: Icon(Icons.close, color: theme.primaryText, size: 28),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Text(
+                  '${_at + 1} / ${widget.urls.length}  ·  pinch or double-tap to zoom',
+                  style: TextStyle(color: theme.secondaryText, fontSize: 13),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One photo, pinch to zoom, double-tap to zoom in on the tapped spot.
+class _ZoomPage extends StatefulWidget {
+  const _ZoomPage({required this.url});
+
+  final String url;
+
+  @override
+  State<_ZoomPage> createState() => _ZoomPageState();
+}
+
+class _ZoomPageState extends State<_ZoomPage> {
+  final _zoom = TransformationController();
+  Offset _tap = Offset.zero;
+
+  @override
+  void dispose() {
+    _zoom.dispose();
+    super.dispose();
+  }
+
+  void _toggle() {
+    if (_zoom.value.getMaxScaleOnAxis() > 1) {
+      _zoom.value = Matrix4.identity();
+    } else {
+      const s = 2.5;
+      _zoom.value = Matrix4.identity()
+        ..translate(-_tap.dx * (s - 1), -_tap.dy * (s - 1))
+        ..scale(s);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onDoubleTapDown: (d) => _tap = d.localPosition,
+      onDoubleTap: _toggle,
+      child: InteractiveViewer(
+        transformationController: _zoom,
+        minScale: 1,
+        maxScale: 4,
+        child: Center(
+          child: CachedNetworkImage(
+            imageUrl: widget.url,
+            fit: BoxFit.contain,
+            fadeInDuration: Duration.zero,
+          ),
+        ),
+      ),
+    );
+  }
+}
+''';
 
 // -----------------------------------------------------------------------------
 // Feature: About screen (version, policies) and Delete account on Profile —

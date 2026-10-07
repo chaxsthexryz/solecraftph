@@ -5,6 +5,7 @@
  */
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/product_service.php';
+require_once __DIR__ . '/voucher_service.php';
 
 /**
  * @param array $customer  ['name','email','phone','address','payment_method','user_id']
@@ -135,9 +136,25 @@ function order_create(array $customer, array $cartItems): int
             $lng = null;
         }
 
+        // The voucher, checked again here against the real total: what Apply
+        // showed was a preview, this is the answer. Counted inside the same
+        // transaction, so a failed order never uses one up.
+        $voucherCode = voucher_normalize((string) ($customer['voucher_code'] ?? ''));
+        $discount = 0.0;
+        if ($voucherCode !== '') {
+            $quote = voucher_quote($voucherCode, $total);
+            if (!$quote['ok']) {
+                throw new RuntimeException($quote['message']);
+            }
+            if (!voucher_redeem($voucherCode)) {
+                throw new RuntimeException('That voucher has been fully used.');
+            }
+            $discount = $quote['discount'];
+        }
+
         $stmt = $db->prepare(
-            'INSERT INTO orders (user_id, customer_name, customer_email, customer_phone, customer_address, latitude, longitude, payment_method, total_amount, status)
-             VALUES (:user_id, :name, :email, :phone, :address, :latitude, :longitude, :payment_method, :total, "pending")'
+            'INSERT INTO orders (user_id, customer_name, customer_email, customer_phone, customer_address, latitude, longitude, payment_method, total_amount, voucher_code, discount_amount, status)
+             VALUES (:user_id, :name, :email, :phone, :address, :latitude, :longitude, :payment_method, :total, :voucher, :discount, "pending")'
         );
         $stmt->execute([
             ':user_id'        => $customer['user_id'] ?? null,
@@ -149,6 +166,8 @@ function order_create(array $customer, array $cartItems): int
             ':longitude'      => $lng,
             ':payment_method' => $customer['payment_method'] ?? 'COD',
             ':total'          => $total,
+            ':voucher'        => $voucherCode !== '' ? $voucherCode : null,
+            ':discount'       => $discount,
         ]);
         $orderId = (int) $db->lastInsertId();
 
@@ -173,7 +192,7 @@ function order_create(array $customer, array $cartItems): int
         // mail failure can never roll back or fail an order that is already paid
         // for — the customer's money matters more than their receipt.
         try {
-            order_send_confirmation_email($orderId, $customer, $lines, $total);
+            order_send_confirmation_email($orderId, $customer, $lines, $total, $discount);
         } catch (Throwable $mailError) {
             require_once __DIR__ . '/mail_service.php';
             mail_log('ORDER   confirmation failed for #' . $orderId . ': ' . $mailError->getMessage());
@@ -592,7 +611,8 @@ function order_send_confirmation_email(
     int $orderId,
     array $customer,
     array $lines,
-    float $total
+    float $total,
+    float $discount = 0.0
 ): void {
     require_once __DIR__ . '/mail_service.php';
     require_once __DIR__ . '/settings_service.php';
@@ -633,9 +653,13 @@ function order_send_confirmation_email(
         . '<tr><td style="padding:6px 0;">Shipping</td>'
         . '<td style="padding:6px 0;text-align:right;">'
         . ($shipping == 0 ? 'Free' : '₱' . number_format($shipping, 2)) . '</td></tr>'
+        . ($discount > 0
+            ? '<tr><td style="padding:6px 0;">Voucher ' . htmlspecialchars(voucher_normalize((string) ($customer['voucher_code'] ?? ''))) . '</td>'
+              . '<td style="padding:6px 0;text-align:right;">−₱' . number_format($discount, 2) . '</td></tr>'
+            : '')
         . '<tr><td style="padding:10px 0 0;font-weight:600;">Total</td>'
         . '<td style="padding:10px 0 0;text-align:right;font-weight:600;">₱'
-        . number_format($total + $shipping, 2) . '</td></tr>'
+        . number_format(max(0, $total + $shipping - $discount), 2) . '</td></tr>'
         . '</table>'
         . '<p style="margin:20px 0 0;">Delivering to<br><span style="color:#8A8578;">'
         . nl2br(htmlspecialchars((string) ($customer['address'] ?? ''))) . '</span></p>'

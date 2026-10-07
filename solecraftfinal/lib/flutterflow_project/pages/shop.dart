@@ -292,19 +292,19 @@ abstract final class ShopWidgets {
                 ],
               ),
               ffai.ProjectWidgetHandle(
-                key: "Container_b5clix39",
+                key: "Container_5psvmj3w",
                 type: "Container",
                 path: "Shop.body[0].children[4]",
                 name: "subcategoryRow",
                 children: <ffai.ProjectWidgetHandle>[
                   ffai.ProjectWidgetHandle(
-                    key: "ListView_5xuf736j",
+                    key: "ListView_nl073pdf",
                     type: "ListView",
                     path: "Shop.body[0].children[4].children[0]",
                     name: "subcategoryList",
                     children: <ffai.ProjectWidgetHandle>[
                       ffai.ProjectWidgetHandle(
-                        key: "Container_2euu5w2n",
+                        key: "Container_9eiout3g",
                         type: "Container",
                         path: "Shop.body[0].children[4].children[0].children[0]",
                         name: "subcategoryChip",
@@ -313,7 +313,7 @@ abstract final class ShopWidgets {
                         ],
                         children: <ffai.ProjectWidgetHandle>[
                           ffai.ProjectWidgetHandle(
-                            key: "Container_2n6b6w7o",
+                            key: "Container_l92cc8by",
                             type: "Container",
                             path: "Shop.body[0].children[4].children[0].children[0].children[0]",
                             name: "CatChip",

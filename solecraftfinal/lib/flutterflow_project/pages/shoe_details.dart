@@ -127,10 +127,10 @@ abstract final class ShoeDetailsWidgets {
                 name: "heroBox",
                 children: <ffai.ProjectWidgetHandle>[
                   ffai.ProjectWidgetHandle(
-                    key: "Container_d5whpbey",
+                    key: "Container_tkpo4zow",
                     type: "Container",
                     path: "ShoeDetails.body[0].children[0].children[0]",
-                    name: "heroTile",
+                    name: "heroGallery",
                   ),
                 ],
               ),

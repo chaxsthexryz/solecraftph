@@ -218,13 +218,97 @@ require __DIR__ . '/includes/header.php';
 
 <section class="section">
   <div class="wrap product-layout" style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;">
-    <div class="card__frame" style="cursor:default;">
-      <?php if ($img): ?>
-        <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($product['name']) ?>" style="width:100%;height:100%;object-fit:cover;">
-      <?php else: ?>
-        <svg viewBox="0 0 300 160"><use href="#shoe"/></svg>
+    <?php $gallery = product_gallery($product); ?>
+    <?php if ($gallery): ?>
+    <div class="gallery">
+      <div class="card__frame gallery__main">
+        <button type="button" class="gallery__open" aria-label="Zoom photo">
+          <img id="galleryMain" src="<?= htmlspecialchars($gallery[0]) ?>" alt="<?= htmlspecialchars($product['name']) ?>">
+        </button>
+        <?php if (count($gallery) > 1): ?>
+          <button type="button" class="gallery__nav gallery__nav--prev" data-step="-1" aria-label="Previous photo">&lsaquo;</button>
+          <button type="button" class="gallery__nav gallery__nav--next" data-step="1" aria-label="Next photo">&rsaquo;</button>
+        <?php endif; ?>
+      </div>
+      <?php if (count($gallery) > 1): ?>
+      <div class="gallery__thumbs">
+        <?php foreach ($gallery as $i => $g): ?>
+          <button type="button" class="gallery__thumb<?= $i === 0 ? ' is-active' : '' ?>" data-index="<?= $i ?>" aria-label="Photo <?= $i + 1 ?>">
+            <img src="<?= htmlspecialchars($g) ?>" alt="" loading="lazy">
+          </button>
+        <?php endforeach; ?>
+      </div>
       <?php endif; ?>
     </div>
+
+    <div class="lightbox" id="lightbox" hidden role="dialog" aria-modal="true" aria-label="<?= htmlspecialchars($product['name']) ?> photos">
+      <button type="button" class="lightbox__close" aria-label="Close">&times;</button>
+      <button type="button" class="lightbox__nav lightbox__nav--prev" data-step="-1" aria-label="Previous photo">&lsaquo;</button>
+      <div class="lightbox__stage"><img id="lightboxImg" src="" alt="<?= htmlspecialchars($product['name']) ?>"></div>
+      <button type="button" class="lightbox__nav lightbox__nav--next" data-step="1" aria-label="Next photo">&rsaquo;</button>
+      <p class="lightbox__hint mono">Click the photo to zoom · Esc to close</p>
+    </div>
+
+    <script>
+    (function () {
+      var photos = <?= json_encode($gallery, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>;
+      var at = 0;
+      var main = document.getElementById('galleryMain');
+      var box = document.getElementById('lightbox');
+      var big = document.getElementById('lightboxImg');
+      var thumbs = document.querySelectorAll('.gallery__thumb');
+
+      function show(i) {
+        at = (i + photos.length) % photos.length;
+        main.src = photos[at];
+        big.src = photos[at];
+        big.classList.remove('is-zoomed');
+        thumbs.forEach(function (t, n) { t.classList.toggle('is-active', n === at); });
+      }
+      function open() { box.hidden = false; big.src = photos[at]; document.body.style.overflow = 'hidden'; }
+      function close() { box.hidden = true; big.classList.remove('is-zoomed'); document.body.style.overflow = ''; }
+
+      document.querySelectorAll('[data-step]').forEach(function (b) {
+        b.addEventListener('click', function (e) { e.stopPropagation(); show(at + Number(b.dataset.step)); });
+      });
+      thumbs.forEach(function (t) { t.addEventListener('click', function () { show(Number(t.dataset.index)); }); });
+      document.querySelector('.gallery__open').addEventListener('click', open);
+      box.querySelector('.lightbox__close').addEventListener('click', close);
+      box.addEventListener('click', function (e) { if (e.target === box) close(); });
+
+      // Click to zoom where you clicked; move the mouse to look around.
+      function aim(e) {
+        var r = big.getBoundingClientRect();
+        big.style.transformOrigin = ((e.clientX - r.left) / r.width * 100) + '% ' + ((e.clientY - r.top) / r.height * 100) + '%';
+      }
+      big.addEventListener('click', function (e) { aim(e); big.classList.toggle('is-zoomed'); });
+      big.addEventListener('mousemove', function (e) { if (big.classList.contains('is-zoomed')) aim(e); });
+
+      document.addEventListener('keydown', function (e) {
+        if (box.hidden) return;
+        if (e.key === 'Escape') close();
+        if (e.key === 'ArrowLeft') show(at - 1);
+        if (e.key === 'ArrowRight') show(at + 1);
+      });
+
+      // Swipe on phones, on the page photo and in the lightbox.
+      [main.parentNode.parentNode, box].forEach(function (el) {
+        var x0 = null;
+        el.addEventListener('touchstart', function (e) { x0 = e.touches.length === 1 ? e.touches[0].clientX : null; }, { passive: true });
+        el.addEventListener('touchend', function (e) {
+          if (x0 === null || big.classList.contains('is-zoomed')) return;
+          var dx = e.changedTouches[0].clientX - x0;
+          if (Math.abs(dx) > 40) show(at + (dx < 0 ? 1 : -1));
+          x0 = null;
+        });
+      });
+    })();
+    </script>
+    <?php else: ?>
+    <div class="card__frame" style="cursor:default;">
+      <svg viewBox="0 0 300 160"><use href="#shoe"/></svg>
+    </div>
+    <?php endif; ?>
 
     <div>
       <div class="mono" style="color:var(--blaze);">

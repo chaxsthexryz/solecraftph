@@ -5,6 +5,8 @@
  * POST /api/orders.php       -> create an order
  * POST /api/orders.php?action=cancel -> customer cancels a pending order ({id})
  * POST /api/orders.php?action=return -> customer requests a return ({id, reason, details})
+ * POST /api/orders.php?action=voucher -> checks a voucher code ({code, items})
+ *      An order's customer may carry "voucher_code"; order_create applies it.
  *      body: { "customer": {name,email,phone,address,payment_method},
  *               "items": { "<product_id>|<size>": {"product_id":1,"size":"9","qty":1}, ... } }
  *
@@ -138,6 +140,27 @@ if ($method === 'POST' && ($_GET['action'] ?? '') === 'cancel') {
     exit;
 }
 
+/* ---------------------------------------------------------------------------
+ * POST /api/orders.php?action=voucher  body: {"code": "WELCOME10", "items": {...}}
+ *
+ * Checkout's Apply button. Prices the bag from the products table, like
+ * order_create does, and answers 200 {ok, message, code, discount}. Only a
+ * preview: the order re-checks the voucher when it is placed.
+ * ------------------------------------------------------------------------- */
+if ($method === 'POST' && ($_GET['action'] ?? '') === 'voucher') {
+    $input    = json_decode(file_get_contents('php://input') ?: '', true);
+    $input    = is_array($input) ? $input : [];
+    $subtotal = 0.0;
+    foreach ((array) ($input['items'] ?? []) as $key => $item) {
+        $product = product_find((int) ($item['product_id'] ?? explode('|', (string) $key)[0]));
+        if ($product) {
+            $subtotal += product_display_price($product) * max(1, (int) ($item['qty'] ?? 1));
+        }
+    }
+    echo json_encode(voucher_quote((string) ($input['code'] ?? ''), $subtotal));
+    exit;
+}
+
 if ($method === 'POST') {
     $input = json_decode(file_get_contents('php://input'), true);
     if (!$input || empty($input['customer']) || empty($input['items'])) {
@@ -196,7 +219,8 @@ if ($method === 'POST') {
                     // A phone-sized landing page rather than the full desktop
                     // storefront — this renders inside the app's payment WebView.
                     $origin . BASE_PATH . '/payment_return.php?id=' . $orderId,
-                    $origin . BASE_PATH . '/payment_return.php?id=' . $orderId . '&state=cancelled'
+                    $origin . BASE_PATH . '/payment_return.php?id=' . $orderId . '&state=cancelled',
+                    (float) ($order['discount_amount'] ?? 0)
                 );
                 order_set_checkout_session($orderId, $session['session_id']);
                 $checkoutUrl = $session['checkout_url'];
